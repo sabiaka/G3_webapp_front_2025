@@ -8,11 +8,11 @@
 
 <h1 align="center">
    <a href="https://themeselection.com/item/materio-free-mui-nextjs-admin-template" target="_blank" align="center">
-      Materio - Free MUI NextJS Admin Template
+      Materio - 無料 MUI NextJS 管理画面テンプレート
    </a>
 </h1>
 
-<p align="center">Most Powerful & Comprehensive Free MUI NextJS Admin Dashboard Template built for developers!</p>
+<p align="center">開発者向けの最もパワフルで包括的な無料MUI NextJS管理ダッシュボードテンプレート！</p>
 
 <p align="center">
    <a href="https://github.com/themeselection/materio-mui-nextjs-admin-template-free/blob/main/LICENSE">
@@ -29,165 +29,165 @@
 
 <kbd>[![Materio - Free MUI NextJS Admin Template Demo Screenshot](https://cdn.themeselection.com/ts-assets/materio/materio-mui-nextjs-admin-template-free/marketing/materio-mui-nextjs-admin-template-free-github.png)](https://themeselection.com/item/materio-free-mui-nextjs-admin-template)</kbd>
 
-## Introduction 🚀
+## はじめに 🚀
 
-If you're a developer looking for the most Powerful & comprehensive [Free MUI NextJS Admin Dashboard Template](https://themeselection.com/item/materio-free-mui-nextjs-admin-template) built for developers, rich with features, and highly customizable, look no further than Materio. We've followed the highest industry standards to bring you the very best admin template that is not only easy to use but highly scalable. Offering ultimate convenience and flexibility, you'll be able to build whatever application you want with very little hassle.
+開発者向けで、最もパワフルかつ包括的な[無料MUI NextJS管理ダッシュボードテンプレート](https://themeselection.com/item/materio-free-mui-nextjs-admin-template)をお探しなら、Materioが最適です。業界最高水準に従い、使いやすく、拡張性の高い最高の管理画面テンプレートを提供します。究極の利便性と柔軟性を備えており、手間なくどんなアプリケーションも構築できます。
 
-Build premium quality applications with ease. Use one of the most innovative [NextJS admin templates](https://themeselection.com/item/category/next-js-admin-template) to create eye-catching, high-quality WebApps. Your apps will be completely responsive, ensuring they'll look stunning and function flawlessly on desktops, tablets, and mobile devices.
+高品質なアプリケーションを簡単に構築できます。革新的な[NextJS管理テンプレート](https://themeselection.com/item/category/next-js-admin-template)を使って、魅力的で高品質なWebアプリを作成しましょう。完全レスポンシブ対応で、デスクトップ・タブレット・モバイルでも美しく動作します。
 
-Materio provides a template with TypeScript and JavaScript.
+MaterioはTypeScript版とJavaScript版のテンプレートを提供しています。
 
-[View Demo](https://demos.themeselection.com/materio-mui-nextjs-admin-template-free/demo)
+[デモを見る](https://demos.themeselection.com/materio-mui-nextjs-admin-template-free/demo)
 
-## Features 📋
+## 特徴 📋
 
-- ⚡ [Next.js](https://nextjs.org) with App Router support
-- 💎 Integrated with [MUI](https://mui.com) & [Tailwind CSS](https://tailwindcss.com)
-- ✅ [TypeScript](https://www.typescriptlang.org) & JavaScript Support
-- 📏 Linter with [ESLint](https://eslint.org)
-- 💖 Code Formatter with [Prettier](https://prettier.io)
-- 🗂 VSCode configuration: Settings, Extensions and Custom Snippets
-- 💡 Absolute Imports with aliases
-- ☕ Minify HTML & CSS
-- 💨 Live reload
-- ✅ Cache busting
-- 🛠️ Easy to customize
-- 😎 SEO-friendly
-- 🚀 Production-ready
+- ⚡ [Next.js](https://nextjs.org)（App Router対応）
+- 💎 [MUI](https://mui.com) & [Tailwind CSS](https://tailwindcss.com) 統合
+- ✅ [TypeScript](https://www.typescriptlang.org) & JavaScript対応
+- 📏 [ESLint](https://eslint.org)によるリント
+- 💖 [Prettier](https://prettier.io)によるコード整形
+- 🗂 VSCode設定: 設定、拡張機能、カスタムスニペット
+- 💡 エイリアスによる絶対インポート
+- ☕ HTML & CSSの最小化
+- 💨 ライブリロード
+- ✅ キャッシュバスティング
+- 🛠️ カスタマイズが簡単
+- 😎 SEO対応
+- 🚀 本番運用準備済み
 
-## Requirements ✅
+## 必要要件 ✅
 
-- Node.js LTS version (not current version)
+- Node.js LTSバージョン（最新版ではなくLTS）
 - npm
 
-## Installation ⚒️
+## インストール方法 ⚒️
 
-Installing and running the template is super easy in Materio, please follow these steps and you should be ready to rock 🤘:
+Materioのインストールと実行はとても簡単です。以下の手順に従ってください。
 
-1. Make sure you have installed Node.js (LTS). If Node.js is already installed in your system, make sure the installed version is LTS (and not the latest version)
-2. Navigate to the `typescript-version` or `javascript-version` folder and run the following command to install our local dependencies listed in the `package.json` file. You can use `pnpm`, `yarn` or `npm` as per your preference
+1. Node.js（LTS）をインストールしてください。すでにインストール済みの場合は、LTSバージョンであることを確認してください。
+2. `typescript-version` または `javascript-version` フォルダに移動し、`package.json`に記載されたローカル依存関係をインストールします。`pnpm`、`yarn`、`npm`のいずれかを使用できます。
 
-   > It is recommended to use pnpm for better dependency management
+   > 依存関係管理の観点から、pnpmの使用を推奨します。
 
    ```bash
-   # For pnpm (recommended)
+   # pnpm（推奨）
    pnpm install
 
-   # For yarn
+   # yarn
    yarn install
 
-   # For npm
+   # npm
    npm install
    ```
 
-3. Rename the `.env.example` file to `.env` file
-4. Now, you are ready to start the server with the help of the command shown below. Open [http://localhost:3000](http://localhost:3000) to check your development 🚀.
+3. `.env.example`ファイルを`.env`にリネームしてください。
+4. 下記コマンドでサーバーを起動できます。[http://localhost:3000](http://localhost:3000)で開発環境を確認できます。
 
    ```bash
-   # For pnpm (recommended)
+   # pnpm（推奨）
    pnpm dev
 
-   # For yarn
+   # yarn
    yarn dev
 
-   # For npm
+   # npm
    npm run dev
    ```
 
-## What's Included 📦
+## 含まれるもの 📦
 
-- Layouts
-  - Blank
-  - Full
-  - Boxed
-- Dashboard
-- Pages
-  - Account Settings
-  - Login
-  - Register
-  - Forgot Password
-  - Error
-  - Under Maintenance
-- Iconify Icons
-- Basic Cards
-- Form Layouts
+- レイアウト
+  - ブランク
+  - フル
+  - ボックス
+- ダッシュボード
+- ページ
+  - アカウント設定
+  - ログイン
+  - 登録
+  - パスワード再設定
+  - エラー
+  - メンテナンス中
+- Iconifyアイコン
+- 基本カード
+- フォームレイアウト
 
-## What's in Premium Version 💎
+## プレミアム版の内容 💎
 
-| Materio Free Version        | Materio Premium Version       |
+| Materio 無料版        | Materio プレミアム版       |
 | ----------------------------------------------- | :------------------------------------------------ |
-| [Demo](https://demos.themeselection.com/materio-mui-nextjs-admin-template-free/demo) | [Demo](https://demos.themeselection.com/materio-mui-nextjs-admin-template/demo-1)  |
-| [Download](https://themeselection.com/item/materio-free-mui-nextjs-admin-template)   | [Purchase](https://themeselection.com/item/materio-free-mui-nextjs-admin-template) |
-| Single vertical menu                 | Vertical (+ vertical collapsed) & Horizontal menu                   |
-| Default skin                         | Default, bordered & semi-dark skin                                  |
-| 1 simple dashboard                   | 5 niche dashboards                                                  |
-| -                                    | 10 Applications including eCommerce, academy, email, chat, calendar, invoice, kanban, etc. |
-| Simple form layouts                  | Advanced form layouts, form validation & form wizard                |
-| Basic cards                          | Basic, advanced, statistics, charts, gamification & action cards    |
-| -                                    | Quick search - quickly navigate between pages (with hotkey support) |
-| Basic tables                         | Advanced tables                                                     |
-| 1 chart library                      | 2 chart libraries                                                   |
-| 6 pages                              | 35+ pages                                                           |
-| Simple navbar & footer               | Multiple navbar & footer options                                    |
-| -                                    | Authentication using NextAuth                                       |
-| -                                    | RTL (right-to-left) support                                         |
+| [デモ](https://demos.themeselection.com/materio-mui-nextjs-admin-template-free/demo) | [デモ](https://demos.themeselection.com/materio-mui-nextjs-admin-template/demo-1)  |
+| [ダウンロード](https://themeselection.com/item/materio-free-mui-nextjs-admin-template)   | [購入](https://themeselection.com/item/materio-free-mui-nextjs-admin-template) |
+| シングル縦型メニュー                 | 縦型（折りたたみ対応）＆横型メニュー                   |
+| デフォルトスキン                         | デフォルト、ボーダー付き、セミダークスキン                                  |
+| 1つのシンプルなダッシュボード                   | 5つのニッチなダッシュボード                                                  |
+| -                                    | 10のアプリ（eコマース、アカデミー、メール、チャット、カレンダー、請求書、カンバン等） |
+| シンプルなフォームレイアウト                  | 高度なフォームレイアウト、バリデーション、ウィザード                |
+| 基本カード                          | 基本、アドバンス、統計、チャート、ゲーミフィケーション、アクションカード    |
+| -                                    | クイックサーチ（ホットキー対応） |
+| 基本テーブル                         | 高度なテーブル                                                     |
+| 1つのチャートライブラリ                      | 2つのチャートライブラリ                                                   |
+| 6ページ                              | 35+ページ                                                           |
+| シンプルなナビバー＆フッター               | 複数のナビバー＆フッターオプション                                    |
+| -                                    | NextAuthによる認証                                       |
+| -                                    | RTL（右から左）対応                                         |
 | -                                    | Redux toolkit                                                       |
-| -                                    | Multi-lingual support                                               |
-| -                                    | Starter-kit                                                         |
-| -                                    | Customizer drawer to check options in live app                      |
-| Limited customization                | Endless customization possibilities                                 |
-| Regular support                      | Priority support                                                    |
+| -                                    | 多言語対応                                               |
+| -                                    | スターターキット                                                         |
+| -                                    | カスタマイザードロワーでライブアプリのオプション確認                      |
+| 限定的なカスタマイズ                | 無限のカスタマイズ可能                                 |
+| 通常サポート                      | 優先サポート                                                    |
 
-## Documentation 📜
+## ドキュメント 📜
 
-Check out our live [Documentation](https://demos.themeselection.com/materio-mui-nextjs-admin-template/documentation)
+ライブ[ドキュメント](https://demos.themeselection.com/materio-mui-nextjs-admin-template/documentation)をご覧ください。
 
-## Deployment 🚀
+## デプロイ 🚀
 
-Check out our [Deployment docs](https://demos.themeselection.com/materio-mui-nextjs-admin-template/documentation/docs/guide/deployment)
+[デプロイ手順](https://demos.themeselection.com/materio-mui-nextjs-admin-template/documentation/docs/guide/deployment)もご参照ください。
 
-## Browser Support 🖥️
+## 対応ブラウザ 🖥️
 
 ![chrome](https://github.com/nuxt/nuxt/assets/47495003/bbb6d7b0-2db6-4af4-abdc-a73de71dd287)
 &nbsp;&nbsp;![firefox](https://github.com/nuxt/nuxt/assets/47495003/bca1f2d0-d597-453b-8525-5c94e36bfc33)
 &nbsp;&nbsp;![safari](https://github.com/nuxt/nuxt/assets/47495003/8ecbb395-78fb-40fb-bb59-7301bf8a7e5d)
 &nbsp;&nbsp;![Microsoft Edge](https://github.com/nuxt/nuxt/assets/47495003/f945821b-0cbd-464d-8103-824d4d5c4e9a)
 
-*_It also supports other browser which implemented latest CSS standards_
+*_最新のCSS標準に対応した他のブラウザもサポートしています_
 
-## Contributing 🦸
+## コントリビューション 🦸
 
-Contribution are always welcome and recommended! Here is how:
+貢献はいつでも歓迎です！方法は以下の通りです。
 
-* Fork the repository ([here is the guide](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
-* Clone to your machine `git clone https://github.com/YOUR_USERNAME/REPO_NAME` Make your changes
-* Create a pull request
+* リポジトリをフォーク（[ガイドはこちら](https://docs.github.com/en/get-started/quickstart/fork-a-repo)）
+* 自分のマシンにクローン `git clone https://github.com/YOUR_USERNAME/REPO_NAME` して変更を加える
+* プルリクエストを作成
 
-### Contribution Requirements 🧰
+### 貢献の条件 🧰
 
-* When you contribute, you agree to give a non-exclusive license to ThemeSelection to use that contribution in any context as we (ThemeSelection) see appropriate.
-* If you use content provided by another party, it must be appropriately licensed using an open source license.
-* Contributions are only accepted through Github pull requests.
-* Finally, contributed code must work in all supported browsers (see above for browser support).
+* 貢献することで、ThemeSelectionがその貢献をあらゆる文脈で使用する非独占的ライセンスを与えることに同意したものとみなします。
+* 他者のコンテンツを使用する場合は、オープンソースライセンスで適切にライセンスされている必要があります。
+* 貢献はGitHubのプルリクエスト経由のみ受け付けます。
+* 最後に、貢献したコードはすべてのサポートブラウザで動作する必要があります（上記参照）。
 
-## Changelog 📆
+## 変更履歴 📆
 
-Please refer to the [CHANGELOG](CHANGELOG.md) file. We will add a detailed release notes to each new release.
+各リリースの詳細なリリースノートは[CHANGELOG](CHANGELOG.md)ファイルをご参照ください。
 
-## Support 🧑🏻‍💻
+## サポート 🧑🏻‍💻
 
-For free products, enjoy community support via GitHub issues. Upgrade to Premium for dedicated support from our expert team.
+無料製品はGitHub Issuesでコミュニティサポートを提供しています。プレミアム版では専門チームによる専用サポートが受けられます。
 
-## License &copy;
+## ライセンス &copy;
 
 - Copyright © [ThemeSelection](https://themeselection.com/)
-- Licensed under [MIT](LICENSE)
-- All our free items are Open Source and licensed under MIT. You can use our free items for personal as well as commercial purposes. We just need an attribution from your end. Copy the below link and paste it at the footer of your web application or project.
+- [MIT](LICENSE) ライセンス
+- すべての無料アイテムはMITライセンスのオープンソースです。個人・商用問わずご利用いただけます。ご利用の際は、下記のリンクをフッター等に記載してください。
    ```html
   <a href="https://themeselection.com/">ThemeSelection</a>
    ```
 
-## Also Available In
+## 他にも提供中
 
 <p>
    <!-- Figma -->
@@ -210,28 +210,28 @@ For free products, enjoy community support via GitHub issues. Upgrade to Premium
    <a href="https://themeselection.com/item/materio-vuetify-nuxtjs-admin-template" target="_blank"><picture><source width="auto" height="74px" media="(prefers-color-scheme: dark)" srcset="https://github.com/microsoft/vscode/assets/47495003/d9d3cf2e-4dc5-49fe-b146-b80ef010cb57"><source width="auto" height="74px" media="(prefers-color-scheme: light)" srcset="https://github.com/microsoft/vscode/assets/47495003/f18ba562-6bba-4a55-83ac-962ecefa636f"><img width="auto" height="74px" alt="nuxt" src="https://github.com/microsoft/vscode/assets/47495003/f18ba562-6bba-4a55-83ac-962ecefa636f"></picture></img></a>&nbsp;&nbsp;
 </p>
 
-## Looking For Premium Admin Templates ?? 👀
+## プレミアム管理画面テンプレートをお探しですか？ 👀
 
-**[ThemeSelection](https://themeselection.com/)** provides Selected high quality, modern design, professional and easy-to-use **Fully Coded Dashboard Templates & UI Kits** to create your applications faster!
+**[ThemeSelection](https://themeselection.com/)** では、厳選された高品質・モダンデザイン・プロフェッショナルで使いやすい**完全コーディング済みダッシュボードテンプレート＆UIキット**を提供しています！
 
-- [Bootstrap Admin Templates](https://themeselection.com/item/category/bootstrap-admin-template/)
-- [VueJS Admin Templates](https://themeselection.com/item/category/vuejs-admin-templates/)
-- [Laravel Admin Templates](https://themeselection.com/item/category/laravel-admin-templates/)
-- [Django Admin Templates](https://themeselection.com/item/category/django-admin-template/)
-- [React (NextJS) Admin Templates](https://themeselection.com/item/category/next-js-admin-template/)
-- [ASP.Net Core Admin Templates](https://themeselection.com/item/category/asp-net-dashboard/)
-- [Free UI Kits](https://themeselection.com/item/category/free-ui-kits/) 
+- [Bootstrap管理画面テンプレート](https://themeselection.com/item/category/bootstrap-admin-template/)
+- [VueJS管理画面テンプレート](https://themeselection.com/item/category/vuejs-admin-templates/)
+- [Laravel管理画面テンプレート](https://themeselection.com/item/category/laravel-admin-templates/)
+- [Django管理画面テンプレート](https://themeselection.com/item/category/django-admin-template/)
+- [React (NextJS) 管理画面テンプレート](https://themeselection.com/item/category/next-js-admin-template/)
+- [ASP.Net Core管理画面テンプレート](https://themeselection.com/item/category/asp-net-dashboard/)
+- [無料UIキット](https://themeselection.com/item/category/free-ui-kits/) 
 
-If you want to [Download Free Admin Templates](https://themeselection.com/item/category/free-admin-templates/) like Materio then do visit [ThemeSelection](https://themeselection.com/).
+[無料管理画面テンプレート](https://themeselection.com/item/category/free-admin-templates/)をダウンロードしたい場合は[ThemeSelection](https://themeselection.com/)をご覧ください。
 
-## Useful Links 🎁
+## 便利なリンク 🎁
 
-* [Vue CheatSheet](https://vue-cheatsheet.themeselection.com/)
-* [Freebies](https://themeselection.com/item/category/free-admin-templates/)
-* [Download Free Admin Templates](https://themeselection.com/item/category/free-admin-templates/)
-* [Bootstrap 5 CheatSheet](https://bootstrap-cheatsheet.themeselection.com/)
+* [Vue チートシート](https://vue-cheatsheet.themeselection.com/)
+* [フリービー](https://themeselection.com/item/category/free-admin-templates/)
+* [無料管理画面テンプレートのダウンロード](https://themeselection.com/item/category/free-admin-templates/)
+* [Bootstrap 5 チートシート](https://bootstrap-cheatsheet.themeselection.com/)
 
-## Social Media :earth_africa:
+## ソーシャルメディア :earth_africa:
 
 - [Twitter](https://twitter.com/Theme_Selection)
 - [Facebook](https://www.facebook.com/ThemeSelections/)
