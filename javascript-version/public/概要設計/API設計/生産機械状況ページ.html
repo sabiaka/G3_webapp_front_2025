@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生産機械状況API設計書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        .method-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+            color: white;
+            display: inline-block;
+            width: 80px;
+            text-align: center;
+        }
+
+        .get {
+            background-color: #3b82f6;
+        }
+
+        .websocket {
+            background-color: #9333ea;
+        }
+
+        pre code.hljs {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">生産機械状況API 設計書</h1>
+            <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
+                <p class="font-bold">対象ページ: 生産機械状況ページ</p>
+                <p class="text-sm mt-1">このドキュメントは、「生産機械状況ページ」のフロントエンドとバックエンドを連携させるためのAPI仕様を定義します。</p>
+            </div>
+        </header>
+
+        <div class="space-y-12">
+
+            <!-- 1. 機械の基本情報・稼働データ取得 -->
+            <section id="get-machine-status">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 機械の基本情報・稼働データ取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}</span>
+                    </div>
+                    <p class="mb-4">IDで指定した機械の基本的な情報と、その日の稼働データをまとめてGETするAPI。ページを開いたときの初期表示で使うよ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "machine_id": 1,
+    "machine_name": "自動表層バネどめ機",
+    "image_url": "/images/machine-01.png",
+    "status": "稼働中", // "稼働中", "停止中", "異常あり", "メンテ中"
+    "today_uptime_seconds": 30300, // 今日の稼働時間（秒）
+    "today_production_count": 1520,
+    "last_inspection_date": "2024-06-15",
+    "next_inspection_date": "2024-09-15"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Machine not found"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 2. 機械のエラーログ取得 -->
+            <section id="get-logs">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 機械のエラーログ取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/logs</span>
+                    </div>
+                    <p class="mb-4">指定した機械のエラーログを取得する。日付やログの種類で絞り込めるようにしとこ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">date</td>
+                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。指定しない場合はすべて。</td>
+                                <td class="border-b p-2 font-mono">?date=2025-07-15</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">type</td>
+                                <td class="border-b p-2">ログの種類 (`error`, `warning`, `info`)。指定しない場合はすべて。</td>
+                                <td class="border-b p-2 font-mono">?type=error</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">page</td>
+                                <td class="border-b p-2">ページ番号。</td>
+                                <td class="border-b p-2 font-mono">?page=1</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">limit</td>
+                                <td class="border-b p-2">1ページあたりの件数。</td>
+                                <td class="border-b p-2 font-mono">?limit=20</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "total_pages": 1,
+    "current_page": 1,
+    "logs": [
+        {
+            "log_id": 501,
+            "timestamp": "2025-07-15T10:15:32Z",
+            "log_type": "error",
+            "title": "E-102: トルク過負荷",
+            "message": "モーターの負荷が規定値を超えました。"
+        },
+        {
+            "log_id": 500,
+            "timestamp": "2025-07-15T09:30:11Z",
+            "log_type": "warning",
+            "title": "W-05: 潤滑油低下",
+            "message": "潤滑油が規定レベルを下回っています。"
+        },
+        {
+            "log_id": 499,
+            "timestamp": "2025-07-15T08:00:05Z",
+            "log_type": "info",
+            "title": "I-001: 起動シーケンス完了",
+            "message": ""
+        }
+    ]
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. リアルタイム機械状況 -->
+            <section id="realtime">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. リアルタイム機械状況 (WebSocket)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge websocket">WebSocket</span>
+                        <span class="font-mono text-lg font-semibold">/ws/machines/{id}</span>
+                    </div>
+                    <p class="mb-4">機械のステータスや稼働データ、新しいログをリアルタイムでフロントに送りつけるためのWebSocket通信。これがあれば、画面が勝手に更新されて超イケてる！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">サーバーから送信されるメッセージ</h3>
+                    <p class="text-sm mb-2">イベントの種類 (`event`) によって、送られてくるデータ (`data`) の中身が変わるよ。</p>
+
+                    <h4 class="font-semibold mt-4 mb-2">イベント: `status_update` (ステータス更新)</h4>
+                    <pre><code class="language-json">{
+    "event": "status_update",
+    "data": {
+        "status": "異常あり",
+        "today_uptime_seconds": 30360,
+        "today_production_count": 1521
+    }
+}</code></pre>
+
+                    <h4 class="font-semibold mt-4 mb-2">イベント: `new_log` (新規ログ発生)</h4>
+                    <pre><code class="language-json">{
+    "event": "new_log",
+    "data": {
+        "log_id": 502,
+        "timestamp": "2025-07-15T10:16:00Z",
+        "log_type": "error",
+        "title": "E-301: 緊急停止ボタン作動",
+        "message": "オペレーターにより緊急停止されました。"
+    }
+}</code></pre>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>

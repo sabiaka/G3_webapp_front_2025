@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像検査API設計書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        .method-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+            color: white;
+            display: inline-block;
+            width: 80px;
+            text-align: center;
+        }
+
+        .get {
+            background-color: #3b82f6;
+        }
+
+        .websocket {
+            background-color: #9333ea;
+        }
+
+        pre code.hljs {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">画像検査API 設計書</h1>
+            <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
+                <p class="font-bold">対象ページ: 画像検査ステータス</p>
+                <p class="text-sm mt-1">このドキュメントは、「画像検査ステータス」ページのフロントエンドとバックエンドを連携させるためのAPI仕様を定義します。</p>
+            </div>
+        </header>
+
+        <div class="space-y-12">
+
+            <!-- 1. 検査サマリー取得 -->
+            <section id="get-summary">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 検査サマリー取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/summary</span>
+                    </div>
+                    <p class="mb-4">指定した日付の検査サマリー（総数、良品/不良品数、不良原因）をまとめてGETするAPI。各検査タブの統計表示で使うよ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">type</td>
+                                <td class="border-b p-2">検査の種類を指定する。（`spring`: バネ留め, `alayer`: A層）</td>
+                                <td class="border-b p-2 font-mono">?type=spring</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">date</td>
+                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。指定しない場合は本日。</td>
+                                <td class="border-b p-2 font-mono">?date=2024-07-15</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "total_count": 150,
+    "pass_count": 145,
+    "fail_count": 5,
+    "pass_rate": 96.7,
+    "fail_reasons": [
+        { "reason": "位置ずれ", "count": 3 },
+        { "reason": "傷あり", "count": 1 },
+        { "reason": "異物混入", "count": 1 }
+    ]
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 2. 検査ログ取得 -->
+            <section id="get-logs">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 検査ログ取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections</span>
+                    </div>
+                    <p class="mb-4">検査結果のログを一覧で取得する。ページネーション対応で、過去のログも遡れるようにしよ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">type</td>
+                                <td class="border-b p-2">検査の種類。（`spring` or `alayer`）</td>
+                                <td class="border-b p-2 font-mono">?type=spring</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">date</td>
+                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。</td>
+                                <td class="border-b p-2 font-mono">?date=2024-07-15</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">page</td>
+                                <td class="border-b p-2">ページ番号。</td>
+                                <td class="border-b p-2 font-mono">?page=1</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">limit</td>
+                                <td class="border-b p-2">1ページあたりの件数。</td>
+                                <td class="border-b p-2 font-mono">?limit=50</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "total_pages": 3,
+    "current_page": 1,
+    "logs": [
+        {
+            "inspection_id": 101,
+            "captured_time": "2024-07-15T10:18:12Z",
+            "product_id": "SPRING-001",
+            "status": "PASS",
+            "details": "-",
+            "image_path": "/images/inspections/spring_20240715_101812.jpg"
+        },
+        {
+            "inspection_id": 100,
+            "captured_time": "2024-07-15T10:17:59Z",
+            "product_id": "SPRING-002",
+            "status": "PASS",
+            "details": "-",
+            "image_path": "/images/inspections/spring_20240715_101759.jpg"
+        },
+        {
+            "inspection_id": 99,
+            "captured_time": "2024-07-15T10:17:48Z",
+            "product_id": "SPRING-003",
+            "status": "FAIL",
+            "details": "位置ずれ",
+            "image_path": "/images/inspections/spring_20240715_101748.jpg"
+        }
+    ]
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. リアルタイム検査結果 -->
+            <section id="realtime">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. リアルタイム検査結果 (WebSocket)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge websocket">WebSocket</span>
+                        <span class="font-mono text-lg font-semibold">/ws/inspections</span>
+                    </div>
+                    <p class="mb-4">リアルタイムで検査結果をフロントに送りつけるためのWebSocket通信。これが一番イケてるやり方！接続したら、新しい検査結果がどんどんJSONで飛んでくるイメージ。
+                    </p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">サーバーから送信されるメッセージ</h3>
+                    <p class="text-sm mb-2">検査が完了するたびに、この形式のデータが送られてくるよ。</p>
+                    <pre><code class="language-json">{
+    "type": "alayer", // "spring" or "alayer"
+    "inspection_id": 102,
+    "captured_time": "2024-07-15T10:20:05Z",
+    "product_id": "A-102-1250",
+    "status": "PASS",
+    "details": "-",
+    "image_path": "/images/inspections/alayer_20240715_102005.jpg"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">補足</h3>
+                    <p>WebSocketが使えない環境の場合は、`GET /api/inspections/latest` (未実装)
+                        みたいなAPIを定期的に叩く（ポーリングする）方法でも代用できるけど、リアルタイム感はこっちが上！</p>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>

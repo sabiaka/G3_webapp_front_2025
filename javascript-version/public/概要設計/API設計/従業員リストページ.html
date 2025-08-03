@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>従業員管理API設計書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- highlight.jsのCSS (VSCode風テーマ) を追加 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        .method-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+            color: white;
+            display: inline-block;
+            width: 80px;
+            text-align: center;
+        }
+
+        .get {
+            background-color: #3b82f6;
+        }
+
+        .post {
+            background-color: #22c55e;
+        }
+
+        .put {
+            background-color: #f97316;
+        }
+
+        .delete {
+            background-color: #ef4444;
+        }
+
+        /* highlight.js用のスタイルを調整 */
+        pre code.hljs {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">従業員管理API 設計書</h1>
+            <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
+                <p class="font-bold">対象ページ: 従業員名簿ページ</p>
+                <p class="text-sm mt-1">このドキュメントは、「従業員名簿ページ」のフロントエンドとバックエンドを連携させるためのAPI仕様を定義します。</p>
+            </div>
+            <p class="mt-4 text-lg text-slate-600">これベースで開発ヨロ！</p>
+        </header>
+
+        <div class="space-y-12">
+
+            <!-- 1. 従業員一覧取得 -->
+            <section id="get-employees">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 従業員一覧取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/employees</span>
+                    </div>
+                    <p class="mb-4">従業員のリストをまとめてGETするAPI。検索フィルターも使えるようにしとこ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ (絞り込み検索)</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">name_like</td>
+                                <td class="border-b p-2">氏名での部分一致検索。</td>
+                                <td class="border-b p-2 font-mono">?name_like=山田</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">line_id</td>
+                                <td class="border-b p-2">担当ラインのIDで絞り込み。</td>
+                                <td class="border-b p-2 font-mono">?line_id=1</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">is_active</td>
+                                <td class="border-b p-2">在籍状況で絞り込み (true: 在籍中, false: 退職済)。</td>
+                                <td class="border-b p-2 font-mono">?is_active=true</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">[
+    {
+        "employee_id": 1,
+        "employee_name": "山田 太郎",
+        "employee_user_id": "t.yamada",
+        "is_active": true,
+        "role_name": "リーダー",
+        "line_name": "組立",
+        "special_notes": "フォークリフト免許保持",
+        "color_code": "a3a8e6"
+    },
+    {
+        "employee_id": 2,
+        "employee_name": "佐藤 花子",
+        "employee_user_id": "h.sato",
+        "is_active": true,
+        "role_name": "スタッフ",
+        "line_name": "塗装",
+        "special_notes": "色彩検定2級",
+        "color_code": "e6a3c8"
+    }
+]</code></pre>
+                </div>
+            </section>
+
+            <!-- 2. 特定の従業員取得 -->
+            <section id="get-employee-by-id">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 特定の従業員取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/employees/{id}</span>
+                    </div>
+                    <p class="mb-4">IDを指定して、特定の従業員1人の詳細情報をGETするよ。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "employee_id": 1,
+    "employee_name": "山田 太郎",
+    "employee_user_id": "t.yamada",
+    "is_active": true,
+    "role_id": 2,
+    "role_name": "リーダー",
+    "line_id": 1,
+    "line_name": "組立",
+    "special_notes": "フォークリフト免許保持",
+    "color_code": "a3a8e6"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Employee not found"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. 従業員追加 -->
+            <section id="create-employee">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 従業員追加</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/employees</span>
+                    </div>
+                    <p class="mb-4">新しい従業員を登録するためのAPI。データはJSONで送ってね！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <pre><code class="language-json">{
+    "employee_name": "鈴木 次郎",
+    "employee_user_id": "j.suzuki",
+    "password": "secure_password_123",
+    "role_id": 3,
+    "line_id": 2,
+    "color_code": "a3e6c8",
+    "special_notes": "新人"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
+                    <p class="text-sm mb-2">登録が成功したら、IDが振られた従業員データが返ってくるよ。</p>
+                    <pre><code class="language-json">{
+    "employee_id": 3,
+    "employee_name": "鈴木 次郎",
+    "employee_user_id": "j.suzuki",
+    "is_active": true,
+    "role_name": "スタッフ",
+    "line_name": "検査",
+    "special_notes": "新人",
+    "color_code": "a3e6c8"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 4. 従業員情報更新 -->
+            <section id="update-employee">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 従業員情報更新</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge put">PUT</span>
+                        <span class="font-mono text-lg font-semibold">/api/employees/{id}</span>
+                    </div>
+                    <p class="mb-4">IDで指定した従業員の情報をまるっと更新する。部分更新はPATCHだけど、今回はPUTでシンプルにこ！</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <pre><code class="language-json">{
+    "employee_name": "鈴木 次郎",
+    "employee_user_id": "j.suzuki",
+    "password": null,
+    "role_id": 4,
+    "line_id": 2,
+    "is_active": true,
+    "color_code": "a3e6c8",
+    "special_notes": "検査のプロ"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "employee_id": 3,
+    "employee_name": "鈴木 次郎",
+    "employee_user_id": "j.suzuki",
+    "is_active": true,
+    "role_name": "主任",
+    "line_name": "検査",
+    "special_notes": "検査のプロ",
+    "color_code": "a3e6c8"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 5. 従業員削除 -->
+            <section id="delete-employee">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 従業員削除</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge delete">DELETE</span>
+                        <span class="font-mono text-lg font-semibold">/api/employees/{id}</span>
+                    </div>
+                    <p class="mb-4">
+                        IDで指定した従業員を削除する。マジで消しちゃうから気をつけて！<br>実際は`is_active`をfalseにする「論理削除」の方が安全かも。今回はとりあえず物理削除で設計しとくね。
+                    </p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (204 No Content)</h3>
+                    <p>削除が成功したら、ボディには何も返ってこないのがお約束。</p>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
+    </div>
+
+    <!-- highlight.jsのスクリプトを追加 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        // ページ内のすべてのコードにハイライトを適用
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>
