@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生産数管理API設計書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        .method-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+            color: white;
+            display: inline-block;
+            width: 80px;
+            text-align: center;
+        }
+
+        .get {
+            background-color: #3b82f6;
+        }
+
+        .post {
+            background-color: #22c55e;
+        }
+
+        pre code.hljs {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書</h1>
+            <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
+                <p class="font-bold">対象: Jetsonからのファイルの送信</p>
+                <p class="text-sm mt-1">このドキュメントは、PLCや画像検査プログラムからの信号をDBに格納するためのAPI仕様を定義します。</p>
+            </div>
+        </header>
+
+        <div class="space-y-12">
+
+
+
+            <!-- 3. PLC情報送信 -->
+            <section id="post-plc-data">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLC情報送信 (機械 → サーバー)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/plc</span>
+                    </div>
+                    <p class="mb-4">生産機械 (PLC) が、製品を1個作るたびに「できたよー！」ってサーバーに報告するためのAPI。実績数がリアルタイムで増えてくのは、こいつのおかげ！</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <pre><code class="language-json">{
+    "machine_id": "press-machine-01",
+    "product_name": "製品A-102",
+    "count": 1,
+    "timestamp": "2025-08-04T11:20:35Z"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
+                    <p class="text-sm">データを受け取ったら、サーバーはすぐ「りょ！」って返事して、裏側でゆっくりデータを処理する。だから`202 Accepted`がイケてる。</p>
+                </div>
+            </section>
+
+            <!-- 4. 画像検査結果送信 -->
+            <section id="post-inspection-data">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 画像検査結果送信 (検査機 → サーバー)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection</span>
+                    </div>
+                    <p class="mb-4">画像検査システムが、製品を1個検査するたびに「これOKだった！」「これNG！」ってサーバーに報告するためのAPI。不良品数とか、不良原因のデータはここから来るよ。
+                    </p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <pre><code class="language-json">{
+    "camera_id": "inspection-camera-01",
+    "product_name": "製品A-102",
+    "result": "fail",
+    "reason": "傷",
+    "timestamp": "2025-08-04T11:20:36Z"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
+                    <p class="text-sm">こっちもPLCと一緒で、とりあえずデータを受け取ったらすぐ返事するのがイケてる！</p>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>
