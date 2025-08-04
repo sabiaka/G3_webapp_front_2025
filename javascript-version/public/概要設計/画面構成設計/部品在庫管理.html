@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部品在庫管理</title>
+    <!-- Tailwind CSSを読み込む -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) を読み込む -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Ioniconsを読み込む -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <style>
+        /* フォント設定 */
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* スクロールバーのスタイル（任意） */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* アニメーション */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-enter {
+            animation: modal-enter-animation 0.3s ease-out forwards;
+        }
+
+        @keyframes modal-enter-animation {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* 選択されたスロットのスタイル */
+        .selected-slot {
+            outline: 4px solid #4f46e5;
+            /* indigo-600 */
+            transform: scale(1.02);
+        }
+
+        /* 検索でハイライトされたスロットのスタイル */
+        .highlight-slot {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+            }
+        }
+
+        /* 移動モードのスタイル */
+        .move-mode-empty {
+            background-color: #d1fae5 !important;
+            /* green-100 */
+            outline: 2px dashed #10b981;
+            /* green-500 */
+        }
+
+        .move-mode-origin {
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* QRスキャナーの点滅アニメーション */
+        .scanner-line {
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+
+            0%,
+            100% {
+                top: 0;
+            }
+
+            50% {
+                top: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="flex flex-col min-h-screen">
+
+        <!-- ヘッダー -->
+        <header class="bg-white shadow-md sticky top-0 z-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-indigo-600 p-2 rounded-lg">
+                            <ion-icon name="cube-outline" class="text-white text-2xl"></ion-icon>
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-900">部品在庫管理</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="トップページ.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr;
+                            ダッシュボードに戻る</a>
+                        <button
+                            class="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                            <ion-icon name="log-out-outline" class="mr-2 text-xl"></ion-icon>
+                            ログアウト
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- 左カラム: メッシュラック -->
+                <div class="lg:col-span-2">
+                    <h2 class="text-2xl font-bold mb-4">メッシュラック #1</h2>
+                    <div id="mesh-rack"
+                        class="grid grid-cols-4 grid-rows-3 gap-4 bg-gray-200 p-4 rounded-xl shadow-inner">
+                        <!-- ラックのスロットはJSで動的に生成 -->
+                    </div>
+                </div>
+
+                <!-- 右カラム: 詳細と操作 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
+                        <!-- 検索 -->
+                        <div class="mb-6">
+                            <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <ion-icon name="search-outline" class="text-gray-400"></ion-icon></div>
+                                <input type="text" id="search-parts"
+                                    class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                                    placeholder="部品名 or 型番">
+                            </div>
+                        </div>
+                        <!-- 詳細表示 -->
+                        <div id="details-panel">
+                            <div class="text-center text-gray-500 py-10">
+                                <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
+                                <p class="mt-2">ラックの場所を選択して詳細を表示</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- フローティングQRボタン -->
+    <div class="fixed bottom-8 right-8 flex flex-col items-end space-y-4 z-10">
+        <button id="qr-stock-out-btn"
+            class="flex items-center bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            <ion-icon name="qr-code-outline" class="text-2xl"></ion-icon>
+            <span class="ml-2">QR出庫</span>
+        </button>
+        <button id="qr-stock-in-btn"
+            class="flex items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            <ion-icon name="qr-code-outline" class="text-2xl"></ion-icon>
+            <span class="ml-2">QR入庫</span>
+        </button>
+    </div>
+
+    <!-- モーダル -->
+    <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-30 p-4">
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md modal-enter">
+            <!-- モーダルの中身はJSで動的に生成 -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // サンプルデータ
+            const rackData = {
+                'A-1': { boxId: 'BOX-SPA001-01', partName: 'スプリング A', partModelNumber: 'SP-A-001', quantity: 100, color: 'bg-blue-500' },
+                'A-2': null,
+                'A-3': { boxId: 'BOX-FRB002-01', partName: 'フレーム B', partModelNumber: 'FR-B-002', quantity: 50, color: 'bg-green-500' },
+                'A-4': { boxId: 'BOX-CVC003-01', partName: 'カバー C', partModelNumber: 'CV-C-003', quantity: 200, color: 'bg-yellow-500' },
+                'B-1': { boxId: 'BOX-SCD004-01', partName: 'ネジセット D', partModelNumber: 'SC-D-004', quantity: 500, color: 'bg-gray-500' },
+                'B-2': { boxId: 'BOX-FRB002-02', partName: 'フレーム B', partModelNumber: 'FR-B-002', quantity: 50, color: 'bg-green-500' },
+                'B-3': null,
+                'B-4': { boxId: 'BOX-SPA001-02', partName: 'スプリング A', partModelNumber: 'SP-A-001', quantity: 100, color: 'bg-blue-500' },
+                'C-1': null,
+                'C-2': { boxId: 'BOX-CVC003-02', partName: 'カバー C', partModelNumber: 'CV-C-003', quantity: 200, color: 'bg-yellow-500' },
+                'C-3': null,
+                'C-4': { boxId: 'BOX-MTE005-01', partName: 'モーター E', partModelNumber: 'MT-E-005', quantity: 20, color: 'bg-red-500' },
+            };
+
+            const rackContainer = document.getElementById('mesh-rack');
+            const detailsPanel = document.getElementById('details-panel');
+            const searchInput = document.getElementById('search-parts');
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            let selectedSlotId = null;
+            let isMoveMode = false;
+            let moveOriginSlotId = null;
+
+            // ラックの描画
+            function renderRack() {
+                rackContainer.innerHTML = '';
+                const rows = ['A', 'B', 'C'];
+                const cols = [1, 2, 3, 4];
+
+                rows.forEach(row => {
+                    cols.forEach(col => {
+                        const slotId = `${row}-${col}`;
+                        const part = rackData[slotId];
+                        const slot = document.createElement('div');
+                        slot.id = `slot-${slotId}`;
+                        slot.dataset.slotId = slotId;
+                        slot.className = 'rack-slot aspect-square bg-gray-300/50 rounded-lg flex flex-col justify-between p-2 cursor-pointer transition-all duration-300 hover:bg-gray-300';
+
+                        let content = `<div class="text-sm font-bold text-gray-500">${slotId}</div>`;
+                        if (part) {
+                            slot.classList.add('bg-white', 'shadow');
+                            content += `
+                                <div class="text-center">
+                                    <div class="w-full h-4 ${part.color} rounded-full mb-2"></div>
+                                    <p class="font-bold text-gray-800 text-sm truncate">${part.partName}</p>
+                                    <p class="text-xs text-gray-500">${part.partModelNumber || ''}</p>
+                                </div>
+                                <div class="text-right text-lg font-bold">${part.quantity}</div>
+                            `;
+                        } else if (isMoveMode) {
+                            slot.classList.add('move-mode-empty');
+                        }
+                        slot.innerHTML = content;
+                        rackContainer.appendChild(slot);
+                    });
+                });
+
+                if (selectedSlotId) {
+                    const selectedEl = document.getElementById(`slot-${selectedSlotId}`);
+                    if (selectedEl) selectedEl.classList.add('selected-slot');
+                }
+                if (isMoveMode && moveOriginSlotId) {
+                    const originEl = document.getElementById(`slot-${moveOriginSlotId}`);
+                    if (originEl) originEl.classList.add('move-mode-origin');
+                }
+            }
+
+            // 詳細パネルの更新
+            function updateDetails(slotId) {
+                selectedSlotId = slotId;
+                const part = rackData[slotId];
+                let content = '';
+                if (part) {
+                    content = `
+                        <div class="fade-in">
+                            <div class="flex items-center mb-4"><div class="w-4 h-4 ${part.color} rounded-full mr-3"></div><h3 class="text-xl font-bold">${part.partName}</h3></div>
+                            <div class="space-y-2 text-sm">
+                                <p><strong class="w-24 inline-block text-gray-500">箱ID:</strong> ${part.boxId}</p>
+                                <p><strong class="w-24 inline-block text-gray-500">部品型番:</strong> ${part.partModelNumber || 'N/A'}</p>
+                                <p><strong class="w-24 inline-block text-gray-500">現在庫数:</strong> <span class="text-2xl font-bold">${part.quantity}</span></p>
+                                <p><strong class="w-24 inline-block text-gray-500">保管場所:</strong> <span class="text-lg font-bold">${slotId}</span></p>
+                            </div>
+                            <div class="mt-6 border-t pt-4 space-y-2">
+                                <button data-action="use" data-slot-id="${slotId}" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">部品を使用</button>
+                                <button data-action="move" data-slot-id="${slotId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">箱を移動</button>
+                                <button data-action="show-qr" data-box-id="${part.boxId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex items-center justify-center"><ion-icon name="qr-code-outline" class="mr-2"></ion-icon>QRコードを表示</button>
+                            </div>
+                        </div>`;
+                } else {
+                    content = `
+                        <div class="fade-in text-center py-6">
+                            <p class="text-lg font-bold mb-2">場所: ${slotId}</p>
+                            <ion-icon name="archive-outline" class="text-5xl text-gray-400 mx-auto"></ion-icon>
+                            <p class="mt-2 text-gray-500">この場所は空です</p>
+                            <div class="mt-6"><button data-action="store" data-slot-id="${slotId}" class="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">新しい箱を格納</button></div>
+                        </div>`;
+                }
+                detailsPanel.innerHTML = content;
+                renderRack();
+            }
+
+            // モーダルを開く
+            function openModal(content) {
+                modalContent.innerHTML = content;
+                modal.classList.remove('hidden');
+            }
+
+            // モーダルを閉じる
+            function closeModal() {
+                modal.classList.add('hidden');
+                modalContent.innerHTML = '';
+            }
+
+            // 「部品を使用」モーダル
+            function showUsePartModal(slotId) {
+                const part = rackData[slotId];
+                openModal(`
+                    <div class="p-6"><h3 class="text-lg font-bold mb-4">「${part.partName}」を使用</h3>
+                        <p class="text-sm mb-2">使用する数量を入力してください。(現在庫: ${part.quantity})</p>
+                        <input id="use-quantity" type="number" min="1" max="${part.quantity}" class="w-full border-gray-300 rounded-md" placeholder="数量">
+                    </div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
+                        <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">確定</button>
+                    </div>`);
+
+                document.getElementById('confirm-use-btn').onclick = () => {
+                    const quantity = parseInt(document.getElementById('use-quantity').value);
+                    if (quantity > 0 && quantity <= part.quantity) {
+                        part.quantity -= quantity;
+                        if (part.quantity === 0) {
+                            rackData[slotId] = null;
+                        }
+                        updateDetails(slotId);
+                        closeModal();
+                    } else {
+                        console.error('正しい数量を入力してください。');
+                    }
+                };
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+            // 「新規格納」モーダル
+            function showStorePartModal(callback) {
+                openModal(`
+                    <form id="store-form" class="p-6 space-y-4">
+                        <h3 class="text-lg font-bold">新しい部品の情報を入力</h3>
+                        <div><label class="text-sm">部品名</label><input name="partName" required class="w-full border-gray-300 rounded-md mt-1"></div>
+                        <div><label class="text-sm">部品型番 (任意)</label><input name="partModelNumber" class="w-full border-gray-300 rounded-md mt-1"></div>
+                        <div><label class="text-sm">数量</label><input name="quantity" type="number" min="1" required class="w-full border-gray-300 rounded-md mt-1"></div>
+                    </form>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
+                        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-green-500 text-white rounded-md">QRコード生成</button>
+                    </div>`);
+
+                document.getElementById('store-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const newPart = {
+                        boxId: `BOX-${formData.get('partModelNumber') || 'N/A'}-${Date.now()}`,
+                        partName: formData.get('partName'),
+                        partModelNumber: formData.get('partModelNumber'),
+                        quantity: parseInt(formData.get('quantity')),
+                        color: ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'][Math.floor(Math.random() * 5)]
+                    };
+                    callback(newPart);
+                };
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+            // QRコード印刷モーダル
+            function showPrintQrModal(partData, callback = null) {
+                const qrData = encodeURIComponent(`boxId=${partData.boxId}`);
+                const nextButtonHtml = callback ? `<button id="next-btn" class="px-4 py-2 bg-green-500 text-white rounded-md">次へ</button>` : '';
+                const cancelButtonText = callback ? 'キャンセル' : '閉じる';
+
+                openModal(`
+                    <div class="p-6 text-center">
+                        <h3 class="text-lg font-bold mb-2">QRコード</h3>
+                        <p class="text-sm text-gray-600 mb-4">このQRコードを印刷して箱に貼り付けてください。</p>
+                        <img src="https://placehold.co/200x200/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto border-4">
+                        <p class="mt-2 font-semibold">${partData.partName}</p>
+                        <p class="text-xs text-gray-500">${partData.boxId}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">${cancelButtonText}</button>
+                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
+                        ${nextButtonHtml}
+                    </div>`);
+
+                document.getElementById('print-btn').onclick = () => console.log('印刷処理を実行 (ダミー)');
+                if (callback) {
+                    document.getElementById('next-btn').onclick = () => callback(partData);
+                }
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+            // QRスキャナーモーダル
+            function showQrScannerModal(title, instruction, iconPath, onScan) {
+                openModal(`
+                    <div class="p-6 text-center">
+                        <h3 class="text-xl font-bold mb-4">${title}</h3>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <div class="text-center"><img src="${iconPath}" class="mx-auto h-24"><p class="mt-2 font-semibold">${instruction}</p></div>
+                            <div class="bg-black aspect-square rounded-lg flex items-center justify-center relative overflow-hidden"><p class="text-gray-500">カメラ入力</p><div class="scanner-line absolute left-0 h-1 bg-red-500 w-full"></div></div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
+                    </div>`);
+
+                setTimeout(() => onScan(), 2000); // スキャンをシミュレート
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+            // QR入庫処理
+            document.getElementById('qr-stock-in-btn').addEventListener('click', () => {
+                showStorePartModal((newPart) => {
+                    showPrintQrModal(newPart, (partToStore) => {
+                        showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', 'https://placehold.co/150x150/cccccc/333333?text=棚QR', () => {
+                            const emptySlot = Object.keys(rackData).find(key => rackData[key] === null);
+                            if (emptySlot) {
+                                rackData[emptySlot] = partToStore;
+                                updateDetails(emptySlot);
+                                closeModal();
+                            } else {
+                                closeModal();
+                                console.error('空きがありません。');
+                            }
+                        });
+                    });
+                });
+            });
+
+            // QR出庫処理
+            document.getElementById('qr-stock-out-btn').addEventListener('click', () => {
+                showQrScannerModal('QR出庫', '部品QRコードを読み取ってください', 'https://placehold.co/150x150/cccccc/333333?text=部品QR', () => {
+                    const scannedBoxId = 'BOX-SPA001-02'; // サンプル
+                    const foundSlotId = Object.keys(rackData).find(key => rackData[key] && rackData[key].boxId === scannedBoxId);
+
+                    if (foundSlotId) {
+                        showUsePartModal(foundSlotId);
+                    } else {
+                        closeModal();
+                        console.error('部品が見つかりません。');
+                    }
+                });
+            });
+
+            // 詳細パネルのボタンクリック処理
+            detailsPanel.addEventListener('click', e => {
+                if (e.target.tagName !== 'BUTTON') return;
+                const { action, slotId, boxId } = e.target.dataset;
+                if (action === 'use') showUsePartModal(slotId);
+                if (action === 'store') showStorePartModal((newPart) => {
+                    rackData[slotId] = newPart;
+                    updateDetails(slotId);
+                    closeModal();
+                });
+                if (action === 'move') {
+                    isMoveMode = true;
+                    moveOriginSlotId = slotId;
+                    detailsPanel.innerHTML = `<div class="fade-in text-center py-10"><ion-icon name="move-outline" class="text-5xl text-indigo-500 mx-auto"></ion-icon><p class="mt-2 font-bold">移動先の空き場所を選択してください</p><p class="text-sm text-gray-500">(移動元: ${slotId})</p><button id="cancel-move-btn" class="mt-4 text-sm text-red-600">移動をキャンセル</button></div>`;
+                    document.getElementById('cancel-move-btn').onclick = () => {
+                        isMoveMode = false;
+                        moveOriginSlotId = null;
+                        updateDetails(slotId);
+                    };
+                    renderRack();
+                }
+                if (action === 'show-qr') {
+                    const partData = Object.values(rackData).find(part => part && part.boxId === boxId);
+                    if (partData) {
+                        showPrintQrModal(partData);
+                    }
+                }
+            });
+
+            // ラックのスロットクリック時の処理
+            rackContainer.addEventListener('click', (e) => {
+                const slotEl = e.target.closest('.rack-slot');
+                if (!slotEl) return;
+                const clickedSlotId = slotEl.dataset.slotId;
+
+                if (isMoveMode) {
+                    if (!rackData[clickedSlotId] && clickedSlotId !== moveOriginSlotId) {
+                        rackData[clickedSlotId] = rackData[moveOriginSlotId];
+                        rackData[moveOriginSlotId] = null;
+                        isMoveMode = false;
+                        moveOriginSlotId = null;
+                        updateDetails(clickedSlotId);
+                    } else {
+                        console.error('空の場所を選択してください。');
+                    }
+                } else {
+                    updateDetails(clickedSlotId);
+                }
+            });
+
+            // 検索機能
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                document.querySelectorAll('.rack-slot').forEach(slot => {
+                    slot.classList.remove('highlight-slot');
+                    if (searchTerm.length > 1) {
+                        const part = rackData[slot.dataset.slotId];
+                        if (part && (part.partName.toLowerCase().includes(searchTerm) || (part.partModelNumber && part.partModelNumber.toLowerCase().includes(searchTerm)))) {
+                            slot.classList.add('highlight-slot');
+                        }
+                    }
+                });
+            });
+
+            // 初期化
+            renderRack();
+        });
+    </script>
+
+</body>
+
+</html>

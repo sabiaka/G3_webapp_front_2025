@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部品在庫管理API設計書 (改訂版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+        .method-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+            color: white;
+            display: inline-block;
+            width: 80px;
+            text-align: center;
+        }
+        .get { background-color: #3b82f6; }
+        .post { background-color: #22c55e; }
+        .put { background-color: #f97316; }
+        
+        pre code.hljs {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">部品在庫管理API 設計書</h1>
+            <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
+                <p class="font-bold">対象ページ: 部品在庫管理ページ</p>
+                <p class="text-sm mt-1">このドキュメントは、「部品在庫管理ページ」の機能を実装するためのAPI仕様を定義します。</p>
+            </div>
+        </header>
+
+        <div class="space-y-12">
+
+            <!-- 1. ラック情報取得 -->
+            <section id="get-rack">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. ラック情報取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/racks/{rack_id}</span>
+                    </div>
+                    <p class="mb-4">指定したラックに、どの部品がどこに入ってるか、ぜーんぶまとめてGETするAPI。ページの初期表示で使うよ！</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
+                    <pre><code class="language-json">{
+    "rack_id": 1,
+    "rack_name": "メッシュラック #1",
+    "slots": [
+        {
+            "slot_id": "A-1",
+            "part": {
+                "box_id": "BOX-101",
+                "part_name": "スプリング A",
+                "part_model_number": "SP-A-001",
+                "quantity": 100,
+                "color_code": "4A90E2"
+            }
+        },
+        { "slot_id": "A-2", "part": null },
+        {
+            "slot_id": "A-3",
+            "part": {
+                "box_id": "BOX-102",
+                "part_name": "フレーム B",
+                "part_model_number": "FR-B-002",
+                "quantity": 50,
+                "color_code": "50E3C2"
+            }
+        }
+        // ... 他のスロット情報
+    ]
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 2. 部品在庫の検索 -->
+            <section id="search-parts">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 部品在庫の検索</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/parts/search</span>
+                    </div>
+                    <p class="mb-4">部品名とか型番で、どこに在庫があるか検索するAPI。検索窓で使うやつね！</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h4>
+                    <pre><code class="language-http">?q=スプリング</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
+                    <pre><code class="language-json">[
+    {
+        "part_name": "スプリング A",
+        "part_model_number": "SP-A-001",
+        "locations": [
+            { "rack_name": "メッシュラック #1", "slot_id": "A-1", "box_id": "BOX-101", "quantity": 100 },
+            { "rack_name": "メッシュラック #1", "slot_id": "B-4", "box_id": "BOX-105", "quantity": 100 }
+        ]
+    }
+]</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. 部品の使用 -->
+            <section id="use-parts">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 部品の使用</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/use</span>
+                    </div>
+                    <p class="mb-4">「この部品、こんだけ使ったよー！」ってサーバーに教えるAPI。在庫数をちゃんと減らしてくれる！</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
+                    <pre><code class="language-json">{
+    "box_id": "BOX-101",
+    "quantity_to_use": 10
+}</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
+                    <pre><code class="language-json">{
+    "box_id": "BOX-101",
+    "remaining_quantity": 90,
+    "message": "在庫を更新しました。"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 4. 部品の移動 -->
+            <section id="move-parts">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 部品の移動</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge put">PUT</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/move</span>
+                    </div>
+                    <p class="mb-4">部品の箱を、ある場所から別の場所に移動させるときに使うAPIだよ。</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
+                    <pre><code class="language-json">{
+    "box_id": "BOX-101",
+    "to_rack_id": 1,
+    "to_slot_id": "C-1"
+}</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
+                    <pre><code class="language-json">{
+    "message": "部品を正常に移動しました。"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 5. 新規部品の格納 -->
+            <section id="store-new-parts">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 新規部品の格納</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/store</span>
+                    </div>
+                    <p class="mb-4">新しい部品を、指定した空き場所に格納するためのAPI。</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
+                    <pre><code class="language-json">{
+    "slot_id": "A-2",
+    "part_name": "ギアセット F",
+    "part_model_number": "GR-F-006", // 任意項目
+    "quantity": 300
+}</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h4>
+                    <pre><code class="language-json">{
+    "box_id": "BOX-106",
+    "slot_id": "A-2",
+    "part_name": "ギアセット F",
+    "quantity": 300,
+    "qr_code_data": {
+        "type": "part_box",
+        "box_id": "BOX-106",
+        "part_model_number": "GR-F-006",
+        "part_name": "ギアセット F"
+    }
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- 6. QRコードによる入出庫 -->
+            <section id="qr-handling">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. QRコードによる入出庫</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">QRコードをピッてやるだけで入出庫できる、マジ神機能のためのAPI！</p>
+                    
+                    <h3 class="text-xl font-bold mt-6 mb-2">入庫処理</h3>
+                    <div class="flex items-center space-x-4 mb-2">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/qr/stock-in</span>
+                    </div>
+                    <p class="text-sm mb-4">「新しい部品のQR」と「置きたい棚のQR」をスキャンして送ると、在庫が登録される。</p>
+                    <pre><code class="language-json">{
+    "part_qr_json": "{\"type\":\"part_box\",\"box_id\":\"BOX-106\",...}",
+    "slot_qr_json": "{\"type\":\"rack_slot\",\"rack_id\":1,\"slot_id\":\"A-2\"}"
+}</code></pre>
+                    
+                    <h3 class="text-xl font-bold mt-8 mb-2">出庫処理</h3>
+                    <div class="flex items-center space-x-4 mb-2">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/qr/stock-out</span>
+                    </div>
+                    <p class="text-sm mb-4">「出したい部品のQR」と「使う個数」を送ると、在庫が減る。</p>
+                    <pre><code class="language-json">{
+    "part_qr_json": "{\"type\":\"part_box\",\"box_id\":\"BOX-101\",...}",
+    "quantity_to_use": 5
+}</code></pre>
+
+                    <div class="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-r-lg">
+                        <h4 class="font-bold text-lg">【補足】エスケープJSONってなに？</h4>
+                        <p class="mt-2 text-sm">`\"` みたいなのがいっぱいあるやつ、ちょいムズに見えるよね！これは、**JSONの中に、さらにJSONを入れたいから、内側のJSONを無理やり『ただの文字列』に変身させた姿**だよん！</p>
+                        <ul class="mt-2 list-disc list-inside space-y-1 text-sm">
+                            <li>QRコードをスキャンすると、`{"type":"part_box", ...}` みたいなJSONデータが取れる。</li>
+                            <li>そのデータを、別のJSONの項目（`part_qr_json`）に文字列として入れたい！</li>
+                            <li>でも、そのまま入れると `"` がいっぱいあってコンピューターがパニクる！</li>
+                            <li>そこで `\`（バックスラッシュ）っていう魔法の記号を使って、`"` を「ただの文字」だよって教えてあげてるんだ！</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+</html>

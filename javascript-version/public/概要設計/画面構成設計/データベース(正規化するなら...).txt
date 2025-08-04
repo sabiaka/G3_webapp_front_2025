@@ -115,26 +115,36 @@ CREATE TABLE production_reports (
 );
 
 
-【racks テーブル（棚マスタ）】
-CREATE TABLE racks (
-    rack_id INT AUTO_INCREMENT PRIMARY KEY,              -- レコードID（自動連番）
-    rack_name VARCHAR(100) UNIQUE NOT NULL,              -- 棚の名前（例: "A-1棚"）
-    rack_location VARCHAR(255) NOT NULL,                 -- 保管場所（例: "第1倉庫 A-1列"）
-    rack_qr_path VARCHAR(255)                            -- QRコード画像パス
+/*
+ * ===============================================================
+ * 【racks テーブル】→【rack_slots テーブル】(棚の場所マスター) に変更！
+ * これで「どの棚の、どの場所か」を管理できるようになったよ！
+ * ===============================================================
+ */
+CREATE TABLE rack_slots (
+    slot_id INT AUTO_INCREMENT PRIMARY KEY,         -- 場所のID（自動連番）
+    rack_name VARCHAR(100) NOT NULL,                -- 棚自体の名前（例: "メッシュラック #1"）
+    slot_name VARCHAR(50) NOT NULL,                 -- 場所の名前（例: "A-1", "A-2"）
+    UNIQUE (rack_name, slot_name)                   -- 棚の名前と場所の名前の組み合わせはユニークに！
 );
 
+/*
+ * ===============================================================
+ * 【parts_inventory テーブル】→【part_boxes テーブル】(部品の箱マスター) に変更！
+ * これで「どの箱が、どの場所にあるか」を管理できるようになったよ！
+ * ===============================================================
+ */
+CREATE TABLE part_boxes (
+    id INT AUTO_INCREMENT PRIMARY KEY,              -- 箱の内部ID（自動連番）★これがBOX IDの元ネタ！
+    box_id VARCHAR(50) UNIQUE NOT NULL,             -- 箱のID（例: "BOX-101"）★QRコードに入るID！
+    part_name VARCHAR(100) NOT NULL,                -- 部品名
+    part_model_number VARCHAR(100),                 -- 部品型番（任意入力なのでNULLを許可！）
+    quantity INT NOT NULL DEFAULT 0,                -- 部品個数
+    slot_id INT,                                    -- 保管場所のID（rack_slotsテーブルの外部キー）
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-
-【parts_inventory テーブル（部品在庫）】
-CREATE TABLE parts_inventory (
-    parts_id INT AUTO_INCREMENT PRIMARY KEY,                 -- 部品在庫ID（自動連番）
-    parts_rack_id INT NOT NULL,                              -- 棚ID（外部キー）
-    parts_name VARCHAR(100) NOT NULL,                        -- 部品名
-    parts_number VARCHAR(100) NOT NULL,                      -- 部品型番
-    parts_quantity INT NOT NULL DEFAULT 0,                   -- 部品個数
-    parts_qr_path VARCHAR(255),                              -- 出庫用QRコード画像パス
-    parts_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (parts_rack_id) REFERENCES racks(rack_id)    -- 外部キー制約
+    FOREIGN KEY (slot_id) REFERENCES rack_slots(slot_id) -- 外部キー制約
 );
+
 
