@@ -75,6 +75,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">IDで指定した機械の基本的な情報と、その日の稼働データをまとめてGETするAPI。ページを開いたときの初期表示で使うよ！</p>
 
@@ -103,6 +104,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}/logs</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">指定した機械のエラーログを取得する。日付やログの種類で絞り込めるようにしとこ！</p>
 
@@ -177,6 +179,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge websocket">WebSocket</span>
                         <span class="font-mono text-lg font-semibold">/ws/machines/{id}</span>
+                        <span class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: C</span>
                     </div>
                     <p class="mb-4">機械のステータスや稼働データ、新しいログをリアルタイムでフロントに送りつけるためのWebSocket通信。これがあれば、画面が勝手に更新されて超イケてる！</p>
 

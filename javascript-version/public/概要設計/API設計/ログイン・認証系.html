@@ -74,6 +74,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/auth/login</span>
+                        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
                     <p class="mb-4">ユーザーIDとパスワードを送って、ユーザーを認証するAPI。成功すると、今後の通信で使うためのアクセストークンが返ってくるよ！</p>
 
@@ -108,6 +109,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/auth/logout</span>
+                        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
                     <p class="mb-4">サーバー側でセッションを無効にするためのAPI。これを叩くときは、ログイン時にもらったアクセストークンをヘッダーに付けて送る必要があるよ。</p>
 
@@ -128,6 +130,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/auth/me</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">ユーザーが今ログインしてるか確認するためのAPI。ページをリロードしたときとかに、セッションが有効かチェックするのに使うと便利！</p>
 

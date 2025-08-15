@@ -64,6 +64,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/racks/{rack_id}</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">指定したラックに、どの部品がどこに入ってるか、ぜーんぶまとめてGETするAPI。ページの初期表示で使うよ！</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
@@ -105,6 +106,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/parts/search</span>
+                        <span class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: C</span>
                     </div>
                     <p class="mb-4">部品名とか型番で、どこに在庫があるか検索するAPI。検索窓で使うやつね！</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h4>
@@ -130,6 +132,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/use</span>
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
                     <p class="mb-4">「この部品、こんだけ使ったよー！」ってサーバーに教えるAPI。在庫数をちゃんと減らしてくれる！</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
@@ -153,6 +156,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge put">PUT</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/move</span>
+                        <span class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: C</span>
                     </div>
                     <p class="mb-4">部品の箱を、ある場所から別の場所に移動させるときに使うAPIだよ。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
@@ -175,6 +179,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/store</span>
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
                     <p class="mb-4">新しい部品を、指定した空き場所に格納するためのAPI。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
@@ -210,6 +215,7 @@
                     <div class="flex items-center space-x-4 mb-2">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/qr/stock-in</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="text-sm mb-4">「新しい部品のQR」と「置きたい棚のQR」をスキャンして送ると、在庫が登録される。</p>
                     <pre><code class="language-json">{
@@ -221,6 +227,7 @@
                     <div class="flex items-center space-x-4 mb-2">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/inventory/qr/stock-out</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="text-sm mb-4">「出したい部品のQR」と「使う個数」を送ると、在庫が減る。</p>
                     <pre><code class="language-json">{

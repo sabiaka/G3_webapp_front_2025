@@ -75,6 +75,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/inspections/summary</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">指定した日付の検査サマリー（総数、良品/不良品数、不良原因）をまとめてGETするAPI。各検査タブの統計表示で使うよ！</p>
 
@@ -123,6 +124,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/inspections</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">検査結果のログを一覧で取得する。ページネーション対応で、過去のログも遡れるようにしよ！</p>
 
@@ -200,6 +202,7 @@
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge websocket">WebSocket</span>
                         <span class="font-mono text-lg font-semibold">/ws/inspections</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">リアルタイムで検査結果をフロントに送りつけるためのWebSocket通信。これが一番イケてるやり方！接続したら、新しい検査結果がどんどんJSONで飛んでくるイメージ。
                     </p>
