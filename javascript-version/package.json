@@ -4,7 +4,8 @@
   "license": "Commercial",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--no-deprecation' next dev",
+    "dev:win": "set NODE_OPTIONS=--no-deprecation && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

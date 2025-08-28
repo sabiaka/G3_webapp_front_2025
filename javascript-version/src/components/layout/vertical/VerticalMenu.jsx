@@ -30,6 +30,11 @@ const VerticalMenu = ({ scrollMenu }) => {
   const { isBreakpointReached, transitionDuration } = useVerticalNav()
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
+  // Default values for environment variables
+  const proUrl = process.env.NEXT_PUBLIC_PRO_URL || '#'
+  const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '#'
+  const repoName = process.env.NEXT_PUBLIC_REPO_NAME || 'materio-mui-react-nextjs-admin-template-free'
+
   return (
     // eslint-disable-next-line lines-around-comment
     /* Custom scrollbar instead of browser scroll, remove if you want browser scroll only */
@@ -58,7 +63,7 @@ const VerticalMenu = ({ scrollMenu }) => {
           suffix={<Chip label='5' size='small' color='error' />}
         >
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/crm`}
+            href={`${proUrl}/dashboards/crm`}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
           >
@@ -66,21 +71,21 @@ const VerticalMenu = ({ scrollMenu }) => {
           </MenuItem>
           <MenuItem href='/'>Analytics</MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/ecommerce`}
+            href={`${proUrl}/dashboards/ecommerce`}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
           >
             eCommerce
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/academy`}
+            href={`${proUrl}/dashboards/academy`}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
           >
             Academy
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/dashboards/logistics`}
+            href={`${proUrl}/dashboards/logistics`}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
           >
@@ -92,25 +97,25 @@ const VerticalMenu = ({ scrollMenu }) => {
           icon={<i className='ri-file-copy-line' />}
           suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
         >
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/landing-page`} target='_blank'>
+          <MenuItem href={`${proUrl}/front-pages/landing-page`} target='_blank'>
             Landing
           </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/pricing`} target='_blank'>
+          <MenuItem href={`${proUrl}/front-pages/pricing`} target='_blank'>
             Pricing
           </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/payment`} target='_blank'>
+          <MenuItem href={`${proUrl}/front-pages/payment`} target='_blank'>
             Payment
           </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/checkout`} target='_blank'>
+          <MenuItem href={`${proUrl}/front-pages/checkout`} target='_blank'>
             Checkout
           </MenuItem>
-          <MenuItem href={`${process.env.NEXT_PUBLIC_PRO_URL}/front-pages/help-center`} target='_blank'>
+          <MenuItem href={`${proUrl}/front-pages/help-center`} target='_blank'>
             Help Center
           </MenuItem>
         </SubMenu>
         <MenuSection label='Apps & Pages'>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/apps/email`}
+            href={`${proUrl}/apps/email`}
             icon={<i className='ri-mail-open-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -118,7 +123,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Email
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/apps/chat`}
+            href={`${proUrl}/apps/chat`}
             icon={<i className='ri-wechat-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -126,7 +131,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Chat
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/apps/calendar`}
+            href={`${proUrl}/apps/calendar`}
             icon={<i className='ri-calendar-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -134,7 +139,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Calendar
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/apps/kanban`}
+            href={`${proUrl}/apps/kanban`}
             icon={<i className='ri-drag-drop-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -172,7 +177,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Form Layouts
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/forms/form-validation`}
+            href={`${proUrl}/forms/form-validation`}
             icon={<i className='ri-checkbox-multiple-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -180,7 +185,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Form Validation
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/forms/form-wizard`}
+            href={`${proUrl}/forms/form-wizard`}
             icon={<i className='ri-git-commit-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -188,7 +193,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Form Wizard
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_PRO_URL}/react-table`}
+            href={`${proUrl}/react-table`}
             icon={<i className='ri-table-alt-line' />}
             suffix={<Chip label='Pro' size='small' color='primary' variant='tonal' />}
             target='_blank'
@@ -196,7 +201,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             React Table
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/form-elements`}
+            href={`${docsUrl}/docs/user-interface/form-elements`}
             icon={<i className='ri-radio-button-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -204,7 +209,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Form Elements
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/mui-table`}
+            href={`${docsUrl}/docs/user-interface/mui-table`}
             icon={<i className='ri-table-2' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -214,7 +219,7 @@ const VerticalMenu = ({ scrollMenu }) => {
         </MenuSection>
         <MenuSection label='Misc'>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/foundation`}
+            href={`${docsUrl}/docs/user-interface/foundation`}
             icon={<i className='ri-pantone-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -222,7 +227,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Foundation
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/components`}
+            href={`${docsUrl}/docs/user-interface/components`}
             icon={<i className='ri-toggle-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -230,7 +235,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Components
           </MenuItem>
           <MenuItem
-            href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/menu-examples/overview`}
+            href={`${docsUrl}/docs/menu-examples/overview`}
             icon={<i className='ri-menu-search-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -238,7 +243,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Menu Examples
           </MenuItem>
           <MenuItem
-            href={`https://github.com/themeselection/${process.env.NEXT_PUBLIC_REPO_NAME}/issues`}
+            href={`https://github.com/themeselection/${repoName}/issues`}
             icon={<i className='ri-lifebuoy-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -246,7 +251,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Raise Support
           </MenuItem>
           <MenuItem
-            href={process.env.NEXT_PUBLIC_DOCS_URL}
+            href={docsUrl}
             icon={<i className='ri-book-line' />}
             suffix={<i className='ri-external-link-line text-xl' />}
             target='_blank'
@@ -254,7 +259,7 @@ const VerticalMenu = ({ scrollMenu }) => {
             Documentation
           </MenuItem>
           <SubMenu label='Others' icon={<i className='ri-more-line' />}>
-            <MenuItem suffix={<Chip label='New' size='small' color='info' />}>Item With Badge</MenuItem>
+            <MenuItem href='#' suffix={<Chip label='New' size='small' color='info' />}>Item With Badge</MenuItem>
             <MenuItem
               href='https://themeselection.com'
               target='_blank'
@@ -263,10 +268,10 @@ const VerticalMenu = ({ scrollMenu }) => {
               External Link
             </MenuItem>
             <SubMenu label='Menu Levels'>
-              <MenuItem>Menu Level 2</MenuItem>
+              <MenuItem href='#'>Menu Level 2</MenuItem>
               <SubMenu label='Menu Level 2'>
-                <MenuItem>Menu Level 3</MenuItem>
-                <MenuItem>Menu Level 3</MenuItem>
+                <MenuItem href='#'>Menu Level 3</MenuItem>
+                <MenuItem href='#'>Menu Level 3</MenuItem>
               </SubMenu>
             </SubMenu>
             <MenuItem disabled>Disabled Menu</MenuItem>
