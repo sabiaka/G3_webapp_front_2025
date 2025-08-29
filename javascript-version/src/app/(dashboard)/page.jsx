@@ -35,11 +35,11 @@ const DashboardAnalytics = () => {
           </Grid>
           <Grid item xs={12} sm={6}>
             <CardStatVertical
-              title='Total Profit'
+              title='総利益'
               stats='$25.6k'
               avatarIcon='ri-pie-chart-2-line'
               avatarColor='secondary'
-              subtitle='Weekly Profit'
+              subtitle='週間利益'
               trendNumber='42%'
               trend='positive'
             />
@@ -49,8 +49,8 @@ const DashboardAnalytics = () => {
               stats='862'
               trend='negative'
               trendNumber='18%'
-              title='New Project'
-              subtitle='Yearly Project'
+              title='新規プロジェクト'
+              subtitle='年間プロジェクト'
               avatarColor='primary'
               avatarIcon='ri-file-word-2-line'
             />

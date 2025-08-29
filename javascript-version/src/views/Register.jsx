@@ -44,15 +44,15 @@ const Register = ({ mode }) => {
           <Link href='/' className='flex justify-center items-start mbe-6'>
             <Logo />
           </Link>
-          <Typography variant='h4'>Adventure starts here 🚀</Typography>
+          <Typography variant='h4'>ここから冒険が始まります 🚀</Typography>
           <div className='flex flex-col gap-5'>
-            <Typography className='mbs-1'>Make your app management easy and fun!</Typography>
+            <Typography className='mbs-1'>アプリ管理をもっと簡単で楽しく！</Typography>
             <form noValidate autoComplete='off' onSubmit={e => e.preventDefault()} className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Username' />
-              <TextField fullWidth label='Email' />
+              <TextField autoFocus fullWidth label='ユーザー名' />
+              <TextField fullWidth label='メールアドレス' />
               <TextField
                 fullWidth
-                label='Password'
+                label='パスワード'
                 type={isPasswordShown ? 'text' : 'password'}
                 InputProps={{
                   endAdornment: (
@@ -73,23 +73,23 @@ const Register = ({ mode }) => {
                 control={<Checkbox />}
                 label={
                   <>
-                    <span>I agree to </span>
+                    <span>以下に同意します: </span>
                     <Link className='text-primary' href='/' onClick={e => e.preventDefault()}>
-                      privacy policy & terms
+                      プライバシーポリシーおよび利用規約
                     </Link>
                   </>
                 }
               />
               <Button fullWidth variant='contained' type='submit'>
-                Sign Up
+                サインアップ
               </Button>
               <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>Already have an account?</Typography>
+                <Typography>すでにアカウントをお持ちですか？</Typography>
                 <Typography component={Link} href='/login' color='primary'>
-                  Sign in instead
+                  こちらからサインイン
                 </Typography>
               </div>
-              <Divider className='gap-3'>Or</Divider>
+              <Divider className='gap-3'>または</Divider>
               <div className='flex justify-center items-center gap-2'>
                 <IconButton size='small' className='text-facebook'>
                   <i className='ri-facebook-fill' />

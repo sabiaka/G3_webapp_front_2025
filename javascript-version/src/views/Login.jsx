@@ -56,14 +56,14 @@ const Login = ({ mode }) => {
           </Link>
           <div className='flex flex-col gap-5'>
             <div>
-              <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
-              <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography>
+              <Typography variant='h4'>{`${themeConfig.templateName} へようこそ！👋🏻`}</Typography>
+              <Typography className='mbs-1'>アカウントにサインインして始めましょう</Typography>
             </div>
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Email' />
+              <TextField autoFocus fullWidth label='メールアドレス' />
               <TextField
                 fullWidth
-                label='Password'
+                label='パスワード'
                 id='outlined-adornment-password'
                 type={isPasswordShown ? 'text' : 'password'}
                 InputProps={{
@@ -82,21 +82,21 @@ const Login = ({ mode }) => {
                 }}
               />
               <div className='flex justify-between items-center gap-x-3 gap-y-1 flex-wrap'>
-                <FormControlLabel control={<Checkbox />} label='Remember me' />
+                <FormControlLabel control={<Checkbox />} label='ログイン状態を保持する' />
                 <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
-                  Forgot password?
+                  パスワードをお忘れですか？
                 </Typography>
               </div>
               <Button fullWidth variant='contained' type='submit'>
-                Log In
+                ログイン
               </Button>
               <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>New on our platform?</Typography>
+                <Typography>はじめてご利用ですか？</Typography>
                 <Typography component={Link} href='/register' color='primary'>
-                  Create an account
+                  アカウント作成
                 </Typography>
               </div>
-              <Divider className='gap-3'>or</Divider>
+              <Divider className='gap-3'>または</Divider>
               <div className='flex justify-center items-center gap-2'>
                 <IconButton size='small' className='text-facebook'>
                   <i className='ri-facebook-fill' />

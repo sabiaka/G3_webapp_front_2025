@@ -34,20 +34,20 @@ const ForgotPassword = ({ mode }) => {
           <Link href='/' className='flex justify-center items-center mbe-6'>
             <Logo />
           </Link>
-          <Typography variant='h4'>Forgot Password 🔒</Typography>
+          <Typography variant='h4'>パスワードをお忘れですか 🔒</Typography>
           <div className='flex flex-col gap-5'>
             <Typography className='mbs-1'>
-              Enter your email and we&#39;ll send you instructions to reset your password
+              メールアドレスを入力すると、パスワード再設定の手順をお送りします
             </Typography>
             <Form noValidate autoComplete='off' className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Email' />
+              <TextField autoFocus fullWidth label='メールアドレス' />
               <Button fullWidth variant='contained' type='submit'>
-                Send reset link
+                再設定リンクを送信
               </Button>
               <Typography className='flex justify-center items-center' color='primary'>
                 <Link href='/login' className='flex items-center'>
                   <DirectionalIcon ltrIconClass='ri-arrow-left-s-line' rtlIconClass='ri-arrow-right-s-line' />
-                  <span>Back to Login</span>
+                  <span>ログイン画面へ戻る</span>
                 </Link>
               </Typography>
             </Form>
