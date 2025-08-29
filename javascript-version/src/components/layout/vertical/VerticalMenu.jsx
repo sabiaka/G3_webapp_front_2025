@@ -52,13 +52,42 @@ const VerticalMenu = ({ scrollMenu }) => {
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(theme)}
       >
-        <SubMenu
-          label='ダッシュボード'
-          icon={<i className='ri-home-smile-line' />}
-        >
-          <MenuItem href='/'>アナリティクス</MenuItem>
-        </SubMenu>
-        <MenuSection label='アプリ & ページ'>
+        <MenuItem href='/' icon={<i className='ri-home-4-line' />}>
+          トップページ
+        </MenuItem>
+        <MenuSection label='製造管理システム'>
+          <MenuItem href='/production-management' icon={<i className='ri-bar-chart-box-line' />}>
+            生産数管理
+          </MenuItem>
+          <MenuItem href='/image-inspection' icon={<i className='ri-camera-line' />}>
+            画像検査ステータス
+          </MenuItem>
+          <MenuItem href='/employee-list' icon={<i className='ri-user-line' />}>
+            従業員名簿
+          </MenuItem>
+          <MenuItem href='/machine-status' icon={<i className='ri-cpu-line' />}>
+            生産機械ステータス
+          </MenuItem>
+          <MenuItem href='/shipping-instructions' icon={<i className='ri-ship-line' />}>
+            製造出荷指示周知
+          </MenuItem>
+          <MenuItem href='/parts-inventory' icon={<i className='ri-store-2-line' />}>
+            部品在庫管理
+          </MenuItem>
+          <MenuItem href='/machine-signage' icon={<i className='ri-display-line' />}>
+            生産機械サイネージ
+          </MenuItem>
+          <MenuItem href='/daily-reports' icon={<i className='ri-file-list-line' />}>
+            日報一覧
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label='テンプレ既存ページ'>
+          <SubMenu
+            label='ダッシュボード'
+            icon={<i className='ri-home-smile-line' />}
+          >
+            <MenuItem href='/'>アナリティクス</MenuItem>
+          </SubMenu>
           <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
             アカウント設定
           </MenuItem>
@@ -84,10 +113,11 @@ const VerticalMenu = ({ scrollMenu }) => {
           <MenuItem href='/card-basic' icon={<i className='ri-bar-chart-box-line' />}>
             カード
           </MenuItem>
-        </MenuSection>
-        <MenuSection label='フォーム & テーブル'>
           <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
             フォームレイアウト
+          </MenuItem>
+          <MenuItem href='/template-guide' icon={<i className='ri-book-open-line' />}>
+            テンプレートガイド
           </MenuItem>
         </MenuSection>
       </Menu>
