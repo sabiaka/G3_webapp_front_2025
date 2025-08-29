@@ -4,7 +4,7 @@
   "license": "Commercial",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--no-deprecation' next dev",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:win": "set NODE_OPTIONS=--no-deprecation && next dev",
     "build": "next build",
     "start": "next start",
@@ -36,6 +36,7 @@
     "@iconify/tools": "^4.0.4",
     "@iconify/utils": "^2.1.24",
     "autoprefixer": "^10.4.19",
+    "cross-env": "^10.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.3",
     "eslint-config-prettier": "^9.1.0",
