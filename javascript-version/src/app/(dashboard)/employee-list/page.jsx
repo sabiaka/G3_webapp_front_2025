@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -45,7 +44,10 @@ const statusOptions = [
 ]
 
 function getInitials(name) {
-  return name.split(' ').map(n => n[0]).join('').substring(0, 2)
+  // 全角スペース・半角スペースどちらでも分割
+  const parts = name.trim().split(/\s+/)
+  // 姓（最初の部分）だけ返す
+  return parts[0] || ''
 }
 
 const EmployeeCard = ({ employee, onMenuClick }) => {
@@ -61,7 +63,17 @@ const EmployeeCard = ({ employee, onMenuClick }) => {
       </IconButton>
       <CardContent>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-          <Avatar sx={{ width: 56, height: 56, marginRight: 2, bgcolor: employee.iconColor, fontWeight: 700, fontSize: 24 }}>
+          <Avatar
+            sx={{
+              width: 56,
+              height: 56,
+              marginRight: 2,
+              bgcolor: employee.iconColor,
+              fontWeight: 700,
+              fontSize: 24,
+              color: '#fff' // ここで文字色を白に指定
+            }}
+          >
             {getInitials(employee.name)}
           </Avatar>
           <div>
@@ -242,7 +254,19 @@ const EmployeeList = () => {
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} md={4}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: form.iconColor, fontSize: 36, fontWeight: 700, mb: 2 }}>{getInitials(form.name || '氏名')}</Avatar>
+                <Avatar
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    bgcolor: form.iconColor,
+                    fontSize: 36,
+                    fontWeight: 700,
+                    mb: 2,
+                    color: '#fff' // ここで文字色を白に指定
+                  }}
+                >
+                  {getInitials(form.name || '氏名')}
+                </Avatar>
                 <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{form.name || '氏名'}</Typography>
                 <Typography variant='body2' color='text.secondary'>{form.id || 'ID'}</Typography>
                 <div style={{ marginTop: 24, width: '100%' }}>
