@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -37,6 +38,7 @@ const departmentOptions = [
   { value: '検査', label: '検査' },
   { value: '管理', label: '管理' },
 ]
+
 const statusOptions = [
   { value: 'all', label: 'すべて' },
   { value: '在籍中', label: '在籍中' },
@@ -46,13 +48,17 @@ const statusOptions = [
 function getInitials(name) {
   // 全角スペース・半角スペースどちらでも分割
   const parts = name.trim().split(/\s+/)
+
+
   // 姓（最初の部分）だけ返す
   return parts[0] || ''
 }
 
 const EmployeeCard = ({ employee, onMenuClick }) => {
   const isRetired = employee.status === '退職済'
-  return (
+
+  
+return (
     <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: isRetired ? 0.6 : 1, position: 'relative' }}>
       <IconButton
         size='small'
@@ -107,7 +113,9 @@ const EmployeeList = () => {
     const nameMatch = emp.name.toLowerCase().includes(search.toLowerCase())
     const depMatch = department === 'all' || emp.department === department
     const statusMatch = status === 'all' || emp.status === status
-    return nameMatch && depMatch && statusMatch
+
+    
+return nameMatch && depMatch && statusMatch
   })
 
   // メニュー
@@ -115,6 +123,7 @@ const EmployeeList = () => {
     setMenuAnchor(e.currentTarget)
     setSelectedEmployee(employee)
   }
+
   const handleMenuClose = () => {
     setMenuAnchor(null)
     setSelectedEmployee(null)
@@ -125,6 +134,7 @@ const EmployeeList = () => {
     setForm({ name: '', id: '', department: '', role: '', status: '在籍中', notes: '', iconColor: '#6366f1' })
     setModalOpen(true)
   }
+
   const openEditModal = () => {
     if (selectedEmployee) {
       setForm(selectedEmployee)
@@ -132,13 +142,16 @@ const EmployeeList = () => {
       handleMenuClose()
     }
   }
+
   const closeModal = () => setModalOpen(false)
 
   // フォーム
   const handleFormChange = e => {
     const { name, value } = e.target
+
     setForm(prev => ({ ...prev, [name]: value }))
   }
+
   const handleColorPick = color => setForm(prev => ({ ...prev, iconColor: color }))
 
   // 保存
@@ -149,6 +162,7 @@ const EmployeeList = () => {
       } else {
         setEmployees(emps => [...emps, { ...form }])
       }
+
       setModalOpen(false)
     }
   }

@@ -102,13 +102,16 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
     // Group data by date
     const groupedData = data.reduce((acc, curr) => {
       const date = curr.date
+
       if (!acc[date]) {
         acc[date] = { plan: 0, actual: 0, defective: 0 }
       }
+
       acc[date].plan += curr.plan
       acc[date].actual += curr.actual
       acc[date].defective += curr.defective
-      return acc
+      
+return acc
     }, {})
 
     const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b))
@@ -134,7 +137,9 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
       const x = (i / sortedDates.length) * chartWidth + (padding / 2)
       const rate = groupedData[date].actual > 0 ? (groupedData[date].defective / groupedData[date].actual * 100) : 0
       const y = height - (rate / maxDefectiveRate * chartHeight) - padding
-      return `${x},${y}`
+
+      
+return `${x},${y}`
     }).join(' ')
 
     // Create date labels
@@ -142,13 +147,16 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
       const x = (i / sortedDates.length) * chartWidth + (padding / 2)
       const dateObj = new Date(date)
       const label = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
-      return { x, y: height - 25, text: label }
+
+      
+return { x, y: height - 25, text: label }
     })
 
     // Render bars
     bars.forEach((bar, index) => {
       // Plan bar
       const planRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+
       planRect.setAttribute('x', bar.plan.x)
       planRect.setAttribute('y', bar.plan.y)
       planRect.setAttribute('width', bar.plan.width)
@@ -159,6 +167,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
 
       // Actual bar
       const actualRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+
       actualRect.setAttribute('x', bar.actual.x)
       actualRect.setAttribute('y', bar.actual.y)
       actualRect.setAttribute('width', bar.actual.width)
@@ -170,6 +179,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
 
     // Render defective rate line
     const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
+
     polyline.setAttribute('points', pointsDefective)
     polyline.setAttribute('fill', 'none')
     polyline.setAttribute('stroke', '#ef4444')
@@ -180,6 +190,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
     // Render labels
     labels.forEach(label => {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
       text.setAttribute('x', label.x)
       text.setAttribute('y', label.y)
       text.setAttribute('text-anchor', 'middle')
@@ -191,6 +202,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
 
     // Render axis line
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
     axisLine.setAttribute('x1', padding)
     axisLine.setAttribute('y1', height - padding)
     axisLine.setAttribute('x2', width - padding)
@@ -200,6 +212,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
 
     // Render axis labels
     const maxRateLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
     maxRateLabel.setAttribute('x', width - padding + 5)
     maxRateLabel.setAttribute('y', padding)
     maxRateLabel.setAttribute('font-size', '12')
@@ -208,6 +221,7 @@ const ProductionTrendChart = ({ data, period, width, height }) => {
     svg.appendChild(maxRateLabel)
 
     const minRateLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
     minRateLabel.setAttribute('x', width - padding + 5)
     minRateLabel.setAttribute('y', height - padding)
     minRateLabel.setAttribute('font-size', '12')
@@ -253,13 +267,15 @@ const ProductionManagement = () => {
     const updateChartDimensions = () => {
       if (chartContainerRef.current) {
         const rect = chartContainerRef.current.getBoundingClientRect()
+
         setChartDimensions({ width: rect.width, height: rect.height })
       }
     }
 
     updateChartDimensions()
     window.addEventListener('resize', updateChartDimensions)
-    return () => window.removeEventListener('resize', updateChartDimensions)
+    
+return () => window.removeEventListener('resize', updateChartDimensions)
   }, [])
 
   const handlePeriodChange = (event, newPeriod) => {
@@ -272,7 +288,9 @@ const ProductionManagement = () => {
     return productionData.filter(item => {
       const dateMatch = !filterDate || item.date === filterDate
       const nameMatch = !filterName || item.name.toLowerCase().includes(filterName.toLowerCase())
-      return dateMatch && nameMatch
+
+      
+return dateMatch && nameMatch
     })
   }
 
@@ -282,10 +300,12 @@ const ProductionManagement = () => {
 
     if (period === 'week') {
       const oneWeekAgo = new Date(today)
+
       oneWeekAgo.setDate(today.getDate() - 6)
       dataForChart = productionData.filter(d => new Date(d.date) >= oneWeekAgo && new Date(d.date) <= today)
     } else {
       const oneMonthAgo = new Date(today)
+
       oneMonthAgo.setMonth(today.getMonth() - 1)
       dataForChart = productionData.filter(d => new Date(d.date) >= oneMonthAgo && new Date(d.date) <= today)
     }
@@ -311,7 +331,8 @@ const ProductionManagement = () => {
 
     const reasonCounts = dataForChart.flatMap(d => d.defective_details || []).reduce((acc, curr) => {
       acc[curr.reason] = (acc[curr.reason] || 0) + curr.count
-      return acc
+      
+return acc
     }, {})
 
     return Object.entries(reasonCounts)
@@ -399,6 +420,7 @@ const ProductionManagement = () => {
               const defectiveRate = row.actual > 0 ? ((row.defective / row.actual) * 100).toFixed(2) : 0
 
               let rateColor = 'success'
+
               if (achievementRate < 90) rateColor = 'error'
               else if (achievementRate < 100) rateColor = 'warning'
 

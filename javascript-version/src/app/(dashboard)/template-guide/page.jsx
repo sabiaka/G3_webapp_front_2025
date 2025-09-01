@@ -30,6 +30,7 @@ import LinearProgress from '@mui/material/LinearProgress'
 import Avatar from '@mui/material/Avatar'
 import IconButton from '@mui/material/IconButton'
 import { styled } from '@mui/material/styles'
+
 // ExpandMoreIconの代わりにRemix Iconを使用
 
 // Custom styled components example

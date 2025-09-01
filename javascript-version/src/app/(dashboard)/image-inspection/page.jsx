@@ -97,6 +97,7 @@ const DonutChart = ({ percentage, size = 160 }) => {
 
 const ImageInspection = () => {
   const [activeTab, setActiveTab] = useState(0)
+
   const [inspectionData] = useState([
     { 
       time: '10:18:12', 
@@ -200,11 +201,13 @@ const ImageInspection = () => {
 
   const getFailReasons = (cameraType) => {
     const failLogs = inspectionData.filter(log => log.camera === cameraType && log.status === 'FAIL')
+
     if (failLogs.length === 0) return []
     
     const reasonCounts = failLogs.reduce((acc, log) => {
       acc[log.details] = (acc[log.details] || 0) + 1
-      return acc
+      
+return acc
     }, {})
     
     return Object.entries(reasonCounts)

@@ -84,7 +84,8 @@ const MachineStatus = () => {
   const getEfficiencyColor = (efficiency) => {
     if (efficiency >= 90) return 'success'
     if (efficiency >= 70) return 'warning'
-    return 'error'
+    
+return 'error'
   }
 
   return (

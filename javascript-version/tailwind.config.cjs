@@ -9,4 +9,4 @@ const config = {
         extend: {}
     }
 };
-export default config;
+module.exports = config;

@@ -80,9 +80,11 @@ const PartsInventory = () => {
 
   const getStockStatus = (current, min, max) => {
     const percentage = (current / max) * 100
+
     if (current <= min) return { status: '在庫不足', color: 'error' }
     if (percentage >= 80) return { status: '在庫過多', color: 'warning' }
-    return { status: '適正', color: 'success' }
+    
+return { status: '適正', color: 'success' }
   }
 
   const getStockPercentage = (current, max) => {
