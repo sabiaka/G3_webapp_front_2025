@@ -248,6 +248,42 @@
                 </div>
             </section>
 
+            <!-- 7. 新規ラックの追加 -->
+            <section id="add-rack">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">7. 新規ラックの追加</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/inventory/racks</span>
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
+                    </div>
+                    <p class="mb-4">新しい部品棚（ラック）をガンガン追加しちゃうAPIだよ！名前と、タテヨコ何個の棚にするか教えればOK！</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
+                    <pre><code class="language-json">{
+    "rack_name": "大型スチールラック 西側",
+    "layout": {
+        "rows": 4,
+        "columns": 8
+    }
+}</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h4>
+                    <pre><code class="language-json">{
+    "rack_id": 2,
+    "rack_name": "大型スチールラック 西側",
+    "message": "新しいラックを追加しました。",
+    "layout": {
+        "rows": 4,
+        "columns": 8
+    },
+    "total_slots": 32
+}</code></pre>
+                    <div class="mt-8 p-4 bg-sky-50 border-l-4 border-sky-500 text-sky-800 rounded-r-lg">
+                        <h4 class="font-bold text-lg">【補足】スロットIDはどうなるの？</h4>
+                        <p class="mt-2 text-sm">リクエストで `rows: 4`, `columns: 8` って送ると、サーバー側で自動的に `A-1` から `D-8` までの連番IDが作られるようになってるよ！便利すぎ！</p>
+                    </div>
+                </div>
+            </section>
+
         </div>
 
         <footer class="text-center text-slate-500 mt-12 py-4">
