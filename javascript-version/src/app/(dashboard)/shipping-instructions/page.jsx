@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -21,12 +20,13 @@ import InputAdornment from '@mui/material/InputAdornment'
 import AddIcon from '@mui/icons-material/Add'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
 // サンプルデータ
 const initialInstructions = [
   {
     id: 1,
-    title: 'マット 1200x1950x240 sd gm/be 1.9 西川仕様 西川アイロンシール 匠 フラワー ホテル 両面張り 至急対応',
+    title: '木枠',
     line: 'マット',
     completed: false,
     remarks: '西川仕様・至急',
@@ -83,36 +83,101 @@ const completedOptions = [
   { value: 'not-completed', label: '未完了' },
 ]
 
+// タイトル分割用: 先頭のライン名(例: "マット")と残りの内容を分ける
+function splitTitle(title, line) {
+  if (!title) return { main: line, sub: '' }
+  if (title.startsWith(line)) {
+    return { main: line, sub: title.slice(line.length).trim() }
+  }
+  // マッチしない場合は、lineをメイン、title全体をサブとして扱う
+  return { main: line, sub: title }
+}
+
+
+const cardMinHeight = 260
+
+const LineChip = ({ line }) => {
+  const chipStyles = {
+    'マット': { backgroundColor: '#cffafe', color: '#0e7490' },
+    'ボトム': { backgroundColor: '#ffedd5', color: '#9a3412' },
+    'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
+  }
+  return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
+}
+
+
 const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
+  const { main, sub } = splitTitle(instruction.title, instruction.line);
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: instruction.completed ? 0.6 : 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 220 }}>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Grid container alignItems='flex-start' justifyContent='space-between'>
-          <Grid item>
-            <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{instruction.title}</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>{instruction.remarks}</Typography>
-          </Grid>
-          <Grid item>
-            <Checkbox
+    <Card
+      className='fade-in'
+      sx={{
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        opacity: instruction.completed ? 0.6 : 1,
+        minHeight: cardMinHeight,
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.3s',
+        '&:hover': {
+          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+          transform: 'translateY(-4px)'
+        }
+      }}
+    >
+      {/* 上部: ヘッダー */}
+      <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
+        <div>
+          <LineChip line={instruction.line} />
+          <Typography variant='h3' sx={{ fontWeight: 800, fontSize: 20, color: '#111827', mt: 1.5, lineHeight: 1.3 }}>
+            {main}
+            <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5 }}>
+              {sub}
+            </Typography>
+          </Typography>
+        </div>
+        <div className='text-right flex-shrink-0'>
+          <Checkbox
               checked={instruction.completed}
               onChange={() => onToggleComplete(instruction.id)}
               icon={<RadioButtonUncheckedIcon />}
-              checkedIcon={<CheckCircleIcon color='primary' />}
-              sx={{ p: 0, ml: 1 }}
+              checkedIcon={<CheckCircleIcon />}
+              sx={{ p: 0, '&.Mui-checked': { color: '#4f46e5' } }}
               inputProps={{ 'aria-label': '完了' }}
             />
-          </Grid>
-        </Grid>
-        <Grid container spacing={1} sx={{ mt: 2 }}>
-          <Grid item xs={6} sm={4}><Typography variant='body2'><b>ライン:</b> {instruction.line}</Typography></Grid>
-          <Grid item xs={6} sm={4}><Typography variant='body2'><b>色:</b> {instruction.color || '-'}</Typography></Grid>
-          <Grid item xs={6} sm={4}><Typography variant='body2'><b>配送方法:</b> {instruction.shippingMethod || '-'}</Typography></Grid>
-          <Grid item xs={6} sm={4}><Typography variant='body2'><b>配送先:</b> {instruction.destination || '-'}</Typography></Grid>
-          <Grid item xs={6} sm={8}><Typography variant='body2'><b>備考:</b> {instruction.note || '-'}</Typography></Grid>
-        </Grid>
-      </CardContent>
-      <div style={{ padding: 16, background: '#f9fafb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button size='small' color='primary' onClick={() => onEdit(instruction)} sx={{ fontWeight: 600 }}>編集</Button>
+        </div>
+      </div>
+
+      {/* 中央: 詳細 */}
+      <div className='p-5 flex-grow space-y-3 text-sm'>
+        <div>
+            <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
+            <div className="space-y-1 text-gray-700">
+                <div className="flex"><p className="w-20 text-gray-500 shrink-0">カラー:</p><p className="font-medium">{instruction.color || '-'}</p></div>
+                <div className="flex"><p className="w-20 text-gray-500 shrink-0">備考:</p><p className="font-medium">{instruction.note || '-'}</p></div>
+            </div>
+        </div>
+         <div>
+            <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">配送情報</h4>
+            <div className="space-y-1 text-gray-700">
+                <div className="flex"><p className="w-20 text-gray-500 shrink-0">配送方法:</p><p className="font-medium">{instruction.shippingMethod || '-'}</p></div>
+                <div className="flex"><p className="w-20 text-gray-500 shrink-0">配送先:</p><p className="font-medium">{instruction.destination || '-'}</p></div>
+                {instruction.remarks && <div className="flex"><p className="w-20 text-gray-500 shrink-0">特記:</p><p className="font-bold text-red-600">{instruction.remarks}</p></div>}
+            </div>
+        </div>
+      </div>
+
+      {/* 下部: フッター */}
+      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-end items-center'>
+        <Button 
+          variant="text" 
+          size='small' 
+          onClick={() => onEdit(instruction)} 
+          startIcon={<EditOutlinedIcon />}
+          sx={{ color: '#4f46e5', fontWeight: 600 }}
+        >
+          編集
+        </Button>
       </div>
     </Card>
   )
@@ -129,11 +194,22 @@ const ShippingInstructions = () => {
 
   // フィルタリング
   const filtered = instructions.filter(inst => {
-    const textMatch = inst.title.toLowerCase().includes(search.toLowerCase()) || (inst.remarks && inst.remarks.toLowerCase().includes(search.toLowerCase()))
+    // 検索テキストのマッチング
+    const searchText = search.toLowerCase()
+    const textMatch = !searchText ||
+      inst.title.toLowerCase().includes(searchText) ||
+      (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
+      (inst.remarks && inst.remarks.toLowerCase().includes(searchText)) ||
+      (inst.note && inst.note.toLowerCase().includes(searchText))
+
+    // ラインのマッチング
     const lineMatch = line === 'すべて' || inst.line === line
+
+    // 完了状態のマッチング
     let completedMatch = true
     if (completed === 'completed') completedMatch = inst.completed
     else if (completed === 'not-completed') completedMatch = !inst.completed
+    
     return textMatch && lineMatch && completedMatch
   })
 
@@ -293,3 +369,4 @@ const ShippingInstructions = () => {
 }
 
 export default ShippingInstructions
+
