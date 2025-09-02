@@ -1,329 +1,294 @@
+
 'use client'
 
-// React Imports
 import { useState } from 'react'
-
-// MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import Paper from '@mui/material/Paper'
-import Chip from '@mui/material/Chip'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Button from '@mui/material/Button'
+import Fab from '@mui/material/Fab'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
 import IconButton from '@mui/material/IconButton'
+import Checkbox from '@mui/material/Checkbox'
 import InputAdornment from '@mui/material/InputAdornment'
+import AddIcon from '@mui/icons-material/Add'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+
+// サンプルデータ
+const initialInstructions = [
+  {
+    id: 1,
+    title: 'マット 1200x1950x240 sd gm/be 1.9 西川仕様 西川アイロンシール 匠 フラワー ホテル 両面張り 至急対応',
+    line: 'マット',
+    completed: false,
+    remarks: '西川仕様・至急',
+    color: 'GM/BE',
+    shippingMethod: '匠',
+    destination: 'ホテル',
+    note: '両面張り',
+  },
+  {
+    id: 2,
+    title: 'マット 1200x1950x200 平 gm/be 1.9 路線 グリーン ホテル仕上',
+    line: 'マット',
+    completed: true,
+    remarks: 'グリーン',
+    color: 'GM/BE',
+    shippingMethod: '路線',
+    destination: 'ホテル',
+    note: 'ホテル仕上',
+  },
+  {
+    id: 3,
+    title: 'サポート 80巾 5col 福岡県小郡 アマゾン アマゾン直送便',
+    line: 'ボトム',
+    completed: false,
+    remarks: 'アマゾン直送',
+    color: '',
+    shippingMethod: 'アマゾン直送便',
+    destination: '福岡県小郡',
+    note: '',
+  },
+  {
+    id: 4,
+    title: 'ピロー スタンダード white 保証書 路線 サンプル出荷',
+    line: 'その他',
+    completed: false,
+    remarks: 'サンプル出荷',
+    color: 'white',
+    shippingMethod: '路線',
+    destination: '',
+    note: '保証書',
+  },
+]
+
+const lineOptions = [
+  { value: 'すべて', label: 'すべて' },
+  { value: 'マット', label: 'マット' },
+  { value: 'ボトム', label: 'ボトム' },
+  { value: 'その他', label: 'その他' },
+]
+
+const completedOptions = [
+  { value: 'all', label: 'すべて' },
+  { value: 'completed', label: '完了' },
+  { value: 'not-completed', label: '未完了' },
+]
+
+const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
+  return (
+    <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: instruction.completed ? 0.6 : 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 220 }}>
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Grid container alignItems='flex-start' justifyContent='space-between'>
+          <Grid item>
+            <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{instruction.title}</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>{instruction.remarks}</Typography>
+          </Grid>
+          <Grid item>
+            <Checkbox
+              checked={instruction.completed}
+              onChange={() => onToggleComplete(instruction.id)}
+              icon={<RadioButtonUncheckedIcon />}
+              checkedIcon={<CheckCircleIcon color='primary' />}
+              sx={{ p: 0, ml: 1 }}
+              inputProps={{ 'aria-label': '完了' }}
+            />
+          </Grid>
+        </Grid>
+        <Grid container spacing={1} sx={{ mt: 2 }}>
+          <Grid item xs={6} sm={4}><Typography variant='body2'><b>ライン:</b> {instruction.line}</Typography></Grid>
+          <Grid item xs={6} sm={4}><Typography variant='body2'><b>色:</b> {instruction.color || '-'}</Typography></Grid>
+          <Grid item xs={6} sm={4}><Typography variant='body2'><b>配送方法:</b> {instruction.shippingMethod || '-'}</Typography></Grid>
+          <Grid item xs={6} sm={4}><Typography variant='body2'><b>配送先:</b> {instruction.destination || '-'}</Typography></Grid>
+          <Grid item xs={6} sm={8}><Typography variant='body2'><b>備考:</b> {instruction.note || '-'}</Typography></Grid>
+        </Grid>
+      </CardContent>
+      <div style={{ padding: 16, background: '#f9fafb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button size='small' color='primary' onClick={() => onEdit(instruction)} sx={{ fontWeight: 600 }}>編集</Button>
+      </div>
+    </Card>
+  )
+}
 
 const ShippingInstructions = () => {
-  const [shippingData] = useState([
-    {
-      id: 1,
-      orderNumber: 'SO-2024-001',
-      customer: '株式会社ABC',
-      product: '製品A',
-      quantity: 500,
-      status: '出荷準備中',
-      priority: '高',
-      shippingDate: '2024-01-20',
-      deliveryDate: '2024-01-22',
-      responsible: '田中太郎'
-    },
-    {
-      id: 2,
-      orderNumber: 'SO-2024-002',
-      customer: '株式会社XYZ',
-      product: '製品B',
-      quantity: 300,
-      status: '出荷完了',
-      priority: '中',
-      shippingDate: '2024-01-18',
-      deliveryDate: '2024-01-21',
-      responsible: '佐藤花子'
-    },
-    {
-      id: 3,
-      orderNumber: 'SO-2024-003',
-      customer: '株式会社DEF',
-      product: '製品C',
-      quantity: 800,
-      status: '製造中',
-      priority: '高',
-      shippingDate: '2024-01-25',
-      deliveryDate: '2024-01-28',
-      responsible: '鈴木一郎'
-    },
-    {
-      id: 4,
-      orderNumber: 'SO-2024-004',
-      customer: '株式会社GHI',
-      product: '製品D',
-      quantity: 200,
-      status: '出荷準備中',
-      priority: '低',
-      shippingDate: '2024-01-19',
-      deliveryDate: '2024-01-23',
-      responsible: '高橋美咲'
-    }
-  ])
+  const [instructions, setInstructions] = useState(initialInstructions)
+  const [search, setSearch] = useState('')
+  const [line, setLine] = useState('すべて')
+  const [completed, setCompleted] = useState('all')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '' })
+  const [editMode, setEditMode] = useState(false)
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case '出荷完了': return 'success'
-      case '出荷準備中': return 'warning'
-      case '製造中': return 'info'
-      case '遅延': return 'error'
-      default: return 'default'
-    }
+  // フィルタリング
+  const filtered = instructions.filter(inst => {
+    const textMatch = inst.title.toLowerCase().includes(search.toLowerCase()) || (inst.remarks && inst.remarks.toLowerCase().includes(search.toLowerCase()))
+    const lineMatch = line === 'すべて' || inst.line === line
+    let completedMatch = true
+    if (completed === 'completed') completedMatch = inst.completed
+    else if (completed === 'not-completed') completedMatch = !inst.completed
+    return textMatch && lineMatch && completedMatch
+  })
+
+  // 完了トグル
+  const handleToggleComplete = id => {
+    setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: !inst.completed } : inst))
   }
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case '高': return 'error'
-      case '中': return 'warning'
-      case '低': return 'success'
-      default: return 'default'
+  // 編集
+  const handleEdit = inst => {
+    setForm(inst)
+    setEditMode(true)
+    setModalOpen(true)
+  }
+
+  // 追加
+  const handleAdd = () => {
+    setForm({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '' })
+    setEditMode(false)
+    setModalOpen(true)
+  }
+
+  // 保存
+  const handleSave = () => {
+    if (!form.title) return
+    if (editMode) {
+      setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...form } : inst))
+    } else {
+      const newId = Math.max(...instructions.map(i => i.id), 0) + 1
+      setInstructions(prev => [...prev, { ...form, id: newId }])
     }
+    setModalOpen(false)
+  }
+
+  // 入力変更
+  const handleFormChange = e => {
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: value }))
   }
 
   return (
-    <Grid container spacing={6}>
-      <Grid item xs={12}>
-        <Typography variant='h4' className='mb-4'>
-          製造出荷指示周知
-        </Typography>
-      </Grid>
-      
-      {/* 出荷状況サマリー */}
-      <Grid item xs={12} md={6} lg={3}>
-        <Card>
-          <CardContent>
-            <Typography variant='h6' color='info.main'>
-              今日の出荷予定
-            </Typography>
-            <Typography variant='h4'>12</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              件
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6} lg={3}>
-        <Card>
-          <CardContent>
-            <Typography variant='h6' color='success.main'>
-              出荷完了
-            </Typography>
-            <Typography variant='h4'>8</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              件
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6} lg={3}>
-        <Card>
-          <CardContent>
-            <Typography variant='h6' color='warning.main'>
-              出荷準備中
-            </Typography>
-            <Typography variant='h4'>3</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              件
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6} lg={3}>
-        <Card>
-          <CardContent>
-            <Typography variant='h6' color='error.main'>
-              遅延
-            </Typography>
-            <Typography variant='h4'>1</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              件
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+    <>
+      <Typography variant='h4' sx={{ mb: 4, fontWeight: 700 }}>製造出荷指示</Typography>
 
-      {/* 検索・フィルター */}
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Grid container spacing={2} alignItems='center'>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  label='受注番号で検索'
-                  variant='outlined'
-                  size='small'
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <i className='ri-search-line' />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  select
-                  label='ステータス'
-                  variant='outlined'
-                  size='small'
-                  defaultValue='all'
-                >
-                  <option value='all'>すべて</option>
-                  <option value='manufacturing'>製造中</option>
-                  <option value='preparing'>出荷準備中</option>
-                  <option value='shipped'>出荷完了</option>
-                  <option value='delayed'>遅延</option>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  select
-                  label='優先度'
-                  variant='outlined'
-                  size='small'
-                  defaultValue='all'
-                >
-                  <option value='all'>すべて</option>
-                  <option value='high'>高</option>
-                  <option value='medium'>中</option>
-                  <option value='low'>低</option>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Button variant='contained' fullWidth>
-                  検索
-                </Button>
-              </Grid>
+      {/* フィルターバー */}
+      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems='flex-end'>
+            <Grid item xs={12} md={5}>
+              <TextField
+                fullWidth
+                label='品名 / 配送先 / 備考で検索'
+                size='small'
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <span className='ri-search-line' />
+                    </InputAdornment>
+                  )
+                }}
+              />
             </Grid>
-          </CardContent>
-        </Card>
+            <Grid item xs={6} md={3}>
+              <Select
+                fullWidth
+                size='small'
+                value={line}
+                onChange={e => setLine(e.target.value)}
+                displayEmpty
+              >
+                {lineOptions.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <Select
+                fullWidth
+                size='small'
+                value={completed}
+                onChange={e => setCompleted(e.target.value)}
+                displayEmpty
+              >
+                {completedOptions.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* 指示カードリスト */}
+      <Grid container spacing={3}>
+        {filtered.length === 0 ? (
+          <Grid item xs={12}>
+            <Card sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+              <Typography variant='h6' color='text.secondary' sx={{ mb: 1 }}>該当する指示が見つかりませんでした。</Typography>
+              <Typography variant='body2' color='text.disabled'>検索条件を変更して、もう一度お試しください。</Typography>
+            </Card>
+          </Grid>
+        ) : (
+          filtered.map(inst => (
+            <Grid item xs={12} sm={6} md={4} xl={3} key={inst.id}>
+              <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} />
+            </Grid>
+          ))
+        )}
       </Grid>
 
-      {/* 出荷指示一覧テーブル */}
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <div className='flex justify-between items-center mb-3'>
-              <Typography variant='h6'>
-                出荷指示一覧
-              </Typography>
-              <Button variant='contained' startIcon={<i className='ri-add-line' />}>
-                新規出荷指示
-              </Button>
-            </div>
-            <TableContainer component={Paper} variant='outlined'>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>受注番号</TableCell>
-                    <TableCell>顧客名</TableCell>
-                    <TableCell>製品</TableCell>
-                    <TableCell align='right'>数量</TableCell>
-                    <TableCell align='center'>ステータス</TableCell>
-                    <TableCell align='center'>優先度</TableCell>
-                    <TableCell>出荷予定日</TableCell>
-                    <TableCell>納期</TableCell>
-                    <TableCell>担当者</TableCell>
-                    <TableCell align='center'>アクション</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {shippingData.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <Typography variant='body2' className='font-medium'>
-                          {order.orderNumber}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell align='right'>{order.quantity}</TableCell>
-                      <TableCell align='center'>
-                        <Chip
-                          label={order.status}
-                          color={getStatusColor(order.status)}
-                          size='small'
-                        />
-                      </TableCell>
-                      <TableCell align='center'>
-                        <Chip
-                          label={order.priority}
-                          color={getPriorityColor(order.priority)}
-                          size='small'
-                        />
-                      </TableCell>
-                      <TableCell>{order.shippingDate}</TableCell>
-                      <TableCell>{order.deliveryDate}</TableCell>
-                      <TableCell>{order.responsible}</TableCell>
-                      <TableCell align='center'>
-                        <IconButton size='small' color='primary'>
-                          <i className='ri-eye-line' />
-                        </IconButton>
-                        <IconButton size='small' color='secondary'>
-                          <i className='ri-edit-line' />
-                        </IconButton>
-                        <IconButton size='small' color='success'>
-                          <i className='ri-ship-line' />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      </Grid>
+      {/* フローティング追加ボタン */}
+      <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
+        <AddIcon fontSize='large' />
+      </Fab>
 
-      {/* 緊急出荷指示 */}
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Typography variant='h6' className='mb-3 text-error-600'>
-              ⚠️ 緊急出荷指示
-            </Typography>
-            <div className='p-3 bg-error-50 border border-error-200 rounded'>
-              <Typography variant='body2' className='font-medium mb-2'>
-                受注番号: SO-2024-001 (株式会社ABC)
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mb-2'>
-                製品A 500個 - 納期: 2024-01-22
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                優先度: 高 - 担当: 田中太郎
-              </Typography>
-              <div className='mt-3'>
-                <Button variant='contained' color='error' size='small' className='mr-2'>
-                  出荷確認
-                </Button>
-                <Button variant='outlined' color='error' size='small'>
-                  詳細確認
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+      {/* モーダル（追加・編集） */}
+      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth='md' fullWidth>
+        <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField label='指示内容 (品名・仕様など)' name='title' value={form.title} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} required />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Select label='担当ライン' name='line' value={form.line} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }}>
+                {lineOptions.filter(opt => opt.value !== 'すべて').map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label='色' name='color' value={form.color} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label='配送方法' name='shippingMethod' value={form.shippingMethod} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label='配送先' name='destination' value={form.destination} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label='備考' name='note' value={form.note} onChange={handleFormChange} fullWidth size='small' multiline rows={2} sx={{ mb: 2 }} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label='特記事項' name='remarks' value={form.remarks} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalOpen(false)}>キャンセル</Button>
+          <Button onClick={handleSave} variant='contained'>保存</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 
