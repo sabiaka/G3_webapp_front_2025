@@ -2,19 +2,18 @@
 <html lang="ja">
 
 <head>
-    <!-- メタ情報や外部リソースの読み込み -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>部品在庫管理</title>
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSSを読み込む -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
+    <!-- Google Fonts (Inter) を読み込む -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
         rel="stylesheet">
-    <!-- Ionicons（アイコン用） -->
+    <!-- Ioniconsを読み込む -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
@@ -167,14 +166,12 @@
         <header class="bg-white shadow-md sticky top-0 z-30">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <!-- タイトルとアイコン -->
                     <div class="flex items-center space-x-4">
                         <div class="bg-indigo-600 p-2 rounded-lg">
                             <ion-icon name="cube-outline" class="text-white text-2xl"></ion-icon>
                         </div>
                         <h1 class="text-xl font-bold text-gray-900">部品在庫管理</h1>
                     </div>
-                    <!-- 戻る・ログアウトボタン -->
                     <div class="flex items-center space-x-4">
                         <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr;
                             ダッシュボードに戻る</a>
@@ -191,21 +188,20 @@
         <!-- メインコンテンツ -->
         <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <!-- ラック一覧（左カラム） -->
+                <!-- 左カラム: ラック選択 -->
                 <aside class="lg:col-span-1 bg-white rounded-xl shadow-md p-4">
                     <h2 class="text-lg font-bold mb-4 border-b pb-2">ラック一覧</h2>
                     <ul id="rack-list" class="space-y-2">
-                        <!-- JSで動的生成 -->
+                        <!-- ラックリストはJSで動的に生成 -->
                     </ul>
                 </aside>
 
-                <!-- ラック表示・詳細（右カラム） -->
+                <!-- 右カラム: ラック表示と詳細 -->
                 <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- メッシュラック（中央） -->
+                    <!-- メッシュラック -->
                     <div class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
                             <h2 id="rack-name" class="text-2xl font-bold"></h2>
-                            <!-- 一括QR生成ボタン -->
                             <button id="bulk-qr-btn"
                                 class="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded-lg text-sm transition-transform transform hover:scale-105">
                                 <ion-icon name="print-outline" class="mr-2"></ion-icon>
@@ -214,16 +210,16 @@
                         </div>
                         <div class="overflow-x-auto bg-white p-2 pl-0 rounded-xl shadow-md">
                             <div id="rack-display-area" class="min-w-max">
-                                <!-- JSでグリッド生成 -->
+                                <!-- JS will build the labeled grid here -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- 詳細・操作パネル（右） -->
+                    <!-- 詳細と操作 -->
                     <div class="lg:col-span-1">
                         <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
                             <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
-                            <!-- 検索フォーム -->
+                            <!-- 検索 -->
                             <div class="mb-6">
                                 <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
                                 <div class="mt-1 relative rounded-md shadow-sm">
@@ -235,7 +231,7 @@
                                         placeholder="部品名 or 型番">
                                 </div>
                             </div>
-                            <!-- 詳細表示エリア -->
+                            <!-- 詳細表示 -->
                             <div id="details-panel">
                                 <div class="text-center text-gray-500 py-10">
                                     <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
@@ -249,23 +245,20 @@
         </main>
     </div>
 
-    <!-- フローティングアクションボタン（FAB） -->
+    <!-- フローティングアクションボタン (FAB) -->
     <div class="fixed bottom-8 right-8 z-20" id="fab-container">
         <!-- FABメニュー -->
         <div id="fab-menu" class="flex flex-col items-end space-y-3 mb-3">
-            <!-- 新しいラック作成 -->
             <button id="add-rack-btn" data-tooltip="新しいラックを作成"
                 class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
                 <span class="ml-2 text-sm">ラック作成</span>
             </button>
-            <!-- QR入庫 -->
             <button id="qr-stock-in-btn" data-tooltip="QR入庫"
                 class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
                 <span class="ml-2 text-sm">QR入庫</span>
             </button>
-            <!-- QR出庫 -->
             <button id="qr-stock-out-btn" data-tooltip="QR出庫"
                 class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
@@ -279,37 +272,85 @@
         </button>
     </div>
 
-    <!-- モーダル（ダイアログ） -->
+
+    <!-- モーダル -->
     <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-40 p-4">
         <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md modal-enter">
-            <!-- モーダルの中身はJSで動的生成 -->
+            <!-- モーダルの中身はJSで動的に生成 -->
         </div>
     </div>
 
     <script>
-        // DOMContentLoadedで初期化
         document.addEventListener('DOMContentLoaded', () => {
-            // --- サンプルデータ（APIの返却を想定） ---
-            const mockApiData = [{
-                "rack_id": 1,
-                "rack_name": "メッシュラック #1",
-                "slots": [
-                    { "slot_id": "A-1", "part": { "box_id": "BOX-101", "part_name": "スプリング A", "part_model_number": "SP-A-001", "quantity": 100, "color_code": "4A90E2" } },
-                    { "slot_id": "A-2", "part": null },
-                    { "slot_id": "A-3", "part": { "box_id": "BOX-102", "part_name": "フレーム B", "part_model_number": "FR-B-002", "quantity": 50, "color_code": "50E3C2" } },
-                    { "slot_id": "A-4", "part": { "box_id": "BOX-103", "part_name": "カバー C", "part_model_number": "CV-C-003", "quantity": 200, "color_code": "F5A623" } },
-                    { "slot_id": "B-1", "part": { "box_id": "BOX-104", "part_name": "ネジセット D", "part_model_number": "SC-D-004", "quantity": 500, "color_code": "9B9B9B" } },
-                    { "slot_id": "B-2", "part": { "box_id": "BOX-102", "part_name": "フレーム B", "part_model_number": "FR-B-002", "quantity": 50, "color_code": "50E3C2" } },
-                    { "slot_id": "B-3", "part": null },
-                    { "slot_id": "B-4", "part": { "box_id": "BOX-101", "part_name": "スプリング A", "part_model_number": "SP-A-001", "quantity": 100, "color_code": "4A90E2" } },
-                    { "slot_id": "C-1", "part": null },
-                    { "slot_id": "C-2", "part": { "box_id": "BOX-103", "part_name": "カバー C", "part_model_number": "CV-C-003", "quantity": 200, "color_code": "F5A623" } },
-                    { "slot_id": "C-3", "part": null },
-                    { "slot_id": "C-4", "part": { "box_id": "BOX-105", "part_name": "モーター E", "part_model_number": "MT-E-005", "quantity": 20, "color_code": "D0021B" } },
-                ]
-            }];
+            // =============================
+            // 画面ロジック概要
+            // - ダミーAPIデータをアプリ内部形式へ変換
+            // - 左: ラック一覧 / 右: ラックメッシュ + 詳細パネル
+            // - 操作: 部品使用・格納・移動、箱QR/棚QR表示、棚QR一括生成
+            // - モーダルは openModal/closeModal で共通管理
+            // =============================
+
+            // APIから返ってくるであろうサンプルデータ
+            const mockApiData = [
+                {
+                    "rack_id": 1,
+                    "rack_name": "スプリング・小物資材ラック",
+                    "slots": [
+                        { "slot_id": "A-1", "part": { "box_id": "BOX-PC-S-01", "part_name": "ポケットコイル (シングル)", "part_model_number": "PC-S-H20", "quantity": 25, "color_code": "4A90E2" } },
+                        { "slot_id": "A-2", "part": { "box_id": "BOX-PC-S-02", "part_name": "ポケットコイル (シングル)", "part_model_number": "PC-S-H20", "quantity": 25, "color_code": "4A90E2" } },
+                        { "slot_id": "A-3", "part": null },
+                        { "slot_id": "A-4", "part": { "box_id": "BOX-BC-SD-01", "part_name": "ボンネルコイル (セミダブル)", "part_model_number": "BC-SD-H18", "quantity": 20, "color_code": "50E3C2" } },
+                        { "slot_id": "B-1", "part": { "box_id": "BOX-CG-01", "part_name": "コーナーガード", "part_model_number": "CG-STD", "quantity": 500, "color_code": "9B9B9B" } },
+                        { "slot_id": "B-2", "part": { "box_id": "BOX-LBL-01", "part_name": "製品ラベルセット", "part_model_number": "LBL-PREMIUM", "quantity": 1000, "color_code": "F5A623" } },
+                        { "slot_id": "B-3", "part": null },
+                        { "slot_id": "B-4", "part": { "box_id": "BOX-THD-01", "part_name": "強化縫製糸 (白)", "part_model_number": "THD-W-HV", "quantity": 50, "color_code": "E9E9E9" } },
+                        { "slot_id": "C-1", "part": null },
+                        { "slot_id": "C-2", "part": { "box_id": "BOX-BC-SD-02", "part_name": "ボンネルコイル (セミダブル)", "part_model_number": "BC-SD-H18", "quantity": 20, "color_code": "50E3C2" } },
+                        { "slot_id": "C-3", "part": null },
+                        { "slot_id": "C-4", "part": { "box_id": "BOX-ZIP-01", "part_name": "ジッパー (200cm)", "part_model_number": "ZIP-200", "quantity": 150, "color_code": "D0021B" } },
+                    ]
+                },
+                {
+                    "rack_id": 2,
+                    "rack_name": "ウレタンフォーム保管棚",
+                    "slots": [
+                        { "slot_id": "A-1", "part": { "box_id": "BOX-MF-20-S-01", "part_name": "低反発ウレタン 20mm (S)", "part_model_number": "MF-T20-S", "quantity": 40, "color_code": "4A90E2" } },
+                        { "slot_id": "A-2", "part": { "box_id": "BOX-MF-20-S-02", "part_name": "低反発ウレタン 20mm (S)", "part_model_number": "MF-T20-S", "quantity": 40, "color_code": "4A90E2" } },
+                        { "slot_id": "A-3", "part": { "box_id": "BOX-HR-30-S-01", "part_name": "高反発ウレタン 30mm (S)", "part_model_number": "HR-T30-S", "quantity": 40, "color_code": "7ED321" } },
+                        { "slot_id": "A-4", "part": { "box_id": "BOX-HR-30-S-02", "part_name": "高反発ウレタン 30mm (S)", "part_model_number": "HR-T30-S", "quantity": 40, "color_code": "7ED321" } },
+                        { "slot_id": "A-5", "part": null },
+                        { "slot_id": "A-6", "part": null },
+                        { "slot_id": "B-1", "part": { "box_id": "BOX-MF-20-SD-01", "part_name": "低反発ウレタン 20mm (SD)", "part_model_number": "MF-T20-SD", "quantity": 30, "color_code": "4A90E2" } },
+                        { "slot_id": "B-2", "part": { "box_id": "BOX-MF-20-SD-02", "part_name": "低反発ウレタン 20mm (SD)", "part_model_number": "MF-T20-SD", "quantity": 30, "color_code": "4A90E2" } },
+                        { "slot_id": "B-3", "part": { "box_id": "BOX-HR-30-SD-01", "part_name": "高反発ウレタン 30mm (SD)", "part_model_number": "HR-T30-SD", "quantity": 30, "color_code": "7ED321" } },
+                        { "slot_id": "B-4", "part": { "box_id": "BOX-HR-30-SD-02", "part_name": "高反発ウレタン 30mm (SD)", "part_model_number": "HR-T30-SD", "quantity": 30, "color_code": "7ED321" } },
+                        { "slot_id": "B-5", "part": null },
+                        { "slot_id": "B-6", "part": null },
+                        { "slot_id": "C-1", "part": { "box_id": "BOX-LTX-40-D-01", "part_name": "ラテックスフォーム 40mm (D)", "part_model_number": "LTX-T40-D", "quantity": 20, "color_code": "F8E71C" } },
+                        { "slot_id": "C-2", "part": null },
+                        { "slot_id": "C-3", "part": null },
+                        { "slot_id": "C-4", "part": null },
+                        { "slot_id": "C-5", "part": null },
+                        { "slot_id": "C-6", "part": null },
+                    ]
+                },
+                {
+                    "rack_id": 3,
+                    "rack_name": "生地・充填材ラック",
+                    "slots": [
+                        { "slot_id": "A-1", "part": { "box_id": "BOX-FAB-KN-01", "part_name": "ニット生地 (クール)", "part_model_number": "FAB-KN-COOL", "quantity": 15, "color_code": "BD10E0" } },
+                        { "slot_id": "A-2", "part": { "box_id": "BOX-FAB-KN-02", "part_name": "ニット生地 (オーガニック)", "part_model_number": "FAB-KN-OGN", "quantity": 15, "color_code": "BD10E0" } },
+                        { "slot_id": "A-3", "part": null },
+                        { "slot_id": "B-1", "part": { "box_id": "BOX-FLT-HD-01", "part_name": "フェルトパッド (ハード)", "part_model_number": "FLT-HD-S", "quantity": 200, "color_code": "9B9B9B" } },
+                        { "slot_id": "B-2", "part": { "box_id": "BOX-FLT-HD-02", "part_name": "フェルトパッド (ハード)", "part_model_number": "FLT-HD-S", "quantity": 200, "color_code": "9B9B9B" } },
+                        { "slot_id": "B-3", "part": { "box_id": "BOX-FLT-SF-01", "part_name": "フェルトパッド (ソフト)", "part_model_number": "FLT-SF-S", "quantity": 200, "color_code": "4A4A4A" } },
+                    ]
+                }
+            ];
 
             // APIデータをアプリ内部で使いやすい形式に変換する関数
+            // 入力: APIのラック配列 (rack_id, rack_name, slots[])
+            // 出力: { id, name, rows, cols, slots: {"A-1": part|null, ...} }
             function transformApiDataToAppData(apiData) {
                 return apiData.map(rack => {
                     const slotsObject = {};
@@ -347,14 +388,14 @@
                 });
             }
 
-            // --- 状態管理用変数 ---
-            let racks = transformApiDataToAppData(mockApiData); // ラック配列
-            let currentRackId = racks.length > 0 ? racks[0].id : null; // 選択中ラック
-            let selectedSlotId = null; // 選択中スロット
-            let isMoveMode = false; // 移動モード
-            let moveOriginSlotId = null; // 移動元スロット
+            // ===== アプリ全体の状態 =====
+            let racks = transformApiDataToAppData(mockApiData);
+            let currentRackId = racks.length > 0 ? racks[0].id : null;
+            let selectedSlotId = null;
+            let isMoveMode = false;
+            let moveOriginSlotId = null;
 
-            // --- DOM要素取得 ---
+            // ===== DOM参照の取得 =====
             const rackNameEl = document.getElementById('rack-name');
             const rackListEl = document.getElementById('rack-list');
             const detailsPanel = document.getElementById('details-panel');
@@ -366,22 +407,23 @@
             const fabIcon = document.getElementById('fab-icon');
             const fabMenuItems = document.querySelectorAll('.fab-item');
 
-            // --- 画面描画系 ---
+            // 初期描画: ラック一覧・メッシュ・詳細を同期的に更新
             function renderApp() {
                 renderRackList();
                 renderCurrentRack();
                 updateDetails(null);
             }
 
+            // 左ペイン: ラック一覧の描画と選択状態の反映
             function renderRackList() {
                 rackListEl.innerHTML = '';
                 racks.forEach(rack => {
                     const li = document.createElement('li');
                     li.className = 'group relative';
                     li.innerHTML = `
-                        <a href="#" data-rack-id="${rack.id}" class="rack-list-item flex items-center justify-between p-2 rounded-lg transition-colors duration-200 ${rack.id === currentRackId ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-gray-100'}">
-                            <span class="truncate pr-2">${rack.name}</span>
-                            <span class="text-xs text-gray-500 flex-shrink-0 pl-4 pr-6">${rack.rows}x${rack.cols}</span>
+                        <a href="#" data-rack-id="${rack.id}" class="rack-list-item flex items-center justify-between py-2 pl-2 pr-10 rounded-lg transition-colors duration-200 ${rack.id === currentRackId ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-gray-100'}">
+                            <span class="truncate pr-4">${rack.name}</span>
+                            <span class="text-xs text-gray-500 flex-shrink-0">${rack.rows}x${rack.cols}</span>
                         </a>
                         <button data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
                             <ion-icon name="trash-outline" class="pointer-events-none"></ion-icon>
@@ -391,6 +433,9 @@
                 });
             }
 
+            // 右ペイン: メッシュラックの描画
+            // - 列ヘッダー/行ヘッダーをStickyで固定
+            // - 各スロットの状態 (空/部品あり/移動モード) を見た目に反映
             function renderCurrentRack() {
                 const rackDisplayArea = document.getElementById('rack-display-area');
                 rackDisplayArea.innerHTML = '';
@@ -406,18 +451,21 @@
                 bulkQrBtn.classList.remove('hidden');
                 rackNameEl.textContent = currentRack.name;
 
+                // レイアウト用の外枠: [角] [列ヘッダー] / [行ヘッダー] [メッシュ]
                 const layoutContainer = document.createElement('div');
-                layoutContainer.className = 'grid';
+                layoutContainer.className = 'grid bg-white';
                 layoutContainer.style.gridTemplateColumns = 'auto 1fr';
                 layoutContainer.style.gridTemplateRows = 'auto 1fr';
 
+                // 左上の角スペース (ヘッダー交点)
                 const corner = document.createElement('div');
                 corner.className = 'w-12 h-8 sticky left-0 top-0 z-20 bg-white';
                 layoutContainer.appendChild(corner);
 
+                // 列ヘッダー (1..N)
                 const colHeadersContainer = document.createElement('div');
                 colHeadersContainer.className = 'grid sticky top-0 z-10 bg-white';
-                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(6rem, 1fr))`;
+                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 10rem)`;
                 colHeadersContainer.style.gap = '1rem';
                 colHeadersContainer.style.paddingLeft = '1rem';
                 for (let c = 1; c <= currentRack.cols; c++) {
@@ -431,9 +479,10 @@
                 }
                 layoutContainer.appendChild(colHeadersContainer);
 
+                // 行ヘッダー (A..Z)
                 const rowHeadersContainer = document.createElement('div');
                 rowHeadersContainer.className = 'grid sticky left-0 bg-white z-10';
-                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(6rem, 1fr))`;
+                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 10rem)`;
                 rowHeadersContainer.style.gap = '1rem';
                 rowHeadersContainer.style.paddingTop = '1rem';
                 for (let r = 1; r <= currentRack.rows; r++) {
@@ -448,11 +497,12 @@
                 }
                 layoutContainer.appendChild(rowHeadersContainer);
 
+                // メッシュ本体 (スロット生成)
                 const rackContainer = document.createElement('div');
                 rackContainer.id = 'mesh-rack';
                 rackContainer.className = 'grid gap-4 bg-gray-200 p-4 rounded-xl shadow-inner';
-                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(6rem, 1fr))`;
-                rackContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(6rem, 1fr))`;
+                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 10rem)`;
+                rackContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 10rem)`;
 
 
                 for (let r = 1; r <= currentRack.rows; r++) {
@@ -466,15 +516,17 @@
                         slot.className = 'rack-slot aspect-square bg-gray-300/50 rounded-lg flex flex-col justify-between p-2 cursor-pointer transition-all duration-300 hover:bg-gray-300';
                         let content = `<div class="text-sm font-bold text-gray-500">${slotId}</div>`;
                         if (part) {
+                            // 部品あり: 情報と数量を表示
                             slot.classList.add('bg-white', 'shadow');
                             content += `
-                                <div class="text-center">
+                                <div class="text-center overflow-hidden min-w-0">
                                     <div class="w-full h-4 rounded-full mb-2" style="background-color: #${part.color};"></div>
                                     <p class="font-bold text-gray-800 text-sm truncate">${part.partName}</p>
-                                    <p class="text-xs text-gray-500">${part.partModelNumber || ''}</p>
+                                    <p class="text-xs text-gray-500 truncate">${part.partModelNumber || ''}</p>
                                 </div>
                                 <div class="text-right text-lg font-bold">${part.quantity}</div>`;
                         } else if (isMoveMode) {
+                            // 移動モード時: 空スロットを視覚強調
                             slot.classList.add('move-mode-empty');
                         }
                         slot.innerHTML = content;
@@ -484,6 +536,7 @@
                 layoutContainer.appendChild(rackContainer);
                 rackDisplayArea.appendChild(layoutContainer);
 
+                // 選択状態/移動元のハイライト反映
                 if (selectedSlotId) {
                     const selectedEl = document.getElementById(`slot-${selectedSlotId}`);
                     if (selectedEl) selectedEl.classList.add('selected-slot');
@@ -494,6 +547,8 @@
                 }
             }
 
+            // 詳細パネルの更新
+            // - スロットの状態に応じて操作ボタンを出し分け
             function updateDetails(slotId) {
                 selectedSlotId = slotId;
                 const currentRack = racks.find(r => r.id === currentRackId);
@@ -546,7 +601,7 @@
                 renderCurrentRack();
             }
 
-            // --- モーダル操作 ---
+            // モーダル表示/非表示の共通関数
             function openModal(content) {
                 modalContent.innerHTML = content;
                 modal.classList.remove('hidden');
@@ -557,7 +612,7 @@
                 modalContent.innerHTML = '';
             }
 
-            // --- ラック追加・削除 ---
+            // ラック作成モーダル
             function showAddRackModal() {
                 openModal(`
                     <form id="add-rack-form" class="p-6 space-y-4">
@@ -600,9 +655,10 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
+            // ラック削除モーダル (部品が存在する場合は警告表示)
             function showDeleteRackModal(rackId, rackName) {
                 const rackToDelete = racks.find(r => r.id === rackId);
-                const hasParts = Object.keys(rackToDelete.slots).length > 0;
+                const hasParts = Object.values(rackToDelete.slots).some(slot => slot !== null);
                 const warningMessage = hasParts ? '<p class="text-red-600 bg-red-100 p-3 rounded-lg text-sm mt-4"><ion-icon name="warning-outline" class="mr-2"></ion-icon>このラックには部品が保管されています。削除すると部品情報も失われます。</p>' : '';
 
                 openModal(`
@@ -627,7 +683,7 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
-            // --- 部品操作 ---
+            // 部品使用モーダル (数量入力 → 在庫ゼロならスロットを空に)
             function showUsePartModal(slotId) {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 const part = currentRack.slots[slotId];
@@ -657,6 +713,7 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
+            // 新規格納フローの最初のモーダル (部品情報入力 → 次で箱QR生成)
             function showStorePartModal(callback) {
                 openModal(`
                     <form id="store-form" class="p-6 space-y-4">
@@ -686,6 +743,7 @@
             }
 
             // QRコードスキャナーモーダル
+            // 実装メモ: デモのため setTimeout で擬似スキャン。実装時はカメラ入力/ライブラリに置換
             function showQrScannerModal(title, instruction, onScan) {
                 openModal(`
                     <div class="p-6 text-center">
@@ -711,6 +769,7 @@
             }
 
 
+            // 箱QR表示/印刷モーダル (callback指定時は「次へ」ボタンを出して入庫フロー継続)
             function showPrintQrModal(partData, callback = null) {
                 const qrData = encodeURIComponent(`boxId=${partData.boxId}`);
                 const nextButtonHtml = callback ? `<button id="next-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">次へ</button>` : '';
@@ -737,6 +796,7 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
+            // 棚QR表示/印刷モーダル (単体)
             function showShelfQrModal(slotId) {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 if (!currentRack) return;
@@ -757,6 +817,7 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
+            // 棚QR一括生成モーダル (印刷レイアウト用CSS含む)
             function showBulkShelfQrModal(rack) {
                 let qrGridHtml = '';
                 for (let r = 1; r <= rack.rows; r++) {
@@ -802,6 +863,7 @@
                 };
             }
 
+            // FAB: メニューの開閉アニメーションとアイコンの回転
             fabMain.addEventListener('click', () => {
                 const isExpanded = fabMain.getAttribute('aria-expanded') === 'true';
                 fabMain.setAttribute('aria-expanded', !isExpanded);
@@ -816,8 +878,11 @@
                 }
             });
 
-            // --- FAB各ボタンのイベント ---
+            // FAB: ラック作成
             document.getElementById('add-rack-btn').addEventListener('click', showAddRackModal);
+
+            // FAB: QR入庫フロー
+            // 1) 部品情報入力 → 2) 箱QR印刷 → 3) 棚QRスキャン → 4) 空きスロットに格納
             document.getElementById('qr-stock-in-btn').addEventListener('click', () => {
                 showStorePartModal((newPart) => {
                     showPrintQrModal(newPart, (partToStore) => {
@@ -854,9 +919,10 @@
                 });
             });
 
+            // FAB: QR出庫フロー (デモ: 固定のscannedBoxIdを検索 → 使用モーダルへ)
             document.getElementById('qr-stock-out-btn').addEventListener('click', () => {
                 showQrScannerModal('QR出庫', '部品QRコードを読み取ってください', () => {
-                    const scannedBoxId = 'BOX-101';
+                    const scannedBoxId = 'BOX-PC-S-01';
                     let foundSlotId = null;
                     let foundRackId = null;
 
@@ -882,13 +948,13 @@
                 });
             });
 
-            // --- 一括QR生成ボタン ---
+            // 一括QR生成ボタン
             bulkQrBtn.addEventListener('click', () => {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 if (currentRack) showBulkShelfQrModal(currentRack);
             });
 
-            // --- ラックリストのクリックイベント ---
+            // ラック一覧: 選択/削除の処理
             rackListEl.addEventListener('click', e => {
                 const link = e.target.closest('.rack-list-item');
                 if (link) {
@@ -909,7 +975,7 @@
                 }
             });
 
-            // --- 詳細パネルのボタンイベント ---
+            // 詳細パネルのボタン操作: 使用/格納/移動/QR表示
             detailsPanel.addEventListener('click', e => {
                 if (e.target.tagName !== 'BUTTON') return;
                 const { action, slotId, boxId } = e.target.dataset;
@@ -945,7 +1011,7 @@
                 if (action === 'show-shelf-qr') showShelfQrModal(slotId);
             });
 
-            // --- ラックグリッドのクリックイベント ---
+            // メッシュラック: スロットクリックで選択/移動先決定
             document.body.addEventListener('click', (e) => {
                 const rackDisplayArea = document.getElementById('rack-display-area');
                 if (rackDisplayArea && rackDisplayArea.contains(e.target)) {
@@ -971,7 +1037,7 @@
                 }
             });
 
-            // --- 検索ハイライト ---
+            // 部品検索: 名前/型番に一致するスロットをハイライト
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase();
                 document.querySelectorAll('.rack-slot').forEach(slot => {
@@ -988,7 +1054,7 @@
                 });
             });
 
-            // --- 初期描画 ---
+            // エントリポイント: 初期レンダリング
             renderApp();
         });
     </script>
