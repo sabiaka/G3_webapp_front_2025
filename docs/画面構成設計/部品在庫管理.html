@@ -2,18 +2,17 @@
 <html lang="ja">
 
 <head>
+    <!-- メタ情報や外部リソースの読み込み -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>部品在庫管理</title>
-    <!-- Tailwind CSSを読み込む -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Inter) を読み込む -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
-        rel="stylesheet">
-    <!-- Ioniconsを読み込む -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Ionicons（アイコン用） -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
@@ -27,6 +26,7 @@
         /* スクロールバーのスタイル（任意） */
         ::-webkit-scrollbar {
             width: 8px;
+            height: 8px; /* 横スクロールバーの高さ */
         }
 
         ::-webkit-scrollbar-track {
@@ -159,20 +159,20 @@
     <div class="flex flex-col min-h-screen">
 
         <!-- ヘッダー -->
-        <header class="bg-white shadow-md sticky top-0 z-20">
+        <header class="bg-white shadow-md sticky top-0 z-30">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
+                    <!-- タイトルとアイコン -->
                     <div class="flex items-center space-x-4">
                         <div class="bg-indigo-600 p-2 rounded-lg">
                             <ion-icon name="cube-outline" class="text-white text-2xl"></ion-icon>
                         </div>
                         <h1 class="text-xl font-bold text-gray-900">部品在庫管理</h1>
                     </div>
+                    <!-- 戻る・ログアウトボタン -->
                     <div class="flex items-center space-x-4">
-                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr;
-                            ダッシュボードに戻る</a>
-                        <button
-                            class="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr; ダッシュボードに戻る</a>
+                        <button class="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
                             <ion-icon name="log-out-outline" class="mr-2 text-xl"></ion-icon>
                             ログアウト
                         </button>
@@ -184,35 +184,38 @@
         <!-- メインコンテンツ -->
         <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <!-- 左カラム: ラック選択 -->
+                <!-- ラック一覧（左カラム） -->
                 <aside class="lg:col-span-1 bg-white rounded-xl shadow-md p-4">
                     <h2 class="text-lg font-bold mb-4 border-b pb-2">ラック一覧</h2>
                     <ul id="rack-list" class="space-y-2">
-                        <!-- ラックリストはJSで動的に生成 -->
+                        <!-- JSで動的生成 -->
                     </ul>
                 </aside>
 
-                <!-- 右カラム: ラック表示と詳細 -->
+                <!-- ラック表示・詳細（右カラム） -->
                 <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- メッシュラック -->
+                    <!-- メッシュラック（中央） -->
                     <div class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
                            <h2 id="rack-name" class="text-2xl font-bold"></h2>
+                           <!-- 一括QR生成ボタン -->
                            <button id="bulk-qr-btn" class="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded-lg text-sm transition-transform transform hover:scale-105">
                                 <ion-icon name="print-outline" class="mr-2"></ion-icon>
                                 一括QR生成
                            </button>
                         </div>
-                        <div id="rack-display-area">
-                            <!-- JS will build the labeled grid here -->
+                        <div class="overflow-x-auto bg-white p-2 rounded-xl shadow-md">
+                            <div id="rack-display-area" class="min-w-max">
+                                <!-- JSでグリッド生成 -->
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 詳細と操作 -->
+                    <!-- 詳細・操作パネル（右） -->
                     <div class="lg:col-span-1">
                         <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
                             <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
-                            <!-- 検索 -->
+                            <!-- 検索フォーム -->
                             <div class="mb-6">
                                 <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
                                 <div class="mt-1 relative rounded-md shadow-sm">
@@ -224,7 +227,7 @@
                                         placeholder="部品名 or 型番">
                                 </div>
                             </div>
-                            <!-- 詳細表示 -->
+                            <!-- 詳細表示エリア -->
                             <div id="details-panel">
                                 <div class="text-center text-gray-500 py-10">
                                     <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
@@ -238,21 +241,24 @@
         </main>
     </div>
 
-    <!-- フローティングアクションボタン (FAB) -->
-    <div class="fixed bottom-8 right-8 z-10" id="fab-container">
+    <!-- フローティングアクションボタン（FAB） -->
+    <div class="fixed bottom-8 right-8 z-20" id="fab-container">
         <!-- FABメニュー -->
         <div id="fab-menu" class="flex flex-col items-end space-y-3 mb-3">
-             <button id="add-rack-btn" data-tooltip="新しいラックを作成" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+            <!-- 新しいラック作成 -->
+            <button id="add-rack-btn" data-tooltip="新しいラックを作成" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
                 <span class="ml-2 text-sm">ラック作成</span>
             </button>
-             <button id="qr-stock-in-btn" data-tooltip="QR入庫" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+            <!-- QR入庫 -->
+            <button id="qr-stock-in-btn" data-tooltip="QR入庫" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
-                 <span class="ml-2 text-sm">QR入庫</span>
+                <span class="ml-2 text-sm">QR入庫</span>
             </button>
+            <!-- QR出庫 -->
             <button id="qr-stock-out-btn" data-tooltip="QR出庫" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
                 <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
-                 <span class="ml-2 text-sm">QR出庫</span>
+                <span class="ml-2 text-sm">QR出庫</span>
             </button>
         </div>
         <!-- メインFAB -->
@@ -261,17 +267,17 @@
         </button>
     </div>
 
-
-    <!-- モーダル -->
-    <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-30 p-4">
+    <!-- モーダル（ダイアログ） -->
+    <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-40 p-4">
         <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md modal-enter">
-            <!-- モーダルの中身はJSで動的に生成 -->
+            <!-- モーダルの中身はJSで動的生成 -->
         </div>
     </div>
 
     <script>
+        // DOMContentLoadedで初期化
         document.addEventListener('DOMContentLoaded', () => {
-            // APIから返ってくるであろうサンプルデータ
+            // --- サンプルデータ（APIの返却を想定） ---
             const mockApiData = [{
                 "rack_id": 1,
                 "rack_name": "メッシュラック #1",
@@ -329,12 +335,14 @@
                 });
             }
 
-            let racks = transformApiDataToAppData(mockApiData);
-            let currentRackId = racks.length > 0 ? racks[0].id : null;
-            let selectedSlotId = null;
-            let isMoveMode = false;
-            let moveOriginSlotId = null;
-            
+            // --- 状態管理用変数 ---
+            let racks = transformApiDataToAppData(mockApiData); // ラック配列
+            let currentRackId = racks.length > 0 ? racks[0].id : null; // 選択中ラック
+            let selectedSlotId = null; // 選択中スロット
+            let isMoveMode = false; // 移動モード
+            let moveOriginSlotId = null; // 移動元スロット
+
+            // --- DOM要素取得 ---
             const rackNameEl = document.getElementById('rack-name');
             const rackListEl = document.getElementById('rack-list');
             const detailsPanel = document.getElementById('details-panel');
@@ -346,6 +354,7 @@
             const fabIcon = document.getElementById('fab-icon');
             const fabMenuItems = document.querySelectorAll('.fab-item');
 
+            // --- 画面描画系 ---
             function renderApp() {
                 renderRackList();
                 renderCurrentRack();
@@ -356,11 +365,15 @@
                 rackListEl.innerHTML = '';
                 racks.forEach(rack => {
                     const li = document.createElement('li');
+                    li.className = 'group relative';
                     li.innerHTML = `
                         <a href="#" data-rack-id="${rack.id}" class="rack-list-item flex items-center justify-between p-2 rounded-lg transition-colors duration-200 ${rack.id === currentRackId ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-gray-100'}">
-                            <span>${rack.name}</span>
-                            <span class="text-xs text-gray-500">${rack.rows}x${rack.cols}</span>
+                            <span class="truncate pr-2">${rack.name}</span>
+                            <span class="text-xs text-gray-500 flex-shrink-0 pl-4 pr-6">${rack.rows}x${rack.cols}</span>
                         </a>
+                        <button data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ion-icon name="trash-outline" class="pointer-events-none"></ion-icon>
+                        </button>
                     `;
                     rackListEl.appendChild(li);
                 });
@@ -373,7 +386,7 @@
 
                 if (!currentRack) {
                     rackNameEl.textContent = 'ラックがありません';
-                    rackDisplayArea.innerHTML = '<p class="text-center text-gray-500 col-span-full">右下のボタンから新しいラックを作成してください。</p>';
+                    rackDisplayArea.innerHTML = '<p class="text-center text-gray-500 p-10">右下のボタンから新しいラックを作成してください。</p>';
                     bulkQrBtn.classList.add('hidden');
                     return;
                 }
@@ -387,13 +400,14 @@
                 layoutContainer.style.gridTemplateRows = 'auto 1fr';
 
                 const corner = document.createElement('div');
-                corner.className = 'w-8 h-8';
+                corner.className = 'w-12 h-8 sticky left-0 top-0 z-20 bg-white';
                 layoutContainer.appendChild(corner);
 
                 const colHeadersContainer = document.createElement('div');
-                colHeadersContainer.className = 'grid pl-4';
-                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(0, 1fr))`;
+                colHeadersContainer.className = 'grid sticky top-0 z-10 bg-white';
+                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(6rem, 1fr))`;
                 colHeadersContainer.style.gap = '1rem';
+                colHeadersContainer.style.paddingLeft = '1rem';
                 for (let c = 1; c <= currentRack.cols; c++) {
                     const header = document.createElement('div');
                     header.className = 'h-8 flex items-end justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
@@ -406,13 +420,14 @@
                 layoutContainer.appendChild(colHeadersContainer);
 
                 const rowHeadersContainer = document.createElement('div');
-                rowHeadersContainer.className = 'grid pt-4';
-                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(0, 1fr))`;
+                rowHeadersContainer.className = 'grid sticky left-0 bg-white z-10';
+                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(6rem, 1fr))`;
                 rowHeadersContainer.style.gap = '1rem';
-                for (let r = 1; r <= currentRack.rows; r++) {
+                rowHeadersContainer.style.paddingTop = '1rem';
+                 for (let r = 1; r <= currentRack.rows; r++) {
                     const rowChar = String.fromCharCode(64 + r);
                     const header = document.createElement('div');
-                    header.className = 'w-8 flex items-center justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
+                    header.className = 'w-12 flex items-center justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
                     header.textContent = rowChar;
                     if (selectedSlotId && selectedSlotId.split('-')[0] === rowChar) {
                         header.classList.add('header-highlight');
@@ -424,7 +439,9 @@
                 const rackContainer = document.createElement('div');
                 rackContainer.id = 'mesh-rack';
                 rackContainer.className = 'grid gap-4 bg-gray-200 p-4 rounded-xl shadow-inner';
-                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(0, 1fr))`;
+                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(6rem, 1fr))`;
+                rackContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(6rem, 1fr))`;
+
 
                 for (let r = 1; r <= currentRack.rows; r++) {
                     const rowChar = String.fromCharCode(64 + r);
@@ -517,6 +534,7 @@
                 renderCurrentRack();
             }
 
+            // --- モーダル操作 ---
             function openModal(content) {
                 modalContent.innerHTML = content;
                 modal.classList.remove('hidden');
@@ -527,6 +545,7 @@
                 modalContent.innerHTML = '';
             }
             
+            // --- ラック追加・削除 ---
             function showAddRackModal() {
                  openModal(`
                     <form id="add-rack-form" class="p-6 space-y-4">
@@ -542,7 +561,7 @@
                             </div>
                             <div>
                                 <label for="new-rack-cols" class="text-sm">横 (列数)</label>
-                                <input id="new-rack-cols" name="cols" type="number" min="1" max="20" required class="w-full border-gray-300 rounded-md mt-1" value="5">
+                                <input id="new-rack-cols" name="cols" type="number" min="1" max="50" required class="w-full border-gray-300 rounded-md mt-1" value="5">
                             </div>
                         </div>
                     </form>
@@ -569,6 +588,34 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
+            function showDeleteRackModal(rackId, rackName) {
+                const rackToDelete = racks.find(r => r.id === rackId);
+                const hasParts = Object.keys(rackToDelete.slots).length > 0;
+                const warningMessage = hasParts ? '<p class="text-red-600 bg-red-100 p-3 rounded-lg text-sm mt-4"><ion-icon name="warning-outline" class="mr-2"></ion-icon>このラックには部品が保管されています。削除すると部品情報も失われます。</p>' : '';
+
+                 openModal(`
+                    <div class="p-6">
+                        <h3 class="text-lg font-bold">ラックの削除</h3>
+                        <p class="mt-2 text-sm text-gray-600">本当に「<strong class="text-gray-900">${rackName}</strong>」を削除しますか？<br>この操作は取り消せません。</p>
+                        ${warningMessage}
+                    </div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
+                        <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md">削除</button>
+                    </div>`);
+                
+                document.getElementById('confirm-delete-btn').onclick = () => {
+                    racks = racks.filter(r => r.id !== rackId);
+                    if (currentRackId === rackId) {
+                        currentRackId = racks.length > 0 ? racks[0].id : null;
+                    }
+                    renderApp();
+                    closeModal();
+                };
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+            // --- 部品操作 ---
             function showUsePartModal(slotId) {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 const part = currentRack.slots[slotId];
@@ -757,9 +804,8 @@
                 }
             });
 
+            // --- FAB各ボタンのイベント ---
             document.getElementById('add-rack-btn').addEventListener('click', showAddRackModal);
-
-            // QR入庫処理
             document.getElementById('qr-stock-in-btn').addEventListener('click', () => {
                 showStorePartModal((newPart) => {
                     showPrintQrModal(newPart, (partToStore) => {
@@ -770,7 +816,6 @@
                                 closeModal();
                                 return;
                             }
-                            // 現在のラックで最初の空きスロットを探す
                             let emptySlot = null;
                             for (let r = 1; r <= currentRack.rows; r++) {
                                 const rowChar = String.fromCharCode(64 + r);
@@ -797,14 +842,12 @@
                 });
             });
 
-            // QR出庫処理
             document.getElementById('qr-stock-out-btn').addEventListener('click', () => {
                 showQrScannerModal('QR出庫', '部品QRコードを読み取ってください', () => {
-                    const scannedBoxId = 'BOX-101'; // サンプルとしてスキャンした箱ID
+                    const scannedBoxId = 'BOX-101'; 
                     let foundSlotId = null;
                     let foundRackId = null;
 
-                    // すべてのラックを検索
                     for (const rack of racks) {
                         const slotId = Object.keys(rack.slots).find(key => rack.slots[key] && rack.slots[key].boxId === scannedBoxId);
                         if (slotId) {
@@ -815,7 +858,6 @@
                     }
 
                     if (foundSlotId) {
-                        // 部品が見つかったラックに切り替える
                         if(currentRackId !== foundRackId) {
                             currentRackId = foundRackId;
                             renderApp();
@@ -828,11 +870,13 @@
                 });
             });
             
+            // --- 一括QR生成ボタン ---
             bulkQrBtn.addEventListener('click', () => {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 if (currentRack) showBulkShelfQrModal(currentRack);
             });
 
+            // --- ラックリストのクリックイベント ---
             rackListEl.addEventListener('click', e => {
                 const link = e.target.closest('.rack-list-item');
                 if(link) {
@@ -846,8 +890,14 @@
                         renderApp();
                     }
                 }
+                const deleteBtn = e.target.closest('[data-action="delete-rack"]');
+                if (deleteBtn) {
+                    const { rackId, rackName } = deleteBtn.dataset;
+                    showDeleteRackModal(rackId, rackName);
+                }
             });
 
+            // --- 詳細パネルのボタンイベント ---
             detailsPanel.addEventListener('click', e => {
                 if (e.target.tagName !== 'BUTTON') return;
                 const { action, slotId, boxId } = e.target.dataset;
@@ -883,9 +933,10 @@
                 if (action === 'show-shelf-qr') showShelfQrModal(slotId);
             });
 
+            // --- ラックグリッドのクリックイベント ---
             document.body.addEventListener('click', (e) => {
-                const rackContainer = document.getElementById('rack-display-area');
-                if (rackContainer && rackContainer.contains(e.target)) {
+                const rackDisplayArea = document.getElementById('rack-display-area');
+                if (rackDisplayArea && rackDisplayArea.contains(e.target)) {
                     const slotEl = e.target.closest('.rack-slot');
                     if (!slotEl) return;
                     const clickedSlotId = slotEl.dataset.slotId;
@@ -908,6 +959,7 @@
                 }
             });
 
+            // --- 検索ハイライト ---
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase();
                 document.querySelectorAll('.rack-slot').forEach(slot => {
@@ -924,11 +976,11 @@
                 });
             });
 
+            // --- 初期描画 ---
             renderApp();
         });
     </script>
 
 </body>
-
 </html>
 
