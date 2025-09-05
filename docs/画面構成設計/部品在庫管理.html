@@ -139,10 +139,22 @@
                 top: 100%;
             }
         }
+
+        /* FABメニューアイテムのアニメーション */
+        .fab-item {
+            transform: scale(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ヘッダーハイライトのスタイル */
+        .header-highlight {
+            background-color: #c7d2fe; /* indigo-200 */
+            color: #3730a3; /* indigo-800 */
+        }
     </style>
 </head>
 
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-slate-100 text-gray-800">
 
     <div class="flex flex-col min-h-screen">
 
@@ -157,7 +169,7 @@
                         <h1 class="text-xl font-bold text-gray-900">部品在庫管理</h1>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <a href="トップページ.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr;
+                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">&larr;
                             ダッシュボードに戻る</a>
                         <button
                             class="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
@@ -171,36 +183,53 @@
 
         <!-- メインコンテンツ -->
         <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- 左カラム: メッシュラック -->
-                <div class="lg:col-span-2">
-                    <h2 class="text-2xl font-bold mb-4">メッシュラック #1</h2>
-                    <div id="mesh-rack"
-                        class="grid grid-cols-4 grid-rows-3 gap-4 bg-gray-200 p-4 rounded-xl shadow-inner">
-                        <!-- ラックのスロットはJSで動的に生成 -->
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左カラム: ラック選択 -->
+                <aside class="lg:col-span-1 bg-white rounded-xl shadow-md p-4">
+                    <h2 class="text-lg font-bold mb-4 border-b pb-2">ラック一覧</h2>
+                    <ul id="rack-list" class="space-y-2">
+                        <!-- ラックリストはJSで動的に生成 -->
+                    </ul>
+                </aside>
 
-                <!-- 右カラム: 詳細と操作 -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
-                        <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
-                        <!-- 検索 -->
-                        <div class="mb-6">
-                            <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
-                            <div class="mt-1 relative rounded-md shadow-sm">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <ion-icon name="search-outline" class="text-gray-400"></ion-icon></div>
-                                <input type="text" id="search-parts"
-                                    class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                                    placeholder="部品名 or 型番">
-                            </div>
+                <!-- 右カラム: ラック表示と詳細 -->
+                <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- メッシュラック -->
+                    <div class="lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4">
+                           <h2 id="rack-name" class="text-2xl font-bold"></h2>
+                           <button id="bulk-qr-btn" class="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded-lg text-sm transition-transform transform hover:scale-105">
+                                <ion-icon name="print-outline" class="mr-2"></ion-icon>
+                                一括QR生成
+                           </button>
                         </div>
-                        <!-- 詳細表示 -->
-                        <div id="details-panel">
-                            <div class="text-center text-gray-500 py-10">
-                                <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
-                                <p class="mt-2">ラックの場所を選択して詳細を表示</p>
+                        <div id="rack-display-area">
+                            <!-- JS will build the labeled grid here -->
+                        </div>
+                    </div>
+
+                    <!-- 詳細と操作 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                            <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
+                            <!-- 検索 -->
+                            <div class="mb-6">
+                                <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <ion-icon name="search-outline" class="text-gray-400"></ion-icon>
+                                    </div>
+                                    <input type="text" id="search-parts"
+                                        class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                                        placeholder="部品名 or 型番">
+                                </div>
+                            </div>
+                            <!-- 詳細表示 -->
+                            <div id="details-panel">
+                                <div class="text-center text-gray-500 py-10">
+                                    <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
+                                    <p class="mt-2">ラックの場所を選択して詳細を表示</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -209,19 +238,29 @@
         </main>
     </div>
 
-    <!-- フローティングQRボタン -->
-    <div class="fixed bottom-8 right-8 flex flex-col items-end space-y-4 z-10">
-        <button id="qr-stock-out-btn"
-            class="flex items-center bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transition-transform transform hover:scale-105">
-            <ion-icon name="qr-code-outline" class="text-2xl"></ion-icon>
-            <span class="ml-2">QR出庫</span>
-        </button>
-        <button id="qr-stock-in-btn"
-            class="flex items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transition-transform transform hover:scale-105">
-            <ion-icon name="qr-code-outline" class="text-2xl"></ion-icon>
-            <span class="ml-2">QR入庫</span>
+    <!-- フローティングアクションボタン (FAB) -->
+    <div class="fixed bottom-8 right-8 z-10" id="fab-container">
+        <!-- FABメニュー -->
+        <div id="fab-menu" class="flex flex-col items-end space-y-3 mb-3">
+             <button id="add-rack-btn" data-tooltip="新しいラックを作成" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+                <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
+                <span class="ml-2 text-sm">ラック作成</span>
+            </button>
+             <button id="qr-stock-in-btn" data-tooltip="QR入庫" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+                <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
+                 <span class="ml-2 text-sm">QR入庫</span>
+            </button>
+            <button id="qr-stock-out-btn" data-tooltip="QR出庫" class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+                <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
+                 <span class="ml-2 text-sm">QR出庫</span>
+            </button>
+        </div>
+        <!-- メインFAB -->
+        <button id="fab-main" class="w-16 h-16 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full shadow-lg transition-transform transform hover:scale-110">
+            <ion-icon id="fab-icon" name="add-outline" class="text-4xl transition-transform duration-300"></ion-icon>
         </button>
     </div>
+
 
     <!-- モーダル -->
     <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-30 p-4">
@@ -232,66 +271,190 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // サンプルデータ
-            const rackData = {
-                'A-1': { boxId: 'BOX-SPA001-01', partName: 'スプリング A', partModelNumber: 'SP-A-001', quantity: 100, color: 'bg-blue-500' },
-                'A-2': null,
-                'A-3': { boxId: 'BOX-FRB002-01', partName: 'フレーム B', partModelNumber: 'FR-B-002', quantity: 50, color: 'bg-green-500' },
-                'A-4': { boxId: 'BOX-CVC003-01', partName: 'カバー C', partModelNumber: 'CV-C-003', quantity: 200, color: 'bg-yellow-500' },
-                'B-1': { boxId: 'BOX-SCD004-01', partName: 'ネジセット D', partModelNumber: 'SC-D-004', quantity: 500, color: 'bg-gray-500' },
-                'B-2': { boxId: 'BOX-FRB002-02', partName: 'フレーム B', partModelNumber: 'FR-B-002', quantity: 50, color: 'bg-green-500' },
-                'B-3': null,
-                'B-4': { boxId: 'BOX-SPA001-02', partName: 'スプリング A', partModelNumber: 'SP-A-001', quantity: 100, color: 'bg-blue-500' },
-                'C-1': null,
-                'C-2': { boxId: 'BOX-CVC003-02', partName: 'カバー C', partModelNumber: 'CV-C-003', quantity: 200, color: 'bg-yellow-500' },
-                'C-3': null,
-                'C-4': { boxId: 'BOX-MTE005-01', partName: 'モーター E', partModelNumber: 'MT-E-005', quantity: 20, color: 'bg-red-500' },
-            };
+            // APIから返ってくるであろうサンプルデータ
+            const mockApiData = [{
+                "rack_id": 1,
+                "rack_name": "メッシュラック #1",
+                "slots": [
+                    { "slot_id": "A-1", "part": { "box_id": "BOX-101", "part_name": "スプリング A", "part_model_number": "SP-A-001", "quantity": 100, "color_code": "4A90E2" } },
+                    { "slot_id": "A-2", "part": null },
+                    { "slot_id": "A-3", "part": { "box_id": "BOX-102", "part_name": "フレーム B", "part_model_number": "FR-B-002", "quantity": 50, "color_code": "50E3C2" } },
+                    { "slot_id": "A-4", "part": { "box_id": "BOX-103", "part_name": "カバー C", "part_model_number": "CV-C-003", "quantity": 200, "color_code": "F5A623" } },
+                    { "slot_id": "B-1", "part": { "box_id": "BOX-104", "part_name": "ネジセット D", "part_model_number": "SC-D-004", "quantity": 500, "color_code": "9B9B9B" } },
+                    { "slot_id": "B-2", "part": { "box_id": "BOX-102", "part_name": "フレーム B", "part_model_number": "FR-B-002", "quantity": 50, "color_code": "50E3C2" } },
+                    { "slot_id": "B-3", "part": null },
+                    { "slot_id": "B-4", "part": { "box_id": "BOX-101", "part_name": "スプリング A", "part_model_number": "SP-A-001", "quantity": 100, "color_code": "4A90E2" } },
+                    { "slot_id": "C-1", "part": null },
+                    { "slot_id": "C-2", "part": { "box_id": "BOX-103", "part_name": "カバー C", "part_model_number": "CV-C-003", "quantity": 200, "color_code": "F5A623" } },
+                    { "slot_id": "C-3", "part": null },
+                    { "slot_id": "C-4", "part": { "box_id": "BOX-105", "part_name": "モーター E", "part_model_number": "MT-E-005", "quantity": 20, "color_code": "D0021B" } },
+                ]
+            }];
 
-            const rackContainer = document.getElementById('mesh-rack');
+            // APIデータをアプリ内部で使いやすい形式に変換する関数
+            function transformApiDataToAppData(apiData) {
+                return apiData.map(rack => {
+                    const slotsObject = {};
+                    let maxRow = 0;
+                    let maxCol = 0;
+
+                    if (rack.slots) {
+                        rack.slots.forEach(slot => {
+                            if (slot.part) {
+                                slotsObject[slot.slot_id] = {
+                                    boxId: slot.part.box_id,
+                                    partName: slot.part.part_name,
+                                    partModelNumber: slot.part.part_model_number,
+                                    quantity: slot.part.quantity,
+                                    color: slot.part.color_code
+                                };
+                            } else {
+                                slotsObject[slot.slot_id] = null;
+                            }
+                            const [rowChar, colNumStr] = slot.slot_id.split('-');
+                            const rowNum = rowChar.charCodeAt(0) - 64;
+                            const colNum = parseInt(colNumStr);
+                            if (rowNum > maxRow) maxRow = rowNum;
+                            if (colNum > maxCol) maxCol = colNum;
+                        });
+                    }
+
+                    return {
+                        id: `rack-${rack.rack_id}`,
+                        name: rack.rack_name,
+                        rows: maxRow,
+                        cols: maxCol,
+                        slots: slotsObject
+                    };
+                });
+            }
+
+            let racks = transformApiDataToAppData(mockApiData);
+            let currentRackId = racks.length > 0 ? racks[0].id : null;
+            let selectedSlotId = null;
+            let isMoveMode = false;
+            let moveOriginSlotId = null;
+            
+            const rackNameEl = document.getElementById('rack-name');
+            const rackListEl = document.getElementById('rack-list');
             const detailsPanel = document.getElementById('details-panel');
             const searchInput = document.getElementById('search-parts');
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
+            const bulkQrBtn = document.getElementById('bulk-qr-btn');
+            const fabMain = document.getElementById('fab-main');
+            const fabIcon = document.getElementById('fab-icon');
+            const fabMenuItems = document.querySelectorAll('.fab-item');
 
-            let selectedSlotId = null;
-            let isMoveMode = false;
-            let moveOriginSlotId = null;
+            function renderApp() {
+                renderRackList();
+                renderCurrentRack();
+                updateDetails(null);
+            }
 
-            // ラックの描画
-            function renderRack() {
-                rackContainer.innerHTML = '';
-                const rows = ['A', 'B', 'C'];
-                const cols = [1, 2, 3, 4];
+            function renderRackList() {
+                rackListEl.innerHTML = '';
+                racks.forEach(rack => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a href="#" data-rack-id="${rack.id}" class="rack-list-item flex items-center justify-between p-2 rounded-lg transition-colors duration-200 ${rack.id === currentRackId ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-gray-100'}">
+                            <span>${rack.name}</span>
+                            <span class="text-xs text-gray-500">${rack.rows}x${rack.cols}</span>
+                        </a>
+                    `;
+                    rackListEl.appendChild(li);
+                });
+            }
 
-                rows.forEach(row => {
-                    cols.forEach(col => {
-                        const slotId = `${row}-${col}`;
-                        const part = rackData[slotId];
+            function renderCurrentRack() {
+                const rackDisplayArea = document.getElementById('rack-display-area');
+                rackDisplayArea.innerHTML = '';
+                const currentRack = racks.find(r => r.id === currentRackId);
+
+                if (!currentRack) {
+                    rackNameEl.textContent = 'ラックがありません';
+                    rackDisplayArea.innerHTML = '<p class="text-center text-gray-500 col-span-full">右下のボタンから新しいラックを作成してください。</p>';
+                    bulkQrBtn.classList.add('hidden');
+                    return;
+                }
+                
+                bulkQrBtn.classList.remove('hidden');
+                rackNameEl.textContent = currentRack.name;
+
+                const layoutContainer = document.createElement('div');
+                layoutContainer.className = 'grid';
+                layoutContainer.style.gridTemplateColumns = 'auto 1fr';
+                layoutContainer.style.gridTemplateRows = 'auto 1fr';
+
+                const corner = document.createElement('div');
+                corner.className = 'w-8 h-8';
+                layoutContainer.appendChild(corner);
+
+                const colHeadersContainer = document.createElement('div');
+                colHeadersContainer.className = 'grid pl-4';
+                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(0, 1fr))`;
+                colHeadersContainer.style.gap = '1rem';
+                for (let c = 1; c <= currentRack.cols; c++) {
+                    const header = document.createElement('div');
+                    header.className = 'h-8 flex items-end justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
+                    header.textContent = c;
+                    if (selectedSlotId && selectedSlotId.split('-')[1] == c) {
+                        header.classList.add('header-highlight');
+                    }
+                    colHeadersContainer.appendChild(header);
+                }
+                layoutContainer.appendChild(colHeadersContainer);
+
+                const rowHeadersContainer = document.createElement('div');
+                rowHeadersContainer.className = 'grid pt-4';
+                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, minmax(0, 1fr))`;
+                rowHeadersContainer.style.gap = '1rem';
+                for (let r = 1; r <= currentRack.rows; r++) {
+                    const rowChar = String.fromCharCode(64 + r);
+                    const header = document.createElement('div');
+                    header.className = 'w-8 flex items-center justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
+                    header.textContent = rowChar;
+                    if (selectedSlotId && selectedSlotId.split('-')[0] === rowChar) {
+                        header.classList.add('header-highlight');
+                    }
+                    rowHeadersContainer.appendChild(header);
+                }
+                layoutContainer.appendChild(rowHeadersContainer);
+
+                const rackContainer = document.createElement('div');
+                rackContainer.id = 'mesh-rack';
+                rackContainer.className = 'grid gap-4 bg-gray-200 p-4 rounded-xl shadow-inner';
+                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, minmax(0, 1fr))`;
+
+                for (let r = 1; r <= currentRack.rows; r++) {
+                    const rowChar = String.fromCharCode(64 + r);
+                    for (let c = 1; c <= currentRack.cols; c++) {
+                        const slotId = `${rowChar}-${c}`;
+                        const part = currentRack.slots[slotId];
                         const slot = document.createElement('div');
                         slot.id = `slot-${slotId}`;
                         slot.dataset.slotId = slotId;
                         slot.className = 'rack-slot aspect-square bg-gray-300/50 rounded-lg flex flex-col justify-between p-2 cursor-pointer transition-all duration-300 hover:bg-gray-300';
-
                         let content = `<div class="text-sm font-bold text-gray-500">${slotId}</div>`;
                         if (part) {
                             slot.classList.add('bg-white', 'shadow');
                             content += `
                                 <div class="text-center">
-                                    <div class="w-full h-4 ${part.color} rounded-full mb-2"></div>
+                                    <div class="w-full h-4 rounded-full mb-2" style="background-color: #${part.color};"></div>
                                     <p class="font-bold text-gray-800 text-sm truncate">${part.partName}</p>
                                     <p class="text-xs text-gray-500">${part.partModelNumber || ''}</p>
                                 </div>
-                                <div class="text-right text-lg font-bold">${part.quantity}</div>
-                            `;
+                                <div class="text-right text-lg font-bold">${part.quantity}</div>`;
                         } else if (isMoveMode) {
                             slot.classList.add('move-mode-empty');
                         }
                         slot.innerHTML = content;
                         rackContainer.appendChild(slot);
-                    });
-                });
-
+                    }
+                }
+                layoutContainer.appendChild(rackContainer);
+                rackDisplayArea.appendChild(layoutContainer);
+                
                 if (selectedSlotId) {
                     const selectedEl = document.getElementById(`slot-${selectedSlotId}`);
                     if (selectedEl) selectedEl.classList.add('selected-slot');
@@ -302,62 +465,120 @@
                 }
             }
 
-            // 詳細パネルの更新
             function updateDetails(slotId) {
                 selectedSlotId = slotId;
-                const part = rackData[slotId];
+                const currentRack = racks.find(r => r.id === currentRackId);
                 let content = '';
+
+                if (!currentRack) {
+                    detailsPanel.innerHTML = '<div class="text-center text-gray-500 py-10"><ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon><p class="mt-2">ラックを選択してください</p></div>';
+                    renderCurrentRack();
+                    return;
+                }
+
+                const part = slotId ? currentRack.slots[slotId] : null;
+
                 if (part) {
                     content = `
                         <div class="fade-in">
-                            <div class="flex items-center mb-4"><div class="w-4 h-4 ${part.color} rounded-full mr-3"></div><h3 class="text-xl font-bold">${part.partName}</h3></div>
+                            <div class="flex items-center mb-4"><div class="w-4 h-4 rounded-full mr-3" style="background-color: #${part.color};"></div><h3 class="text-xl font-bold">${part.partName}</h3></div>
                             <div class="space-y-2 text-sm">
                                 <p><strong class="w-24 inline-block text-gray-500">箱ID:</strong> ${part.boxId}</p>
                                 <p><strong class="w-24 inline-block text-gray-500">部品型番:</strong> ${part.partModelNumber || 'N/A'}</p>
                                 <p><strong class="w-24 inline-block text-gray-500">現在庫数:</strong> <span class="text-2xl font-bold">${part.quantity}</span></p>
-                                <p><strong class="w-24 inline-block text-gray-500">保管場所:</strong> <span class="text-lg font-bold">${slotId}</span></p>
+                                <p><strong class="w-24 inline-block text-gray-500">保管場所:</strong> <span class="text-lg font-bold">${currentRack.name} / ${slotId}</span></p>
                             </div>
                             <div class="mt-6 border-t pt-4 space-y-2">
                                 <button data-action="use" data-slot-id="${slotId}" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">部品を使用</button>
                                 <button data-action="move" data-slot-id="${slotId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">箱を移動</button>
-                                <button data-action="show-qr" data-box-id="${part.boxId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex items-center justify-center"><ion-icon name="qr-code-outline" class="mr-2"></ion-icon>QRコードを表示</button>
+                                <button data-action="show-qr" data-box-id="${part.boxId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex items-center justify-center"><ion-icon name="qr-code-outline" class="mr-2"></ion-icon>箱QRコードを表示</button>
+                                <button data-action="show-shelf-qr" data-slot-id="${slotId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex items-center justify-center"><ion-icon name="grid-outline" class="mr-2"></ion-icon>棚QRコードを生成</button>
+                            </div>
+                        </div>`;
+                } else if(slotId) {
+                    content = `
+                        <div class="fade-in text-center py-6">
+                            <p class="text-lg font-bold mb-2">場所: ${currentRack.name} / ${slotId}</p>
+                            <ion-icon name="archive-outline" class="text-5xl text-gray-400 mx-auto"></ion-icon>
+                            <p class="mt-2 text-gray-500">この場所は空です</p>
+                            <div class="mt-6 space-y-2">
+                                <button data-action="store" data-slot-id="${slotId}" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">新しい箱を格納</button>
+                                <button data-action="show-shelf-qr" data-slot-id="${slotId}" class="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 flex items-center justify-center"><ion-icon name="grid-outline" class="mr-2"></ion-icon>棚QRコードを生成</button>
                             </div>
                         </div>`;
                 } else {
-                    content = `
-                        <div class="fade-in text-center py-6">
-                            <p class="text-lg font-bold mb-2">場所: ${slotId}</p>
-                            <ion-icon name="archive-outline" class="text-5xl text-gray-400 mx-auto"></ion-icon>
-                            <p class="mt-2 text-gray-500">この場所は空です</p>
-                            <div class="mt-6"><button data-action="store" data-slot-id="${slotId}" class="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">新しい箱を格納</button></div>
+                     content = `
+                        <div class="text-center text-gray-500 py-10">
+                            <ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon>
+                            <p class="mt-2">ラックの場所を選択して詳細を表示</p>
                         </div>`;
                 }
                 detailsPanel.innerHTML = content;
-                renderRack();
+                renderCurrentRack();
             }
 
-            // モーダルを開く
             function openModal(content) {
                 modalContent.innerHTML = content;
                 modal.classList.remove('hidden');
             }
 
-            // モーダルを閉じる
             function closeModal() {
                 modal.classList.add('hidden');
                 modalContent.innerHTML = '';
             }
+            
+            function showAddRackModal() {
+                 openModal(`
+                    <form id="add-rack-form" class="p-6 space-y-4">
+                        <h3 class="text-lg font-bold">新しいラックを作成</h3>
+                        <div>
+                            <label for="new-rack-name" class="text-sm">ラック名</label>
+                            <input id="new-rack-name" name="rackName" required class="w-full border-gray-300 rounded-md mt-1" placeholder="例: A棟-3F-スチール棚">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="new-rack-rows" class="text-sm">縦 (行数)</label>
+                                <input id="new-rack-rows" name="rows" type="number" min="1" max="26" required class="w-full border-gray-300 rounded-md mt-1" value="5">
+                            </div>
+                            <div>
+                                <label for="new-rack-cols" class="text-sm">横 (列数)</label>
+                                <input id="new-rack-cols" name="cols" type="number" min="1" max="20" required class="w-full border-gray-300 rounded-md mt-1" value="5">
+                            </div>
+                        </div>
+                    </form>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
+                        <button id="confirm-add-rack-btn" type="submit" form="add-rack-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md">作成</button>
+                    </div>`);
 
-            // 「部品を使用」モーダル
+                document.getElementById('add-rack-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const newRack = {
+                        id: `rack-${Date.now()}`,
+                        name: formData.get('rackName'),
+                        rows: parseInt(formData.get('rows')),
+                        cols: parseInt(formData.get('cols')),
+                        slots: {}
+                    };
+                    racks.push(newRack);
+                    currentRackId = newRack.id;
+                    renderApp();
+                    closeModal();
+                };
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
             function showUsePartModal(slotId) {
-                const part = rackData[slotId];
+                const currentRack = racks.find(r => r.id === currentRackId);
+                const part = currentRack.slots[slotId];
                 openModal(`
                     <div class="p-6"><h3 class="text-lg font-bold mb-4">「${part.partName}」を使用</h3>
                         <p class="text-sm mb-2">使用する数量を入力してください。(現在庫: ${part.quantity})</p>
                         <input id="use-quantity" type="number" min="1" max="${part.quantity}" class="w-full border-gray-300 rounded-md" placeholder="数量">
                     </div>
                     <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
                         <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">確定</button>
                     </div>`);
 
@@ -366,7 +587,7 @@
                     if (quantity > 0 && quantity <= part.quantity) {
                         part.quantity -= quantity;
                         if (part.quantity === 0) {
-                            rackData[slotId] = null;
+                            delete currentRack.slots[slotId];
                         }
                         updateDetails(slotId);
                         closeModal();
@@ -376,8 +597,7 @@
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
-
-            // 「新規格納」モーダル
+            
             function showStorePartModal(callback) {
                 openModal(`
                     <form id="store-form" class="p-6 space-y-4">
@@ -387,8 +607,8 @@
                         <div><label class="text-sm">数量</label><input name="quantity" type="number" min="1" required class="w-full border-gray-300 rounded-md mt-1"></div>
                     </form>
                     <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
-                        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-green-500 text-white rounded-md">QRコード生成</button>
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
+                        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md">QRコード生成</button>
                     </div>`);
 
                 document.getElementById('store-form').onsubmit = (e) => {
@@ -399,29 +619,54 @@
                         partName: formData.get('partName'),
                         partModelNumber: formData.get('partModelNumber'),
                         quantity: parseInt(formData.get('quantity')),
-                        color: ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'][Math.floor(Math.random() * 5)]
+                        color: ['4A90E2', '50E3C2', 'F5A623', 'D0021B', '9013FE'][Math.floor(Math.random() * 5)]
                     };
                     callback(newPart);
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
-            // QRコード印刷モーダル
+            // QRコードスキャナーモーダル
+            function showQrScannerModal(title, instruction, onScan) {
+                openModal(`
+                    <div class="p-6 text-center">
+                        <h3 class="text-xl font-bold mb-4">${title}</h3>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <div class="text-center">
+                            <ion-icon name="${title === 'QR入庫' ? 'grid-outline' : 'cube-outline'}" class="text-6xl text-gray-400 mx-auto"></ion-icon>
+                            <p class="mt-2 font-semibold">${instruction}</p>
+                            </div>
+                            <div class="bg-black aspect-square rounded-lg flex items-center justify-center relative overflow-hidden">
+                            <p class="text-gray-500">カメラ入力</p>
+                            <div class="scanner-line absolute left-0 h-1 bg-red-500 w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
+                    </div>`);
+
+                // スキャンをシミュレート
+                setTimeout(() => onScan(), 2000); 
+                document.getElementById('cancel-btn').onclick = closeModal;
+            }
+
+
             function showPrintQrModal(partData, callback = null) {
                 const qrData = encodeURIComponent(`boxId=${partData.boxId}`);
-                const nextButtonHtml = callback ? `<button id="next-btn" class="px-4 py-2 bg-green-500 text-white rounded-md">次へ</button>` : '';
+                const nextButtonHtml = callback ? `<button id="next-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">次へ</button>` : '';
                 const cancelButtonText = callback ? 'キャンセル' : '閉じる';
 
                 openModal(`
                     <div class="p-6 text-center">
-                        <h3 class="text-lg font-bold mb-2">QRコード</h3>
+                        <h3 class="text-lg font-bold mb-2">箱QRコード</h3>
                         <p class="text-sm text-gray-600 mb-4">このQRコードを印刷して箱に貼り付けてください。</p>
                         <img src="https://placehold.co/200x200/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto border-4">
                         <p class="mt-2 font-semibold">${partData.partName}</p>
                         <p class="text-xs text-gray-500">${partData.boxId}</p>
                     </div>
                     <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">${cancelButtonText}</button>
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">${cancelButtonText}</button>
                         <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
                         ${nextButtonHtml}
                     </div>`);
@@ -433,37 +678,119 @@
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
 
-            // QRスキャナーモーダル
-            function showQrScannerModal(title, instruction, iconPath, onScan) {
+            function showShelfQrModal(slotId) {
+                const currentRack = racks.find(r => r.id === currentRackId);
+                if (!currentRack) return;
+                const qrData = encodeURIComponent(`rackId=${currentRack.id}&slotId=${slotId}`);
                 openModal(`
                     <div class="p-6 text-center">
-                        <h3 class="text-xl font-bold mb-4">${title}</h3>
-                        <div class="grid grid-cols-2 gap-4 items-center">
-                            <div class="text-center"><img src="${iconPath}" class="mx-auto h-24"><p class="mt-2 font-semibold">${instruction}</p></div>
-                            <div class="bg-black aspect-square rounded-lg flex items-center justify-center relative overflow-hidden"><p class="text-gray-500">カメラ入力</p><div class="scanner-line absolute left-0 h-1 bg-red-500 w-full"></div></div>
-                        </div>
+                        <h3 class="text-lg font-bold mb-2">棚QRコード</h3>
+                        <p class="text-sm text-gray-600 mb-4">このQRコードを印刷して棚の<br><strong>${slotId}</strong>の場所に貼り付けてください。</p>
+                        <img src="https://placehold.co/200x200/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto border-4">
+                        <p class="mt-2 font-semibold">${currentRack.name}</p>
+                        <p class="text-xs text-gray-500">場所: ${slotId}</p>
                     </div>
                     <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 rounded-md">キャンセル</button>
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">閉じる</button>
+                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
                     </div>`);
-
-                setTimeout(() => onScan(), 2000); // スキャンをシミュレート
+                document.getElementById('print-btn').onclick = () => console.log('印刷処理を実行 (ダミー)');
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
+
+            function showBulkShelfQrModal(rack) {
+                let qrGridHtml = '';
+                for (let r = 1; r <= rack.rows; r++) {
+                    const rowChar = String.fromCharCode(64 + r);
+                    for (let c = 1; c <= rack.cols; c++) {
+                        const slotId = `${rowChar}-${c}`;
+                        const qrData = encodeURIComponent(`rackId=${rack.id}&slotId=${slotId}`);
+                        qrGridHtml += `
+                            <div class="qr-item border rounded-md p-2 flex flex-col items-center justify-center bg-white">
+                                <img src="https://placehold.co/100x100/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto">
+                                <p class="mt-2 font-bold text-center text-sm">${rack.name}</p>
+                                <p class="font-mono text-center text-lg">${slotId}</p>
+                            </div>`;
+                    }
+                }
+                const modalHtml = `
+                    <style>
+                        #printable-qrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+                        @media print {
+                            body > *:not(#modal-content) { display: none !important; }
+                            #modal, #modal > div { display: block !important; position: static !important; background: none !important; width: 100% !important; height: auto !important; max-width: 100% !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+                            .modal-header, .modal-footer { display: none !important; }
+                            #printable-qrs { grid-template-columns: repeat(${rack.cols}, 1fr); max-height: none !important; overflow: visible !important; }
+                        }
+                    </style>
+                    <div class="p-6 modal-header">
+                        <h3 class="text-lg font-bold mb-2">棚QRコード一括生成</h3>
+                        <p class="text-sm text-gray-600">「${rack.name}」のすべての棚QRコードです。印刷して貼り付けてください。</p>
+                    </div>
+                    <div id="printable-qrs" class="p-4 max-h-[60vh] overflow-y-auto bg-gray-100">${qrGridHtml}</div>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 modal-footer">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">閉じる</button>
+                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
+                    </div>`;
+                openModal(modalHtml);
+                modalContent.classList.remove('max-w-md');
+                modalContent.classList.add('max-w-4xl');
+                document.getElementById('print-btn').onclick = () => window.print();
+                document.getElementById('cancel-btn').onclick = () => {
+                    modalContent.classList.add('max-w-md');
+                    modalContent.classList.remove('max-w-4xl');
+                    closeModal();
+                };
+            }
+            
+            fabMain.addEventListener('click', () => {
+                const isExpanded = fabMain.getAttribute('aria-expanded') === 'true';
+                fabMain.setAttribute('aria-expanded', !isExpanded);
+                fabIcon.classList.toggle('rotate-45');
+                if (!isExpanded) {
+                    fabMenuItems.forEach((item, index) => {
+                        item.style.transitionDelay = `${index * 40}ms`;
+                        item.style.transform = 'scale(1)';
+                    });
+                } else {
+                     fabMenuItems.forEach(item => { item.style.transform = 'scale(0)'; });
+                }
+            });
+
+            document.getElementById('add-rack-btn').addEventListener('click', showAddRackModal);
 
             // QR入庫処理
             document.getElementById('qr-stock-in-btn').addEventListener('click', () => {
                 showStorePartModal((newPart) => {
                     showPrintQrModal(newPart, (partToStore) => {
-                        showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', 'https://placehold.co/150x150/cccccc/333333?text=棚QR', () => {
-                            const emptySlot = Object.keys(rackData).find(key => rackData[key] === null);
+                        showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', () => {
+                            const currentRack = racks.find(r => r.id === currentRackId);
+                            if (!currentRack) {
+                                console.error('対象のラックが見つかりません。');
+                                closeModal();
+                                return;
+                            }
+                            // 現在のラックで最初の空きスロットを探す
+                            let emptySlot = null;
+                            for (let r = 1; r <= currentRack.rows; r++) {
+                                const rowChar = String.fromCharCode(64 + r);
+                                for (let c = 1; c <= currentRack.cols; c++) {
+                                    const slotId = `${rowChar}-${c}`;
+                                    if (!currentRack.slots[slotId]) {
+                                        emptySlot = slotId;
+                                        break;
+                                    }
+                                }
+                                if (emptySlot) break;
+                            }
+
                             if (emptySlot) {
-                                rackData[emptySlot] = partToStore;
+                                currentRack.slots[emptySlot] = partToStore;
                                 updateDetails(emptySlot);
                                 closeModal();
                             } else {
                                 closeModal();
-                                console.error('空きがありません。');
+                                console.error('現在のラックに空きがありません。');
                             }
                         });
                     });
@@ -472,11 +799,27 @@
 
             // QR出庫処理
             document.getElementById('qr-stock-out-btn').addEventListener('click', () => {
-                showQrScannerModal('QR出庫', '部品QRコードを読み取ってください', 'https://placehold.co/150x150/cccccc/333333?text=部品QR', () => {
-                    const scannedBoxId = 'BOX-SPA001-02'; // サンプル
-                    const foundSlotId = Object.keys(rackData).find(key => rackData[key] && rackData[key].boxId === scannedBoxId);
+                showQrScannerModal('QR出庫', '部品QRコードを読み取ってください', () => {
+                    const scannedBoxId = 'BOX-101'; // サンプルとしてスキャンした箱ID
+                    let foundSlotId = null;
+                    let foundRackId = null;
+
+                    // すべてのラックを検索
+                    for (const rack of racks) {
+                        const slotId = Object.keys(rack.slots).find(key => rack.slots[key] && rack.slots[key].boxId === scannedBoxId);
+                        if (slotId) {
+                            foundSlotId = slotId;
+                            foundRackId = rack.id;
+                            break;
+                        }
+                    }
 
                     if (foundSlotId) {
+                        // 部品が見つかったラックに切り替える
+                        if(currentRackId !== foundRackId) {
+                            currentRackId = foundRackId;
+                            renderApp();
+                        }
                         showUsePartModal(foundSlotId);
                     } else {
                         closeModal();
@@ -484,14 +827,36 @@
                     }
                 });
             });
+            
+            bulkQrBtn.addEventListener('click', () => {
+                const currentRack = racks.find(r => r.id === currentRackId);
+                if (currentRack) showBulkShelfQrModal(currentRack);
+            });
 
-            // 詳細パネルのボタンクリック処理
+            rackListEl.addEventListener('click', e => {
+                const link = e.target.closest('.rack-list-item');
+                if(link) {
+                    e.preventDefault();
+                    const rackId = link.dataset.rackId;
+                    if(rackId !== currentRackId) {
+                        currentRackId = rackId;
+                        selectedSlotId = null;
+                        isMoveMode = false;
+                        moveOriginSlotId = null;
+                        renderApp();
+                    }
+                }
+            });
+
             detailsPanel.addEventListener('click', e => {
                 if (e.target.tagName !== 'BUTTON') return;
                 const { action, slotId, boxId } = e.target.dataset;
+                const currentRack = racks.find(r => r.id === currentRackId);
+                if (!currentRack) return;
+
                 if (action === 'use') showUsePartModal(slotId);
                 if (action === 'store') showStorePartModal((newPart) => {
-                    rackData[slotId] = newPart;
+                    currentRack.slots[slotId] = newPart;
                     updateDetails(slotId);
                     closeModal();
                 });
@@ -504,44 +869,54 @@
                         moveOriginSlotId = null;
                         updateDetails(slotId);
                     };
-                    renderRack();
+                    renderCurrentRack();
                 }
                 if (action === 'show-qr') {
-                    const partData = Object.values(rackData).find(part => part && part.boxId === boxId);
-                    if (partData) {
-                        showPrintQrModal(partData);
+                    for(const rack of racks) {
+                         const partData = Object.values(rack.slots).find(part => part && part.boxId === boxId);
+                         if (partData) {
+                            showPrintQrModal(partData);
+                            return;
+                         }
                     }
                 }
+                if (action === 'show-shelf-qr') showShelfQrModal(slotId);
             });
 
-            // ラックのスロットクリック時の処理
-            rackContainer.addEventListener('click', (e) => {
-                const slotEl = e.target.closest('.rack-slot');
-                if (!slotEl) return;
-                const clickedSlotId = slotEl.dataset.slotId;
+            document.body.addEventListener('click', (e) => {
+                const rackContainer = document.getElementById('rack-display-area');
+                if (rackContainer && rackContainer.contains(e.target)) {
+                    const slotEl = e.target.closest('.rack-slot');
+                    if (!slotEl) return;
+                    const clickedSlotId = slotEl.dataset.slotId;
+                    const currentRack = racks.find(r => r.id === currentRackId);
+                    if (!currentRack) return;
 
-                if (isMoveMode) {
-                    if (!rackData[clickedSlotId] && clickedSlotId !== moveOriginSlotId) {
-                        rackData[clickedSlotId] = rackData[moveOriginSlotId];
-                        rackData[moveOriginSlotId] = null;
-                        isMoveMode = false;
-                        moveOriginSlotId = null;
-                        updateDetails(clickedSlotId);
+                    if (isMoveMode) {
+                        if (!currentRack.slots[clickedSlotId] && clickedSlotId !== moveOriginSlotId) {
+                            currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
+                            delete currentRack.slots[moveOriginSlotId];
+                            isMoveMode = false;
+                            moveOriginSlotId = null;
+                            updateDetails(clickedSlotId);
+                        } else {
+                            console.error('空の場所を選択してください。');
+                        }
                     } else {
-                        console.error('空の場所を選択してください。');
+                        updateDetails(clickedSlotId);
                     }
-                } else {
-                    updateDetails(clickedSlotId);
                 }
             });
 
-            // 検索機能
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase();
                 document.querySelectorAll('.rack-slot').forEach(slot => {
                     slot.classList.remove('highlight-slot');
+                    const currentRack = racks.find(r => r.id === currentRackId);
+                    if (!currentRack) return;
+
                     if (searchTerm.length > 1) {
-                        const part = rackData[slot.dataset.slotId];
+                        const part = currentRack.slots[slot.dataset.slotId];
                         if (part && (part.partName.toLowerCase().includes(searchTerm) || (part.partModelNumber && part.partModelNumber.toLowerCase().includes(searchTerm)))) {
                             slot.classList.add('highlight-slot');
                         }
@@ -549,11 +924,11 @@
                 });
             });
 
-            // 初期化
-            renderRack();
+            renderApp();
         });
     </script>
 
 </body>
 
 </html>
+
