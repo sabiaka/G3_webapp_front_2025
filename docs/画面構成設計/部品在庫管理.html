@@ -452,7 +452,7 @@
 
                 const colHeadersContainer = document.createElement('div');
                 colHeadersContainer.className = 'grid sticky top-0 z-10 bg-white';
-                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 10rem)`;
+                colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 9rem)`;
                 colHeadersContainer.style.gap = '1rem';
                 colHeadersContainer.style.paddingLeft = '1rem';
                 for (let c = 1; c <= currentRack.cols; c++) {
@@ -468,7 +468,7 @@
 
                 const rowHeadersContainer = document.createElement('div');
                 rowHeadersContainer.className = 'grid sticky left-0 bg-white z-10';
-                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 10rem)`;
+                rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 9rem)`;
                 rowHeadersContainer.style.gap = '1rem';
                 rowHeadersContainer.style.paddingTop = '1rem';
                 for (let r = 1; r <= currentRack.rows; r++) {
@@ -486,8 +486,8 @@
                 const rackContainer = document.createElement('div');
                 rackContainer.id = 'mesh-rack';
                 rackContainer.className = 'grid gap-4 bg-gray-200 p-4 rounded-xl shadow-inner';
-                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 10rem)`;
-                rackContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 10rem)`;
+                rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 9rem)`;
+                rackContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 9rem)`;
 
                 for (let r = 1; r <= currentRack.rows; r++) {
                     const rowChar = String.fromCharCode(64 + r);
@@ -861,12 +861,18 @@
             function showShelfQrModal(slotId) {
                 const currentRack = racks.find(r => r.id === currentRackId);
                 if (!currentRack) return;
-                const qrData = encodeURIComponent(`rackId=${currentRack.id}&slotId=${slotId}`);
-                openModal(`
+                const rackNumericId = parseInt(String(currentRack.id).replace(/[^0-9]/g, ''), 10);
+                const payload = {
+                    type: 'rack_slot',
+                    rack_id: Number.isFinite(rackNumericId) ? rackNumericId : currentRack.id,
+                    slot_identifier: slotId
+                };
+                const qrData = encodeURIComponent(JSON.stringify(payload));
+        openModal(`
                     <div class="p-6 text-center">
                         <h3 class="text-lg font-bold mb-2">棚QRコード</h3>
                         <p class="text-sm text-gray-600 mb-4">このQRコードを印刷して棚の<br><strong>${slotId}</strong>の場所に貼り付けてください。</p>
-                        <img src="https://placehold.co/200x200/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto border-4">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}" alt="QR Code" class="mx-auto border-4">
                         <p class="mt-2 font-semibold">${currentRack.name}</p>
                         <p class="text-xs text-gray-500">場所: ${slotId}</p>
                     </div>
@@ -885,10 +891,16 @@
                     const rowChar = String.fromCharCode(64 + r);
                     for (let c = 1; c <= rack.cols; c++) {
                         const slotId = `${rowChar}-${c}`;
-                        const qrData = encodeURIComponent(`rackId=${rack.id}&slotId=${slotId}`);
+                        const rackNumericId = parseInt(String(rack.id).replace(/[^0-9]/g, ''), 10);
+                        const payload = {
+                            type: 'rack_slot',
+                            rack_id: Number.isFinite(rackNumericId) ? rackNumericId : rack.id,
+                            slot_identifier: slotId
+                        };
+                        const qrData = encodeURIComponent(JSON.stringify(payload));
                         qrGridHtml += `
                             <div class="qr-item border rounded-md p-2 flex flex-col items-center justify-center bg-white">
-                                <img src="https://placehold.co/100x100/ffffff/000000?text=${qrData}" alt="QR Code" class="mx-auto">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${qrData}" alt="QR Code" class="mx-auto">
                                 <p class="mt-2 font-bold text-center text-sm">${rack.name}</p>
                                 <p class="font-mono text-center text-lg">${slotId}</p>
                             </div>`;
