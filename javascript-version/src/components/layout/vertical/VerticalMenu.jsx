@@ -31,8 +31,6 @@ const VerticalMenu = ({ scrollMenu }) => {
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
   return (
-    // eslint-disable-next-line lines-around-comment
-    /* ブラウザのスクロールの代わりにカスタムスクロールバーを使用、ブラウザスクロールのみにしたい場合は削除してください */
     <ScrollWrapper
       {...(isBreakpointReached
         ? {
@@ -44,80 +42,45 @@ const VerticalMenu = ({ scrollMenu }) => {
             onScrollY: container => scrollMenu(container, true)
           })}
     >
-      {/* NavHeaderもVertical Menuと一緒にスクロールさせたい場合は、上記からNavHeaderを削除してこのコメントの下に貼り付けてください */}
-      {/* 垂直メニュー */}
       <Menu
         menuItemStyles={menuItemStyles(theme)}
         renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
+        renderExpandedMenuItemIcon={{ icon: <span style={{ fontSize: 10, lineHeight: 1 }}>•</span> }}
         menuSectionStyles={menuSectionStyles(theme)}
       >
-        <MenuItem href='/' icon={<i className='ri-home-4-line' />}>
+        <MenuItem href='/' icon={<span role='img' aria-label='home'>🏠</span>}>
           トップページ
         </MenuItem>
         <MenuSection label='製造管理システム'>
-          <MenuItem href='/production-management' icon={<i className='ri-bar-chart-box-line' />}>
+          <MenuItem href='/production-management' icon={<span role='img' aria-label='chart'>📊</span>}>
             生産数管理
           </MenuItem>
-          <MenuItem href='/image-inspection' icon={<i className='ri-camera-line' />}>
+          <MenuItem href='/image-inspection' icon={<span role='img' aria-label='camera'>📷</span>}>
             画像検査ステータス
           </MenuItem>
-          <MenuItem href='/employee-list' icon={<i className='ri-user-line' />}>
+          <MenuItem href='/employee-list' icon={<span role='img' aria-label='user'>👤</span>}>
             従業員名簿
           </MenuItem>
-          <MenuItem href='/machine-status' icon={<i className='ri-cpu-line' />}>
+          <MenuItem href='/machine-status' icon={<span role='img' aria-label='cpu'>🖥️</span>}>
             生産機械ステータス
           </MenuItem>
-          <MenuItem href='/shipping-instructions' icon={<i className='ri-ship-line' />}>
+          <MenuItem href='/shipping-instructions' icon={<span role='img' aria-label='ship'>🚢</span>}>
             製造出荷指示周知
           </MenuItem>
-          <MenuItem href='/parts-inventory' icon={<i className='ri-store-2-line' />}>
+          <MenuItem href='/parts-inventory' icon={<span role='img' aria-label='inventory'>📦</span>}>
             部品在庫管理
           </MenuItem>
-          <MenuItem href='/machine-signage/生産機械サイネージ.html' icon={<i className='ri-display-line' />} target='_blank'>
-            生産機械サイネージ
-          </MenuItem>
-          <MenuItem href='/daily-reports' icon={<i className='ri-file-list-line' />}>
+          <MenuItem href='/daily-reports' icon={<span role='img' aria-label='reports'>📝</span>}>
             日報一覧
           </MenuItem>
         </MenuSection>
-        <MenuSection label='テンプレ既存ページ'>
-          <SubMenu
-            label='ダッシュボード'
-            icon={<i className='ri-home-smile-line' />}
+        <MenuSection label='その他のページ'>
+          <MenuItem
+            href='/machine-signage/生産機械サイネージ.html'
+            icon={<span role='img' aria-label='display'>🖥️</span>}
+            target='_blank'
           >
-            <MenuItem href='/'>アナリティクス</MenuItem>
-          </SubMenu>
-          <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
-            アカウント設定
-          </MenuItem>
-          <SubMenu label='認証ページ' icon={<i className='ri-shield-keyhole-line' />}>
-            <MenuItem href='/login' target='_blank'>
-              ログイン
-            </MenuItem>
-            <MenuItem href='/register' target='_blank'>
-              登録
-            </MenuItem>
-            <MenuItem href='/forgot-password' target='_blank'>
-              パスワード再設定
-            </MenuItem>
-          </SubMenu>
-          <SubMenu label='その他' icon={<i className='ri-question-line' />}>
-            <MenuItem href='/error' target='_blank'>
-              エラー
-            </MenuItem>
-            <MenuItem href='/under-maintenance' target='_blank'>
-              メンテナンス中
-            </MenuItem>
-          </SubMenu>
-          <MenuItem href='/card-basic' icon={<i className='ri-bar-chart-box-line' />}>
-            カード
-          </MenuItem>
-          <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
-            フォームレイアウト
-          </MenuItem>
-          <MenuItem href='/template-guide' icon={<i className='ri-book-open-line' />}>
-            テンプレートガイド
+            生産機械サイネージ
           </MenuItem>
         </MenuSection>
       </Menu>
