@@ -1073,6 +1073,13 @@
                 });
             });
 
+            // モーダルの黒い背景クリックで閉じる
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
             // 初期レンダリング
             renderApp();
         });
