@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>認証API設計書</title>
+    <title>認証・アカウント作成 API設計書</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,14 +53,11 @@
                     <svg class="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                     </svg>
-                    <h1 class="text-4xl font-bold text-slate-900">認証 (ログイン/ログアウト) API 設計書</h1>
+                    <h1 class="text-4xl font-bold text-slate-900">認証・アカウント作成 API 設計書</h1>
                 </div>
-                <a href="../index.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                    ← トップページに戻る
-                </a>
             </div>
             <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
-                <p class="font-bold">対象ページ: 全てのページのログイン・ログアウト機能</p>
+                <p class="font-bold">対象ページ: 全てのページのログイン・ログアウト・アカウント作成機能</p>
                 <p class="text-sm mt-1">このドキュメントは、アプリケーション全体の認証機能を実装するためのAPI仕様を定義します。</p>
             </div>
         </header>
@@ -102,9 +99,52 @@
                 </div>
             </section>
 
-            <!-- 2. ログアウト -->
+            <!-- 2. アカウント作成 -->
+            <section id="register">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. アカウント作成</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/auth/register</span>
+                        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
+                    </div>
+                    <p class="mb-4">新しい従業員アカウントを作成するAPI。ユーザーIDやパスワード、名前などの情報を送ってね！成功すると、新しく作られたユーザーの情報が返ってくるよ。</p>
+            
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <pre><code class="language-json">{
+    "employee_user_id": "tanaka.misaki",
+    "password": "new_secure_password_456",
+    "employee_name": "田中 美咲",
+    "employee_role_name": "一般",
+    "employee_line_name": "検査"
+}</code></pre>
+            
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
+                    <p class="text-sm mb-2">ユーザー登録が成功したメッセージと、作成されたユーザー情報を返す。（パスワードは返さないから安心してね！）</p>
+                    <pre><code class="language-json">{
+    "message": "ユーザー登録大成功！",
+    "user": {
+        "employee_id": 6,
+        "employee_user_id": "tanaka.misaki",
+        "employee_name": "田中 美咲"
+    }
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (400 Bad Request)</h3>
+                    <p class="text-sm mb-2">ユーザーID、パスワード、名前のどれかが足りない場合にこのエラーが返ってくるよ。</p>
+                    <pre><code class="language-json">{
+    "error": "必要な情報が足りてないよ！"
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (409 Conflict)</h3>
+                    <p class="text-sm mb-2">送られてきた`employee_user_id`がすでに使われている場合に返ってくるエラー。</p>
+                    <pre><code class="language-json">{
+    "error": "そのユーザーIDはもう使われてるよん"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. ログアウト -->
             <section id="logout">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. ログアウト</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. ログアウト</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -123,9 +163,9 @@
                 </div>
             </section>
 
-            <!-- 3. ログイン状態チェック -->
+            <!-- 4. ログイン状態チェック -->
             <section id="check-session">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. ログイン状態チェック</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. ログイン状態チェック</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
