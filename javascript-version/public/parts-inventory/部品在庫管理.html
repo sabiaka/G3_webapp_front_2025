@@ -164,17 +164,13 @@
 
         <!-- メインコンテンツ -->
         <main class="w-full p-0 mt-0"></main>
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <!-- 左カラム: ラック選択 -->
-                <aside class="lg:col-span-1 bg-white rounded-xl shadow-md p-4">
-                    <h2 class="text-lg font-bold mb-4 border-b pb-2">ラック一覧</h2>
-                    <ul id="rack-list" class="space-y-2">
-                        <!-- ラックリストはJSで動的に生成 -->
-                    </ul>
-                </aside>
-
-                <!-- 右カラム: ラック表示と詳細 -->
-                <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- ラック選択タブ -->
+            <div class="mb-4 -mt-2">
+                <div class="flex items-center gap-2 overflow-x-auto pb-2" id="rack-tabs-wrapper">
+                    <div id="rack-tabs" class="flex items-center gap-2"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- メッシュラック -->
                     <div class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
@@ -366,7 +362,7 @@
 
             // ===== DOM参照の取得 =====
             const rackNameEl = document.getElementById('rack-name');
-            const rackListEl = document.getElementById('rack-list');
+            const rackTabsEl = document.getElementById('rack-tabs');
             const detailsPanel = document.getElementById('details-panel');
             const searchInput = document.getElementById('search-parts');
             const modal = document.getElementById('modal');
@@ -378,27 +374,27 @@
 
             // 初期描画
             function renderApp() {
-                renderRackList();
+                renderRackTabs();
                 renderCurrentRack();
                 updateDetails(null);
             }
 
-            // ラック一覧の描画
-            function renderRackList() {
-                rackListEl.innerHTML = '';
+            // ラックタブの描画
+            function renderRackTabs() {
+                rackTabsEl.innerHTML = '';
                 racks.forEach(rack => {
-                    const li = document.createElement('li');
-                    li.className = 'group relative';
-                    li.innerHTML = `
-                        <a href="#" data-rack-id="${rack.id}" class="rack-list-item flex items-center justify-between py-2 pl-2 pr-10 rounded-lg transition-colors duration-200 ${rack.id === currentRackId ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-gray-100'}">
-                            <span class="truncate pr-4">${rack.name}</span>
-                            <span class="text-xs text-gray-500 flex-shrink-0">${rack.rows}x${rack.cols}</span>
-                        </a>
-                        <button data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ion-icon name="trash-outline" class="pointer-events-none"></ion-icon>
-                        </button>
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.dataset.rackId = rack.id;
+                    btn.className = `group relative flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap border transition-all ${rack.id === currentRackId ? 'bg-indigo-600 text-white border-indigo-600 shadow' : 'bg-white text-gray-600 hover:bg-gray-100 border-gray-200'}`;
+                    btn.innerHTML = `
+                        <span class="truncate max-w-[10rem]">${rack.name}</span>
+                        <span class="text-[10px] opacity-70">${rack.rows}x${rack.cols}</span>
+                        <span data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="ml-1 text-gray-300 hover:text-red-600 hidden group-hover:inline-flex items-center">
+                            <ion-icon name="close-circle-outline"></ion-icon>
+                        </span>
                     `;
-                    rackListEl.appendChild(li);
+                    rackTabsEl.appendChild(btn);
                 });
             }
 
@@ -973,19 +969,20 @@
                 if (currentRack) showBulkShelfQrModal(currentRack);
             });
 
-            // ラック一覧のクリック処理
-            rackListEl.addEventListener('click', e => {
-                const link = e.target.closest('.rack-list-item');
-                if (link) {
-                    e.preventDefault();
-                    currentRackId = link.dataset.rackId;
+            // ラックタブのクリック処理
+            rackTabsEl.addEventListener('click', e => {
+                const del = e.target.closest('[data-action="delete-rack"]');
+                if (del) {
+                    e.stopPropagation();
+                    showDeleteRackModal(del.dataset.rackId, del.dataset.rackName);
+                    return;
+                }
+                const tab = e.target.closest('button[data-rack-id]');
+                if (tab) {
+                    currentRackId = tab.dataset.rackId;
                     selectedSlotId = null;
                     isMoveMode = false;
                     renderApp();
-                }
-                const deleteBtn = e.target.closest('[data-action="delete-rack"]');
-                if (deleteBtn) {
-                    showDeleteRackModal(deleteBtn.dataset.rackId, deleteBtn.dataset.rackName);
                 }
             });
 
