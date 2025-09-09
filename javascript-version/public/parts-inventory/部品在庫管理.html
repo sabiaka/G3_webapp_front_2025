@@ -163,14 +163,19 @@
     <div class="flex flex-col min-h-screen">
 
         <!-- メインコンテンツ -->
-        <main class="w-full p-0 mt-0"></main>
-            <!-- ラック選択タブ -->
-            <div class="mb-4 -mt-2">
-                <div class="flex items-center gap-2 overflow-x-auto pb-2" id="rack-tabs-wrapper">
-                    <div id="rack-tabs" class="flex items-center gap-2"></div>
+        <main class="w-full p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col gap-6">
+                <!-- タブ形式のラック選択 -->
+                <div>
+                    <div class="border-b border-gray-200">
+                        <nav id="rack-tabs" class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                            <!-- ラックタブはJSで動的に生成 -->
+                        </nav>
+                    </div>
                 </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- ラック表示と詳細 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- メッシュラック -->
                     <div class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
@@ -194,13 +199,13 @@
                             <h2 class="text-2xl font-bold mb-4">情報・操作</h2>
                             <!-- 検索 -->
                             <div class="mb-6">
-                                <label for="search-parts" class="block text-sm font-medium text-gray-700">部品を検索</label>
-                                <div class="mt-1 relative rounded-md shadow-sm">
+                                <label for="search-parts" class="block text-sm font-medium text-gray-700 mb-2">部品を検索</label>
+                                <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <ion-icon name="search-outline" class="text-gray-400"></ion-icon>
                                     </div>
                                     <input type="text" id="search-parts"
-                                        class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                                        class="bg-gray-100 focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-3 text-base border-gray-300 rounded-lg"
                                         placeholder="部品名 or 型番">
                                 </div>
                             </div>
@@ -219,7 +224,8 @@
     </div>
 
     <!-- フローティングアクションボタン (FAB) -->
-    <div class="fixed bottom-8 right-8 z-20" id="fab-container">
+    <!-- FAB コンテナ: 位置を少し上へ (元: bottom-8)。環境により余白を確保するため安全領域も考慮 -->
+    <div class="fixed right-8 z-20" id="fab-container" style="bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);">
         <!-- FABメニュー -->
         <div id="fab-menu" class="flex flex-col items-end space-y-3 mb-3">
             <button id="add-rack-btn" data-tooltip="新しいラックを作成"
@@ -252,8 +258,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             // =============================
             // 画面ロジック概要
+            // - レイアウトをサイドバーからタブ形式に変更
             // - ダミーAPIデータをアプリ内部形式へ変換
-            // - 左: ラック一覧 / 右: ラックメッシュ + 詳細パネル
+            // - 上部: ラック選択タブ / 下部: ラックメッシュ + 詳細パネル
             // - 操作: 部品使用・格納・移動、棚QR表示、棚QR一括生成
             // - モーダルは openModal/closeModal で共通管理
             // =============================
@@ -383,18 +390,18 @@
             function renderRackTabs() {
                 rackTabsEl.innerHTML = '';
                 racks.forEach(rack => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.dataset.rackId = rack.id;
-                    btn.className = `group relative flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap border transition-all ${rack.id === currentRackId ? 'bg-indigo-600 text-white border-indigo-600 shadow' : 'bg-white text-gray-600 hover:bg-gray-100 border-gray-200'}`;
-                    btn.innerHTML = `
-                        <span class="truncate max-w-[10rem]">${rack.name}</span>
-                        <span class="text-[10px] opacity-70">${rack.rows}x${rack.cols}</span>
-                        <span data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="ml-1 text-gray-300 hover:text-red-600 hidden group-hover:inline-flex items-center">
-                            <ion-icon name="close-circle-outline"></ion-icon>
-                        </span>
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.dataset.rackId = rack.id;
+                    a.className = `rack-tab-item group whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${rack.id === currentRackId ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+                    a.innerHTML = `
+                        <ion-icon name="server-outline" class="mr-2 text-lg"></ion-icon>
+                        <span class="truncate">${rack.name}</span>
+                        <button data-action="delete-rack" data-rack-id="${rack.id}" data-rack-name="${rack.name}" class="ml-3 p-1 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ion-icon name="trash-outline" class="pointer-events-none"></ion-icon>
+                        </button>
                     `;
-                    rackTabsEl.appendChild(btn);
+                    rackTabsEl.appendChild(a);
                 });
             }
 
@@ -571,26 +578,28 @@
             // ラック作成モーダル
             function showAddRackModal() {
                 openModal(`
-                    <form id="add-rack-form" class="p-6 space-y-4">
-                        <h3 class="text-lg font-bold">新しいラックを作成</h3>
-                        <div>
-                            <label for="new-rack-name" class="text-sm">ラック名</label>
-                            <input id="new-rack-name" name="rackName" required class="w-full border-gray-300 rounded-md mt-1" placeholder="例: A棟-3F-スチール棚">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-4 text-center">新しいラックを作成</h3>
+                        <form id="add-rack-form" class="space-y-4">
                             <div>
-                                <label for="new-rack-rows" class="text-sm">縦 (行数)</label>
-                                <input id="new-rack-rows" name="rows" type="number" min="1" max="26" required class="w-full border-gray-300 rounded-md mt-1" value="5">
+                                <label for="new-rack-name" class="text-sm font-medium text-gray-700">ラック名</label>
+                                <input id="new-rack-name" name="rackName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" placeholder="例: A棟-3F-スチール棚">
                             </div>
-                            <div>
-                                <label for="new-rack-cols" class="text-sm">横 (列数)</label>
-                                <input id="new-rack-cols" name="cols" type="number" min="1" max="50" required class="w-full border-gray-300 rounded-md mt-1" value="5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="new-rack-rows" class="text-sm font-medium text-gray-700">縦 (行数)</label>
+                                    <input id="new-rack-rows" name="rows" type="number" min="1" max="26" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="5">
+                                </div>
+                                <div>
+                                    <label for="new-rack-cols" class="text-sm font-medium text-gray-700">横 (列数)</label>
+                                    <input id="new-rack-cols" name="cols" type="number" min="1" max="50" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="5">
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-add-rack-btn" type="submit" form="add-rack-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md">作成</button>
+                        </form>
+                    </div>
+                    <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-add-rack-btn" type="submit" form="add-rack-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">作成</button>
                     </div>`);
 
                 document.getElementById('add-rack-form').onsubmit = (e) => {
@@ -623,9 +632,9 @@
                         <p class="mt-2 text-sm text-gray-600">本当に「<strong class="text-gray-900">${rackName}</strong>」を削除しますか？<br>この操作は取り消せません。</p>
                         ${warningMessage}
                     </div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md">削除</button>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">削除</button>
                     </div>`);
 
                 document.getElementById('confirm-delete-btn').onclick = () => {
@@ -644,13 +653,17 @@
                 const currentRack = racks.find(r => r.id === currentRackId);
                 const part = currentRack.slots[slotId];
                 openModal(`
-                    <div class="p-6"><h3 class="text-lg font-bold mb-4">「${part.partName}」を使用</h3>
-                        <p class="text-sm mb-2">使用する数量を入力してください。(現在庫: ${part.quantity})</p>
-                        <input id="use-quantity" type="number" min="1" max="${part.quantity}" class="w-full border-gray-300 rounded-md" placeholder="数量">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2 text-center">「${part.partName}」を使用</h3>
+                        <div class="p-4 rounded-lg">
+                            <label for="use-quantity" class="block text-sm font-medium text-gray-700">使用する数量</label>
+                            <p class="text-xs text-gray-500 mb-2">(現在庫: ${part.quantity})</p>
+                            <input id="use-quantity" type="number" min="1" max="${part.quantity}" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" placeholder="数量を入力">
+                        </div>
                     </div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">確定</button>
+                    <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">確定</button>
                     </div>`);
 
                 document.getElementById('confirm-use-btn').onclick = () => {
@@ -679,9 +692,9 @@
                         <p class="mt-2 text-sm text-gray-600">本当に「<strong class="text-gray-900">${part.partName}</strong>」を棚から削除しますか？</p>
                         <p class="text-red-600 bg-red-100 p-3 rounded-lg text-sm mt-4"><ion-icon name="warning-outline" class="mr-2"></ion-icon>この操作は取り消せません。</p>
                     </div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-delete-part-btn" class="px-4 py-2 bg-red-600 text-white rounded-md">削除</button>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-delete-part-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">削除</button>
                     </div>`);
 
                 document.getElementById('confirm-delete-part-btn').onclick = () => {
@@ -709,29 +722,31 @@
                             outline-offset: 2px;
                         }
                     </style>
-                    <form id="edit-part-form" class="p-6 space-y-4">
-                        <h3 class="text-lg font-bold">箱の情報を編集</h3>
-                        <div>
-                            <label class="text-sm">部品名</label>
-                            <input name="partName" required class="w-full border-gray-300 rounded-md mt-1" value="${part.partName}">
-                        </div>
-                        <div>
-                            <label class="text-sm">部品型番 (任意)</label>
-                            <input name="partModelNumber" class="w-full border-gray-300 rounded-md mt-1" value="${part.partModelNumber || ''}">
-                        </div>
-                        <div>
-                            <label class="text-sm">数量</label>
-                            <input name="quantity" type="number" min="0" required class="w-full border-gray-300 rounded-md mt-1" value="${part.quantity}">
-                        </div>
-                        <div>
-                            <label class="text-sm">カラーラベル</label>
-                            <div id="color-palette" class="flex flex-wrap gap-2 mt-1">${colorPaletteHtml}</div>
-                            <input type="hidden" name="color" value="${part.color}">
-                        </div>
-                    </form>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-edit-part-btn" type="submit" form="edit-part-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md">保存</button>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-4 text-center">箱の情報を編集</h3>
+                        <form id="edit-part-form" class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">部品名</label>
+                                <input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.partName}">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">部品型番 (任意)</label>
+                                <input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.partModelNumber || ''}">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">数量</label>
+                                <input name="quantity" type="number" min="0" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.quantity}">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">カラーラベル</label>
+                                <div id="color-palette" class="flex flex-wrap gap-2 mt-2 p-2 bg-white rounded-md">${colorPaletteHtml}</div>
+                                <input type="hidden" name="color" value="${part.color}">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-edit-part-btn" type="submit" form="edit-part-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">保存</button>
                     </div>`);
                 
                 const colorPaletteEl = document.getElementById('color-palette');
@@ -781,15 +796,17 @@
             // 新規格納モーダル
             function showStorePartModal(callback) {
                 openModal(`
-                    <form id="store-form" class="p-6 space-y-4">
-                        <h3 class="text-lg font-bold">新しい部品の情報を入力</h3>
-                        <div><label class="text-sm">部品名</label><input name="partName" required class="w-full border-gray-300 rounded-md mt-1"></div>
-                        <div><label class="text-sm">部品型番 (任意)</label><input name="partModelNumber" class="w-full border-gray-300 rounded-md mt-1"></div>
-                        <div><label class="text-sm">数量</label><input name="quantity" type="number" min="1" required class="w-full border-gray-300 rounded-md mt-1"></div>
-                    </form>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
-                        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md">棚をスキャンして格納</button>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-4 text-center">新しい部品の情報を入力</h3>
+                        <form id="store-form" class="space-y-4">
+                            <div><label class="text-sm font-medium text-gray-700">部品名</label><input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+                            <div><label class="text-sm font-medium text-gray-700">部品型番 (任意)</label><input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+                            <div><label class="text-sm font-medium text-gray-700">数量</label><input name="quantity" type="number" min="1" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+                        </form>
+                    </div>
+                    <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">棚をスキャンして格納</button>
                     </div>`);
 
                 document.getElementById('store-form').onsubmit = (e) => {
@@ -822,8 +839,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">キャンセル</button>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
                     </div>`);
 
                 setTimeout(() => onScan(), 2000);
@@ -849,9 +866,9 @@
                         <p class="mt-2 font-semibold">${currentRack.name}</p>
                         <p class="text-xs text-gray-500">場所: ${slotId}</p>
                     </div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">閉じる</button>
-                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">閉じる</button>
+                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">印刷</button>
                     </div>`);
                 document.getElementById('print-btn').onclick = () => console.log('印刷処理を実行 (ダミー)');
                 document.getElementById('cancel-btn').onclick = closeModal;
@@ -894,9 +911,9 @@
                         <p class="text-sm text-gray-600">「${rack.name}」のすべての棚QRコードです。印刷して貼り付けてください。</p>
                     </div>
                     <div id="printable-qrs" class="p-4 max-h-[60vh] overflow-y-auto bg-gray-100">${qrGridHtml}</div>
-                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 modal-footer">
-                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">閉じる</button>
-                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">印刷</button>
+                    <div class="p-4 bg-gray-50 flex justify-end space-x-2 modal-footer rounded-b-xl">
+                        <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">閉じる</button>
+                        <button id="print-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">印刷</button>
                     </div>`;
                 openModal(modalHtml);
                 modalContent.classList.remove('max-w-md');
@@ -971,14 +988,13 @@
 
             // ラックタブのクリック処理
             rackTabsEl.addEventListener('click', e => {
-                const del = e.target.closest('[data-action="delete-rack"]');
-                if (del) {
-                    e.stopPropagation();
-                    showDeleteRackModal(del.dataset.rackId, del.dataset.rackName);
-                    return;
-                }
-                const tab = e.target.closest('button[data-rack-id]');
-                if (tab) {
+                e.preventDefault();
+                const tab = e.target.closest('.rack-tab-item');
+                const deleteBtn = e.target.closest('[data-action="delete-rack"]');
+
+                if (deleteBtn) {
+                    showDeleteRackModal(deleteBtn.dataset.rackId, deleteBtn.dataset.rackName);
+                } else if (tab) {
                     currentRackId = tab.dataset.rackId;
                     selectedSlotId = null;
                     isMoveMode = false;
