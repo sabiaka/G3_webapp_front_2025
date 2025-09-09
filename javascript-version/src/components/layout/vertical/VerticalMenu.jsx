@@ -74,7 +74,7 @@ const VerticalMenu = ({ scrollMenu }) => {
           <MenuItem href='/parts-inventory' icon={<i className='ri-store-2-line' />}>
             部品在庫管理
           </MenuItem>
-          <MenuItem href='/machine-signage' icon={<i className='ri-display-line' />}>
+          <MenuItem href='/machine-signage/生産機械サイネージ.html' icon={<i className='ri-display-line' />} target='_blank'>
             生産機械サイネージ
           </MenuItem>
           <MenuItem href='/daily-reports' icon={<i className='ri-file-list-line' />}>
