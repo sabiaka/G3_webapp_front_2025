@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,26 +12,56 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap"
+        rel="stylesheet" />
     <!-- Ionicons -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
-        body { font-family: 'Inter','Noto Sans JP',sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
-        .alert-bg { background-image: repeating-linear-gradient(-45deg,#f59e0b,#f59e0b 25px,#1f2937 25px,#1f2937 50px); }
-        .alert-flash { animation: flash 1s infinite; }
-        @keyframes flash { 0%,100% { opacity:1;} 50% { opacity:.5;} }
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
+        .alert-bg {
+            background-image: repeating-linear-gradient(-45deg, #f59e0b, #f59e0b 25px, #1f2937 25px, #1f2937 50px);
+        }
+
+        .alert-flash {
+            animation: flash 1s infinite;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
     </style>
 </head>
+
 <body class="bg-gray-900 text-white h-screen flex flex-col">
     <header class="p-4 md:p-6 flex-shrink-0">
         <div class="flex justify-between items-center">
             <div class="flex items-center space-x-6">
                 <h1 class="text-5xl font-black tracking-wider">工場ダッシュボード</h1>
                 <div class="flex items-center space-x-2 pt-2">
-                    <button id="debug-error-btn" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded-md">デバッグ: エラー発生</button>
-                    <button id="debug-warning-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs px-3 py-1 rounded-md">デバッグ: 警告発生</button>
-                    <button id="debug-normal-btn" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded-md">デバッグ: 正常化</button>
+                    <button id="debug-error-btn"
+                        class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded-md">デバッグ: エラー発生</button>
+                    <button id="debug-warning-btn"
+                        class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs px-3 py-1 rounded-md">デバッグ:
+                        警告発生</button>
+                    <button id="debug-normal-btn"
+                        class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded-md">デバッグ:
+                        正常化</button>
                 </div>
             </div>
             <div id="clock" class="text-5xl font-bold text-right">
@@ -45,12 +76,14 @@
             <div class="flex-grow flex flex-col space-y-6">
                 <div class="flex justify-between items-center">
                     <h3 class="text-3xl font-bold">自動表層バネどめ機</h3>
-                    <span id="machine-status" class="px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900">正常</span>
+                    <span id="machine-status"
+                        class="px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900">正常</span>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-center">
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">本日の稼働時間</p>
-                        <p class="text-5xl font-black">8<span class="text-3xl">h</span> 25<span class="text-3xl">m</span></p>
+                        <p class="text-5xl font-black">8<span class="text-3xl">h</span> 25<span
+                                class="text-3xl">m</span></p>
                     </div>
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">本日の生産数</p>
@@ -69,7 +102,9 @@
                     <h3 class="text-2xl font-bold mb-2">最新エラーログ</h3>
                     <div id="error-log-list" class="space-y-2 text-lg overflow-y-auto">
                         <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
-                            <div><p class="font-semibold text-gray-300">I-001: 起動シーケンス完了</p></div>
+                            <div>
+                                <p class="font-semibold text-gray-300">I-001: 起動シーケンス完了</p>
+                            </div>
                             <span class="text-sm text-gray-400 whitespace-nowrap">08:00:05</span>
                         </div>
                     </div>
@@ -81,20 +116,42 @@
             <div class="flex-grow flex flex-col space-y-6">
                 <div class="text-center">
                     <p class="text-2xl text-green-400 font-bold">システム正常</p>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2"><div class="bg-green-500 h-2.5 rounded-full" style="width:100%"></div></div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                        <div class="bg-green-500 h-2.5 rounded-full" style="width:100%"></div>
+                    </div>
                 </div>
-                <div class="bg-black rounded-lg aspect-video flex items-center justify-center"><p class="text-gray-500 text-lg">LIVE CAMERA FEED</p></div>
+                <div class="bg-black rounded-lg aspect-video flex items-center justify-center">
+                    <p class="text-gray-500 text-lg">LIVE CAMERA FEED</p>
+                </div>
                 <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-lg text-gray-400">良品率</p><p class="text-5xl font-black text-green-400">99.8%</p></div>
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-lg text-gray-400">検査総数</p><p class="text-5xl font-black">1,250</p></div>
+                    <div class="bg-gray-900 p-4 rounded-lg">
+                        <p class="text-lg text-gray-400">良品率</p>
+                        <p class="text-5xl font-black text-green-400">99.8%</p>
+                    </div>
+                    <div class="bg-gray-900 p-4 rounded-lg">
+                        <p class="text-lg text-gray-400">検査総数</p>
+                        <p class="text-5xl font-black">1,250</p>
+                    </div>
                 </div>
                 <div class="flex-grow overflow-y-auto">
                     <h3 class="text-2xl font-bold mb-2">最新検査ログ</h3>
                     <div class="space-y-2 text-lg">
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md"><p>ID: A-102-1250</p><p>11:55:12</p><span class="font-bold text-green-400">PASS</span></div>
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md"><p>ID: A-102-1249</p><p>11:55:08</p><span class="font-bold text-green-400">PASS</span></div>
-                        <div class="flex justify-between items-center bg-red-900/50 p-3 rounded-md"><p>ID: A-102-1248</p><p>11:55:04</p><span class="font-bold text-red-400">FAIL</span></div>
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md"><p>ID: A-102-1247</p><p>11:55:01</p><span class="font-bold text-green-400">PASS</span></div>
+                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
+                            <p>ID: A-102-1250</p>
+                            <p>11:55:12</p><span class="font-bold text-green-400">PASS</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
+                            <p>ID: A-102-1249</p>
+                            <p>11:55:08</p><span class="font-bold text-green-400">PASS</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-red-900/50 p-3 rounded-md">
+                            <p>ID: A-102-1248</p>
+                            <p>11:55:04</p><span class="font-bold text-red-400">FAIL</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
+                            <p>ID: A-102-1247</p>
+                            <p>11:55:01</p><span class="font-bold text-green-400">PASS</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,7 +160,8 @@
     <div id="evangelion-alert" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
         <div class="alert-bg w-full h-full absolute inset-0 opacity-20"></div>
         <div class="text-center z-10">
-            <h2 class="text-9xl md:text-[12rem] font-black text-red-500 alert-flash tracking-widest" style="line-height:1;">警告</h2>
+            <h2 class="text-9xl md:text-[12rem] font-black text-red-500 alert-flash tracking-widest"
+                style="line-height:1;">警告</h2>
             <div class="mt-8 bg-black/80 p-6 rounded-lg border-4 border-yellow-400">
                 <p id="alert-error-code" class="text-6xl font-bold text-yellow-400">モータートルク異常</p>
                 <p id="alert-error-message" class="text-3xl mt-4 text-white">モーターの負荷が規定値を超えました。</p>
@@ -111,7 +169,8 @@
         </div>
     </div>
     <script>
-        function updateClock(){const n=new Date,t=document.getElementById('time'),e=document.getElementById('date'),o=String(n.getHours()).padStart(2,'0'),a=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0'),r=n.getFullYear(),c=String(n.getMonth()+1).padStart(2,'0'),l=String(n.getDate()).padStart(2,'0'),d=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][n.getDay()];t.textContent=`${o}:${a}`;e.textContent=`${r}/${c}/${l} (${d})`;return`${o}:${a}:${s}`}setInterval(updateClock,1000);updateClock();const alertScreen=document.getElementById('evangelion-alert'),alertErrorCode=document.getElementById('alert-error-code'),alertErrorMessage=document.getElementById('alert-error-message'),errorLogList=document.getElementById('error-log-list'),machineStatus=document.getElementById('machine-status');function showErrorAlert(t,e){alertErrorCode.textContent=t,alertErrorMessage.textContent=e,alertScreen.classList.remove('hidden'),setTimeout(()=>{alertScreen.classList.add('hidden')},5e3)}function addErrorLog(t,e,o){const a=updateClock();let s,r,c;"error"===o?(s='bg-red-900/50',r='text-red-400',c='text-red-300'):"warning"===o?(s='bg-yellow-900/50',r='text-yellow-400',c='text-yellow-300'):(s='bg-gray-900',r='text-gray-400',c='text-gray-300');const l=`\n                <div class=\"flex justify-between items-center ${s} p-3 rounded-md\">\n                    <div>\n                        <p class=\"font-semibold ${c}\">${t}</p>\n                        ${e?`<p class=\"text-sm ${r}\">${e}</p>`:''}\n                    </div>\n                    <span class=\"text-sm text-gray-400 whitespace-nowrap\">${a}</span>\n                </div>\n            `;errorLogList.insertAdjacentHTML('afterbegin',l)}const sampleErrors=[{code:'モータートルク異常',message:'モーターの負荷が規定値を超えました。',type:'error'},{code:'フェンス内異物検知',message:'安全フェンス内で異物を検知しました。',type:'error'},{code:'非常停止ボタン取り扱い',message:'非常停止ボタンが押されました。',type:'warning'}],debugErrorBtn=document.getElementById('debug-error-btn'),debugWarningBtn=document.getElementById('debug-warning-btn'),debugNormalBtn=document.getElementById('debug-normal-btn');debugErrorBtn.addEventListener('click',()=>{const t=sampleErrors.filter(t=>'error'===t.type)[Math.floor(2*Math.random())];t&&(machineStatus.textContent='エラー',machineStatus.className='px-4 py-2 text-xl font-semibold rounded-full bg-red-500 text-red-900',addErrorLog(t.code,t.message,t.type),showErrorAlert(t.code,t.message))}),debugWarningBtn.addEventListener('click',()=>{const t=sampleErrors.find(t=>'warning'===t.type);t&&(machineStatus.textContent='警告',machineStatus.className='px-4 py-2 text-xl font-semibold rounded-full bg-yellow-500 text-yellow-900',addErrorLog(t.code,t.message,t.type))}),debugNormalBtn.addEventListener('click',()=>{machineStatus.textContent='正常',machineStatus.className='px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900',addErrorLog('I-003: 状態リセット','手動で正常状態に復帰しました。','info')});
+        function updateClock() { const n = new Date, t = document.getElementById('time'), e = document.getElementById('date'), o = String(n.getHours()).padStart(2, '0'), a = String(n.getMinutes()).padStart(2, '0'), s = String(n.getSeconds()).padStart(2, '0'), r = n.getFullYear(), c = String(n.getMonth() + 1).padStart(2, '0'), l = String(n.getDate()).padStart(2, '0'), d = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][n.getDay()]; t.textContent = `${o}:${a}`; e.textContent = `${r}/${c}/${l} (${d})`; return `${o}:${a}:${s}` } setInterval(updateClock, 1000); updateClock(); const alertScreen = document.getElementById('evangelion-alert'), alertErrorCode = document.getElementById('alert-error-code'), alertErrorMessage = document.getElementById('alert-error-message'), errorLogList = document.getElementById('error-log-list'), machineStatus = document.getElementById('machine-status'); function showErrorAlert(t, e) { alertErrorCode.textContent = t, alertErrorMessage.textContent = e, alertScreen.classList.remove('hidden'), setTimeout(() => { alertScreen.classList.add('hidden') }, 5e3) } function addErrorLog(t, e, o) { const a = updateClock(); let s, r, c; "error" === o ? (s = 'bg-red-900/50', r = 'text-red-400', c = 'text-red-300') : "warning" === o ? (s = 'bg-yellow-900/50', r = 'text-yellow-400', c = 'text-yellow-300') : (s = 'bg-gray-900', r = 'text-gray-400', c = 'text-gray-300'); const l = `\n                <div class=\"flex justify-between items-center ${s} p-3 rounded-md\">\n                    <div>\n                        <p class=\"font-semibold ${c}\">${t}</p>\n                        ${e ? `<p class=\"text-sm ${r}\">${e}</p>` : ''}\n                    </div>\n                    <span class=\"text-sm text-gray-400 whitespace-nowrap\">${a}</span>\n                </div>\n            `; errorLogList.insertAdjacentHTML('afterbegin', l) } const sampleErrors = [{ code: 'モータートルク異常', message: 'モーターの負荷が規定値を超えました。', type: 'error' }, { code: 'フェンス内異物検知', message: '安全フェンス内で異物を検知しました。', type: 'error' }, { code: '非常停止ボタン取り扱い', message: '非常停止ボタンが押されました。', type: 'warning' }], debugErrorBtn = document.getElementById('debug-error-btn'), debugWarningBtn = document.getElementById('debug-warning-btn'), debugNormalBtn = document.getElementById('debug-normal-btn'); debugErrorBtn.addEventListener('click', () => { const t = sampleErrors.filter(t => 'error' === t.type)[Math.floor(2 * Math.random())]; t && (machineStatus.textContent = 'エラー', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-red-500 text-red-900', addErrorLog(t.code, t.message, t.type), showErrorAlert(t.code, t.message)) }), debugWarningBtn.addEventListener('click', () => { const t = sampleErrors.find(t => 'warning' === t.type); t && (machineStatus.textContent = '警告', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-yellow-500 text-yellow-900', addErrorLog(t.code, t.message, t.type)) }), debugNormalBtn.addEventListener('click', () => { machineStatus.textContent = '正常', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900', addErrorLog('I-003: 状態リセット', '手動で正常状態に復帰しました。', 'info') });
     </script>
 </body>
+
 </html>

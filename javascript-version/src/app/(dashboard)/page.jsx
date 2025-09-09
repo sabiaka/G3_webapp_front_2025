@@ -1,76 +1,39 @@
-// MUI Imports
-import Grid from '@mui/material/Grid'
+"use client";
 
-// Components Imports
-import Award from '@views/dashboard/Award'
-import Transactions from '@views/dashboard/Transactions'
-import WeeklyOverview from '@views/dashboard/WeeklyOverview'
-import TotalEarning from '@views/dashboard/TotalEarning'
-import LineChart from '@views/dashboard/LineChart'
-import DistributedColumnChart from '@views/dashboard/DistributedColumnChart'
-import DepositWithdraw from '@views/dashboard/DepositWithdraw'
-import SalesByCountries from '@views/dashboard/SalesByCountries'
-import CardStatVertical from '@components/card-statistics/Vertical'
-import Table from '@views/dashboard/Table'
+// このページは既存の静的HTML (public/parts-inventory/部品在庫管理.html) をそのまま iframe で表示します。
+// もし将来 React 化したい場合は、この iframe を外し HTML/JS をコンポーネントへ段階移行してください。
 
-const DashboardAnalytics = () => {
-  return (
-    <Grid container spacing={6}>
-      <Grid item xs={12} md={4}>
-        <Award />
-      </Grid>
-      <Grid item xs={12} md={8} lg={8}>
-        <Transactions />
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <WeeklyOverview />
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <TotalEarning />
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <Grid container spacing={6}>
-          <Grid item xs={12} sm={6}>
-            <LineChart />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <CardStatVertical
-              title='総利益'
-              stats='$25.6k'
-              avatarIcon='ri-pie-chart-2-line'
-              avatarColor='secondary'
-              subtitle='週間利益'
-              trendNumber='42%'
-              trend='positive'
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <CardStatVertical
-              stats='862'
-              trend='negative'
-              trendNumber='18%'
-              title='新規プロジェクト'
-              subtitle='年間プロジェクト'
-              avatarColor='primary'
-              avatarIcon='ri-file-word-2-line'
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <DistributedColumnChart />
-          </Grid>
-        </Grid>
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <SalesByCountries />
-      </Grid>
-      <Grid item xs={12} lg={8}>
-        <DepositWithdraw />
-      </Grid>
-      <Grid item xs={12}>
-        <Table />
-      </Grid>
-    </Grid>
-  )
-}
+const IframePage = () => {
+    // レイアウト側で付与されている上部パディング/マージンを打ち消して余白を詰める
+    // (必要に応じて値を微調整: -24px -> -16px など)
+    return (
+        <div
+            style={{
+                height: '90%',
+                minHeight: '100vh', // 以前の calc(1vh - 2rem) は 1vh になっていたため修正
+                display: 'flex',
+                flexDirection: 'column',
+                marginTop: '-24px', // 上余白を詰める
+            }}
+        >
+            <div
+                style={{
+                    flex: 1,
+                    borderRadius: 0,
+                    overflow: 'hidden',
+                }}
+            >
+                <iframe
+                    title="トップページ"
+                        src="/top/トップページ.html"
+                    style={{ width: '100%', height: '100%', border: 0 }}
+                    // allow-forms を追加し、iframe サンドボックス内での form submit (onsubmit ハンドラ含む) を許可
+                    // これが無いと sandbox 制約で submit がブロックされ、モーダル内の「作成」「保存」等ボタンが無反応に見える
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
+                />
+            </div>
+        </div>
+    );
+};
 
-export default DashboardAnalytics
+export default IframePage;
