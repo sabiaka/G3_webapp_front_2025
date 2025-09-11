@@ -23,14 +23,14 @@ const IframePage = () => {
                     overflow: 'hidden',
                 }}
             >
-                <iframe
-                    title="部品在庫管理"
-                        src="/parts-inventory/部品在庫管理.html"
-                    style={{ width: '100%', height: '100%', border: 0 }}
-                    // allow-forms を追加し、iframe サンドボックス内での form submit (onsubmit ハンドラ含む) を許可
-                    // これが無いと sandbox 制約で submit がブロックされ、モーダル内の「作成」「保存」等ボタンが無反応に見える
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
-                />
+                                {/* allow-forms を追加し、iframe サンドボックス内での form submit (onsubmit ハンドラ含む) を許可
+                                        これが無いと sandbox 制約で submit がブロックされ、モーダル内の「作成」「保存」等ボタンが無反応に見える */}
+                                <iframe
+                                    title="部品在庫管理"
+                                    src="/parts-inventory/部品在庫管理.html"
+                                    style={{ width: '100%', height: '100%', border: 0 }}
+                                    sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
+                                />
             </div>
         </div>
     );

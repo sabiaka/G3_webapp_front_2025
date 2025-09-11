@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -86,13 +87,15 @@ const completedOptions = [
 // タイトル分割用: 先頭のライン名(例: "マット")と残りの内容を分ける
 function splitTitle(title, line) {
   if (!title) return { main: line, sub: '' }
+
   if (title.startsWith(line)) {
     return { main: line, sub: title.slice(line.length).trim() }
   }
+
+
   // マッチしない場合は、lineをメイン、title全体をサブとして扱う
   return { main: line, sub: title }
 }
-
 
 const cardMinHeight = 260
 
@@ -102,13 +105,17 @@ const LineChip = ({ line }) => {
     'ボトム': { backgroundColor: '#ffedd5', color: '#9a3412' },
     'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
   }
-  return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
+
+  
+return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
 }
 
 
 const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
   const { main, sub } = splitTitle(instruction.title, instruction.line);
-  return (
+
+  
+return (
     <Card
       className='fade-in'
       sx={{
@@ -196,6 +203,7 @@ const ShippingInstructions = () => {
   const filtered = instructions.filter(inst => {
     // 検索テキストのマッチング
     const searchText = search.toLowerCase()
+
     const textMatch = !searchText ||
       inst.title.toLowerCase().includes(searchText) ||
       (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
@@ -207,6 +215,7 @@ const ShippingInstructions = () => {
 
     // 完了状態のマッチング
     let completedMatch = true
+
     if (completed === 'completed') completedMatch = inst.completed
     else if (completed === 'not-completed') completedMatch = !inst.completed
     
@@ -235,20 +244,26 @@ const ShippingInstructions = () => {
   // 保存
   const handleSave = () => {
     if (!form.title) return
+
     if (editMode) {
       setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...form } : inst))
     } else {
       const newId = Math.max(...instructions.map(i => i.id), 0) + 1
+
       setInstructions(prev => [...prev, { ...form, id: newId }])
     }
+
     setModalOpen(false)
   }
 
   // 入力変更
   const handleFormChange = e => {
     const { name, value } = e.target
+
     setForm(prev => ({ ...prev, [name]: value }))
   }
+
+  // ここから描画
 
   return (
     <>
@@ -302,9 +317,9 @@ const ShippingInstructions = () => {
             </Grid>
           </Grid>
         </CardContent>
-      </Card>
+  </Card>
 
-      {/* 指示カードリスト */}
+  {/* 指示カードリスト */}
       <Grid container spacing={3}>
         {filtered.length === 0 ? (
           <Grid item xs={12}>
@@ -320,14 +335,14 @@ const ShippingInstructions = () => {
             </Grid>
           ))
         )}
-      </Grid>
+  </Grid>
 
-      {/* フローティング追加ボタン */}
+  {/* フローティング追加ボタン */}
       <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
         <AddIcon fontSize='large' />
-      </Fab>
+  </Fab>
 
-      {/* モーダル（追加・編集） */}
+  {/* モーダル（追加・編集） */}
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
         <DialogContent>

@@ -1,4 +1,7 @@
 "use client";
+
+import { useState } from 'react';
+
 // MUI（Materio）コンポーネントのインポート
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -13,7 +16,6 @@ import Modal from '@mui/material/Modal';
 import Fade from '@mui/material/Fade';
 import Backdrop from '@mui/material/Backdrop';
 import AddIcon from '@mui/icons-material/Add';
-import { useState } from 'react';
 
 // サンプル日報データ
 const sampleReports = [
@@ -53,7 +55,9 @@ function formatDateJP(dateStr) {
 	// yyyy-mm-dd → yyyy年m月d日 (曜日)
 	const date = new Date(dateStr);
 	const youbi = ['日', '月', '火', '水', '木', '金', '土'];
-	return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${youbi[date.getDay()]})`;
+
+	
+return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${youbi[date.getDay()]})`;
 }
 
 export default function DailyReportsPage() {
@@ -61,6 +65,7 @@ export default function DailyReportsPage() {
 	const [searchUser, setSearchUser] = useState('');
 	const [searchDate, setSearchDate] = useState('');
 	const [searchProduct, setSearchProduct] = useState('');
+
 	// モーダル制御
 	const [open, setOpen] = useState(false);
 
@@ -74,12 +79,15 @@ export default function DailyReportsPage() {
 		memo: '',
 	});
 
+
 	// 検索フィルター適用
 	const filteredReports = sampleReports.filter(r =>
 		(!searchUser || r.user.includes(searchUser)) &&
 		(!searchDate || r.date === searchDate) &&
 		(!searchProduct || r.product.includes(searchProduct))
 	);
+
+	// ここから描画
 
 	return (
 		<Box sx={{ p: { xs: 2, sm: 4, lg: 6 }, bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -125,6 +133,7 @@ export default function DailyReportsPage() {
 				</CardContent>
 			</Card>
 
+
 			{/* 日報リスト */}
 			<Grid container spacing={3}>
 				{filteredReports.map((report, idx) => (
@@ -160,6 +169,7 @@ export default function DailyReportsPage() {
 				))}
 			</Grid>
 
+
 			{/* フローティング追加ボタン */}
 			<IconButton
 				color="primary"
@@ -174,6 +184,7 @@ export default function DailyReportsPage() {
 			>
 				<AddIcon sx={{ fontSize: 36 }} />
 			</IconButton>
+
 
 			{/* 日報追加・編集モーダル */}
 			<Modal

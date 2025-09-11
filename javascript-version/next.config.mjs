@@ -5,11 +5,10 @@ const nextConfig = {
     NEXT_PUBLIC_PRO_URL: process.env.NEXT_PUBLIC_PRO_URL || 'https://themeselection.com',
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || 'https://demos.themeselection.com',
     NEXT_PUBLIC_REPO_NAME: process.env.NEXT_PUBLIC_REPO_NAME || 'materio-mui-react-nextjs-admin-template-free'
-  },
-  experimental: {
-    // Suppress punycode deprecation warning
-    suppressDeprecationWarnings: true
   }
+  // NOTE: experimental.suppressDeprecationWarnings は Next.js 14 では無効なため削除しました。
+  // Node の DeprecationWarning を抑止したい場合は既に package.json の dev スクリプトで
+  // NODE_OPTIONS=--no-deprecation を付けているので追加対応不要です。
 }
 
 export default nextConfig

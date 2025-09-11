@@ -1,6 +1,7 @@
-
 'use client'
+
 import { useState } from 'react'
+
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -95,8 +96,12 @@ const MachineStatus = () => {
   const filteredLogs = errorLogSample.filter(log => {
     const typeMatch = logType === 'すべて' || log.type === logType
     const dateMatch = !logDate || log.date === logDate
-    return typeMatch && dateMatch
+
+    
+return typeMatch && dateMatch
   })
+
+  // ここから描画
 
   return (
     <Grid container spacing={6}>
