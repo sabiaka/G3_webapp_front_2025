@@ -41,6 +41,57 @@
             border-radius: 0.5rem;
             font-size: 0.875rem;
         }
+        /* language-http が highlight.js で着色されない場合のフォールバック */
+        pre code.language-http:not(.hljs) {
+            display:block;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background:#1e293b; /* slate-800 */
+            color:#e2e8f0; /* slate-200 */
+            font-size: 0.875rem;
+            line-height:1.4;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            position:relative;
+        }
+        pre code.language-http:not(.hljs)::before {
+            content:'HTTP';
+            position:absolute;
+            top:6px; right:10px;
+            font-size:10px;
+            letter-spacing:.5px;
+            background:#334155;
+            color:#cbd5e1;
+            padding:2px 6px;
+            border-radius:4px;
+        }
+        /* Copy button */
+        .code-block-wrapper { position: relative; }
+        .copy-btn {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            background: rgba(51,65,85,.85); /* slate-600 */
+            color: #f1f5f9; /* slate-50 */
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255,255,255,.08);
+            transition: transform .16s ease, box-shadow .22s ease, background-color .25s ease;
+            box-shadow: 0 2px 6px -2px rgba(15,23,42,.35);
+        }
+        .copy-btn svg { width: 16px; height: 16px; }
+        .copy-btn:hover { background: rgba(71,85,105,.92); transform: translateY(-2px); box-shadow:0 6px 14px -4px rgba(15,23,42,.45); }
+        .copy-btn:active { transform: translateY(0); box-shadow:0 3px 8px -4px rgba(15,23,42,.4); }
+        .copy-btn.copied { background: linear-gradient(135deg,#16a34a 0%,#15803d 70%); }
+        .copy-btn.copied svg { animation: pop .4s ease; }
+        @keyframes pop { 0%{transform:scale(.6) rotate(-20deg);} 60%{transform:scale(1.15);} 100%{transform:scale(1);} }
     </style>
 </head>
 
@@ -51,7 +102,9 @@
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-4">
                     <svg class="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
                     </svg>
                     <h1 class="text-4xl font-bold text-slate-900">認証・アカウント作成 API 設計書</h1>
                 </div>
@@ -77,9 +130,10 @@
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
-    "employee_user_id": "r.oshiyama",
-    "password": "secure_password_123"
+    "employee_user_id": "hana.kato",
+    "password": "P@ssw0rd2025"
 }</code></pre>
+                    <p class="text-xs text-slate-500 mt-2">※ アカウント作成（register）サンプルと同じ値に統一。コピペしてそのまま試せるようにしています。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <p class="text-sm mb-2">アクセストークンと、ログインしたユーザーの情報を返す。このトークンはフロントで保存しといて、認証が必要なAPIを叩くときにヘッダーに付けて送ってね！
@@ -87,9 +141,10 @@
                     <pre><code class="language-json">{
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
     "user": {
-        "employee_id": 1,
-        "employee_name": "押山 漢太朗",
-        "role_name": "管理者"
+    "employee_id": 6,
+    "employee_user_id": "hana.kato",
+    "employee_name": "加藤花",
+    "role_name": "一般"
     }
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (401 Unauthorized)</h3>
@@ -109,16 +164,16 @@
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
                     <p class="mb-4">新しい従業員アカウントを作成するAPI。ユーザーIDやパスワード、名前などの情報を送ってね！成功すると、新しく作られたユーザーの情報が返ってくるよ。</p>
-            
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
-    "employee_user_id": "tanaka.misaki",
-    "password": "new_secure_password_456",
-    "employee_name": "田中 美咲",
+    "employee_user_id": "hana.kato",
+    "password": "P@ssw0rd2025",
+    "employee_name": "加藤花",
     "employee_role_name": "一般",
-    "employee_line_name": "検査"
+    "employee_line_name": "第一ライン",
+    "employee_special_notes": "夜勤中心",
+    "employee_color_code": "FF8800"
 }</code></pre>
-            
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
                     <p class="text-sm mb-2">ユーザー登録が成功したメッセージと、作成されたユーザー情報を返す。（パスワードは返さないから安心してね！）</p>
                     <pre><code class="language-json">{
@@ -154,7 +209,7 @@
                     <p class="mb-4">サーバー側でセッションを無効にするためのAPI。これを叩くときは、ログイン時にもらったアクセストークンをヘッダーに付けて送る必要があるよ。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストヘッダー</h3>
-                    <pre><code class="language-http">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
+                    <pre><code class="language-http" data-type="header">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
@@ -202,6 +257,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         hljs.highlightAll();
+        // language-http が未ハイライトの場合は手動で .hljs を付与して共通スタイル適用
+        document.querySelectorAll('code.language-http').forEach(el=>{
+            if(!el.classList.contains('hljs')){
+                el.classList.add('hljs');
+            }
+        });
+        // Add copy buttons to JSON / HTTP code blocks
+        (function() {
+            const blocks = document.querySelectorAll('pre code.language-json, pre code.language-http');
+            blocks.forEach(code => {
+                const pre = code.parentElement;
+                if (!pre.classList.contains('code-block-wrapper')) {
+                    pre.classList.add('code-block-wrapper');
+                }
+                // Avoid duplicate buttons
+                if (pre.querySelector('.copy-btn')) return;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'copy-btn';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span>';
+                btn.addEventListener('click', async () => {
+                    const raw = code.innerText.replace(/\n+$/, '');
+                    try {
+                        await navigator.clipboard.writeText(raw);
+                        btn.classList.add('copied');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Copied!</span>';
+            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1800);
+                    } catch (e) {
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:#fee2e2">Failed</span>';
+            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 2000);
+                    }
+                });
+                pre.appendChild(btn);
+            });
+        })();
     </script>
 </body>
 
