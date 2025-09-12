@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生産数管理API設計書</title>
+    <title>生産数管理API設計書 (タイムスタンプ改善版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
         rel="stylesheet">
@@ -36,18 +36,26 @@
             background-color: #22c55e;
         }
 
+        .put {
+            background-color: #f97316;
+        }
+
         pre code.hljs {
             padding: 1rem;
             border-radius: 0.5rem;
             font-size: 0.875rem;
         }
+
         /* Copy button */
-        .code-block-wrapper { position: relative; }
+        .code-block-wrapper {
+            position: relative;
+        }
+
         .copy-btn {
             position: absolute;
             top: 4px;
             right: 6px;
-            background: rgba(51,65,85,.85);
+            background: rgba(51, 65, 85, .85);
             color: #f1f5f9;
             font-size: 12px;
             font-weight: 600;
@@ -59,16 +67,48 @@
             align-items: center;
             gap: 6px;
             backdrop-filter: blur(2px);
-            border: 1px solid rgba(255,255,255,.08);
+            border: 1px solid rgba(255, 255, 255, .08);
             transition: transform .16s ease, box-shadow .22s ease, background-color .25s ease;
-            box-shadow: 0 2px 6px -2px rgba(15,23,42,.35);
+            box-shadow: 0 2px 6px -2px rgba(15, 23, 42, .35);
         }
-        .copy-btn svg { width:16px; height:16px; }
-        .copy-btn:hover { background: rgba(71,85,105,.92); transform: translateY(-2px); box-shadow:0 6px 14px -4px rgba(15,23,42,.45); }
-        .copy-btn:active { transform: translateY(0); box-shadow:0 3px 8px -4px rgba(15,23,42,.4); }
-        .copy-btn.copied { background: linear-gradient(135deg,#16a34a 0%,#15803d 70%); }
-        .copy-btn.copied svg { animation: pop .4s ease; }
-        @keyframes pop { 0%{transform:scale(.6) rotate(-20deg);} 60%{transform:scale(1.15);} 100%{transform:scale(1);} }
+
+        .copy-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(71, 85, 105, .92);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px -4px rgba(15, 23, 42, .45);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 8px -4px rgba(15, 23, 42, .4);
+        }
+
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 70%);
+        }
+
+        .copy-btn.copied svg {
+            animation: pop .4s ease;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(.6) rotate(-20deg);
+            }
+
+            60% {
+                transform: scale(1.15);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 
@@ -79,11 +119,13 @@
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-4">
                     <svg class="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                     <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書</h1>
                 </div>
-                <a href="../index.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                <a href="../index.html"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
                     ← トップページに戻る
                 </a>
             </div>
@@ -94,8 +136,6 @@
         </header>
 
         <div class="space-y-12">
-
-
 
             <!-- 3. PLC情報送信 -->
             <section id="post-plc-data">
@@ -110,36 +150,150 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
     "machine_id": "press-machine-01",
-    "product_name": "製品A-102",
+    "product_id": "A-102-001",
     "count": 1,
     "timestamp": "2025-08-04T11:20:35Z"
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データを受け取ったら、サーバーはすぐ「りょ！」って返事して、裏側でゆっくりデータを処理する。だから`202 Accepted`がイケてる。</p>
+                    <p class="text-sm">データを受け取ったら、サーバーはすぐ「りょ！」って返事して、裏側でゆっくりデータを処理する。だから`202
+                        Accepted`がイケてる。返事の中身はこんな感じのJSONだよ！</p>
+                    <pre><code class="language-json">{
+    "message": "データを受け付けました。処理を開始します。"
+}</code></pre>
                 </div>
             </section>
 
-            <!-- 4. 画像検査結果送信 -->
+            <!-- 4. 画像と検査データを送信 (POSTで全部やる) -->
             <section id="post-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 画像検査結果送信 (検査機 → サーバー)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 画像と検査データを送信 (撮影/検査Jetson →
+                    サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/inspection</span>
-                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                        <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
-                    <p class="mb-4">画像検査システムが、製品を1個検査するたびに「これOKだった！」「これNG！」ってサーバーに報告するためのAPI。不良品数とか、不良原因のデータはここから来るよ。
+                    <p class="mb-4">
+                        撮影担当Jetsonと検査担当Jetsonが、<strong>どっちも使う最強API！</strong>
+                        サーバーは送られてきた <code>product_id</code> がもう存在するかチェックして、なかったら新規作成、あったらデータと画像をまるっと上書きする感じ！
                     </p>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
-                    <pre><code class="language-json">{
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
+                    <div class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-r-lg mb-4">
+                        <p class="font-bold">タイムスタンプ改善！</p>
+                        <p class="text-sm mt-1">いつ撮って、いつ検査したか分かるように、<code>captured_at</code> と <code>inspected_at</code>
+                            に分けたよ！これで分かりみUP！</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="font-semibold text-sm mb-1">① 撮影Jetsonが送る初期データ</p>
+                            <pre><code class="language-json">{
     "camera_id": "inspection-camera-01",
-    "product_name": "製品A-102",
+    "product_id": "A-102-002",
+    "result": null,
+    "reason": null,
+    "captured_at": "2025-09-12T05:09:04Z",
+    "inspected_at": null
+}</code></pre>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm mb-1">② 検査Jetsonが送る最終データ</p>
+                            <pre><code class="language-json">{
+    "camera_id": "inspection-camera-01",
+    "product_id": "A-102-002",
     "result": "fail",
     "reason": "傷",
-    "timestamp": "2025-08-04T11:20:36Z"
+    "captured_at": "2025-09-12T05:09:04Z",
+    "inspected_at": "2025-09-12T05:15:20Z"
 }</code></pre>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
+                    <p class="mb-2 text-sm">検査Jetsonは、GETで受け取ったデータを元にmetadata作って、枠付けした画像をセットして送ればOK！</p>
+                    <div class="code-block-wrapper">
+                        <pre><code class="language-python">
+import requests
+import json
+import datetime
+
+# --- どっちのJetsonでも共通 ---
+url = "http://your-server.com/api/ingress/inspection"
+
+# --- ② 検査Jetsonが、検査結果を送る場合の例 ---
+# GET APIから受け取ったcaptured_atはそのまま使うのがイケてる
+captured_timestamp = "2025-09-12T05:09:04Z" # GETレスポンスから取得したと仮定
+
+metadata_for_update = {
+  "camera_id": "inspection-camera-01",
+  "product_id": "A-102-002",
+  "result": "fail", # "pass" or "fail"
+  "reason": "傷", # NGの理由
+  "captured_at": captured_timestamp, # 撮影時間はそのまま
+  # 検査した"今"の時間をセット！
+  "inspected_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+}
+
+files = {
+    'metadata': (None, json.dumps(metadata_for_update), 'application/json'),
+    # 枠付けとかした、加工後の画像をセットしてね！
+    'image_file': ('inspected_image.jpg', open('/path/to/processed_image.jpg', 'rb'), 'image/jpeg')
+}
+
+response = requests.post(url, files=files)
+
+print(f"ステータスコード: {response.status_code}")
+print("レスポンス:", response.json())
+</code></pre>
+                    </div>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">こっちもPLCと一緒で、とりあえずデータを受け取ったらすぐ返事するのがイケてる！</p>
+                    <p class="text-sm">データと画像をちゃんと受け取れたら、「OK、受け取った！」って返事する。これで通信完了！</p>
+                    <pre><code class="language-json">{ "message": "データを受け付け、処理を開始します。" }</code></pre>
+                </div>
+            </section>
+
+            <!-- 5. 画像のアクセス方法 -->
+            <section id="get-image-direct">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 画像のアクセス方法 (超シンプル版)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/imageDB/{product_id}.jpg</span>
+                    </div>
+                    <p class="mb-4">
+                        Node.jsのExpressとかで<code>public</code>フォルダを公開設定にしとけば、URLを直で叩くだけで画像が見れちゃう。マジ卍で楽ちん！
+                    </p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
+                    <pre><code class="language-plaintext">http://your-server.com/imageDB/A-102-002.jpg</code></pre>
+                </div>
+            </section>
+
+            <!-- 6. 未検査の画像とデータをゲトるAPI -->
+            <section id="get-uninspected-item">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 未検査の画像とデータをゲトるAPI (検査Jetson ←
+                    サーバー)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/uninspected</span>
+                        <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">継続！</span>
+                    </div>
+                    <p class="mb-4">
+                        検査担当のJetsonが「次どれ検査すればいい？」って聞くためのAPI。サーバーに溜まってる未検査データの中から、一番古いやつを1個だけ選んで、そのメタデータと画像をbase64形式で返してくれる！
+                    </p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <p class="text-sm mb-2">うまくいくと、次に検査すべきアイテムのデータがJSONで返ってくる。画像はbase64エンコードされてるから、デコードすればすぐに使えるよ！</p>
+                    <pre><code class="language-json">{
+    "metadata": {
+        "camera_id": "inspection-camera-01",
+        "product_id": "A-102-005",
+        "captured_at": "2025-09-13T10:00:00Z"
+    },
+    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+}</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス (204 No Content)</h3>
+                    <p class="text-sm">もし未検査のアイテムが1個もなかったら、サーバーは「今はないよー」って感じで、中身が空っぽの <code>204 No Content</code> を返すよ！
+                    </p>
                 </div>
             </section>
         </div>
@@ -152,29 +306,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         hljs.highlightAll();
-    </script>
-    <script>
-        (function(){
-            const blocks = document.querySelectorAll('pre code.language-json, pre code.language-http, pre code.language-sql');
-            blocks.forEach(code=>{
+        (function () {
+            const blocks = document.querySelectorAll('pre code');
+            blocks.forEach(code => {
                 const pre = code.parentElement;
-                if(!pre.classList.contains('code-block-wrapper')) pre.classList.add('code-block-wrapper');
-                if(pre.querySelector('.copy-btn')) return;
+                if (!pre.classList.contains('code-block-wrapper')) pre.classList.add('code-block-wrapper');
+                if (pre.querySelector('.copy-btn')) return;
                 const btn = document.createElement('button');
-                btn.type='button';
-                btn.className='copy-btn';
-                btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span>';
-                btn.addEventListener('click', async()=>{
-                    const raw = code.innerText.replace(/\n+$/,'');
+                btn.type = 'button';
+                btn.className = 'copy-btn';
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span>';
+                btn.addEventListener('click', async () => {
+                    const raw = code.innerText.replace(/\n+$/, '');
                     try {
                         await navigator.clipboard.writeText(raw);
                         btn.classList.add('copied');
                         const original = btn.innerHTML;
-                        btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Copied!</span>';
-                        setTimeout(()=>{btn.classList.remove('copied'); btn.innerHTML=original;},1800);
-                    } catch(e){
-                        btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:#fee2e2">Failed</span>';
-                        setTimeout(()=>{btn.innerHTML='Copy';},2000);
+                        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Copied!</span>';
+                        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1800);
+                    } catch (e) {
+                        try {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = raw;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+
+                            btn.classList.add('copied');
+                            const original = btn.innerHTML;
+                            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Copied!</span>';
+                            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1800);
+                        } catch (err) {
+                            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:#fee2e2">Failed</span>';
+                            setTimeout(() => { btn.innerHTML = '<span>Copy</span>'; }, 2000);
+                        }
                     }
                 });
                 pre.appendChild(btn);
