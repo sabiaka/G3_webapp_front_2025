@@ -56,6 +56,29 @@ const UserDropdown = () => {
     setOpen(false)
   }
 
+  const handleLogout = async event => {
+    event?.preventDefault?.()
+    setOpen(false)
+
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+      await fetch(`${apiBase}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+    } catch (e) {
+      // ignore network errors; proceed to clear client state
+    }
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('access_token')
+        window.localStorage.removeItem('user')
+        window.sessionStorage.removeItem('access_token')
+        window.sessionStorage.removeItem('user')
+      }
+    } catch {}
+
+    router.replace('/login')
+  }
+
   return (
     <>
       <Badge
@@ -124,7 +147,7 @@ const UserDropdown = () => {
                       color='error'
                       size='small'
                       endIcon={<i className='ri-logout-box-r-line' />}
-                      onClick={e => handleDropdownClose(e, '/login')}
+                      onClick={handleLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
                       ログアウト

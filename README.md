@@ -164,6 +164,31 @@ pnpm start
 
 [デプロイ手順](https://demos.themeselection.com/materio-mui-nextjs-admin-template/documentation/docs/guide/deployment)もご参照ください。
 
+## APIアドレス（バックエンド）の変更方法 🔧
+
+フロントエンドからは `/api/...` にリクエストします。実際のバックエンドURLへの振り分けは `next.config.mjs` の `rewrites` で行っています。バックエンドのアドレスを変更したい場合は、以下を編集してください。
+
+- 対象ファイル: `javascript-version/next.config.mjs`
+- 該当箇所（例）:
+
+```js
+async rewrites() {
+   return [
+      {
+         source: '/api/:path*',
+         destination: 'http://localhost:3001/api/:path*' // ← ここをバックエンドのURLに変更
+      }
+   ]
+}
+```
+
+編集後は開発サーバーを再起動してください（設定は再起動時に反映されます）。
+
+補足:
+
+- クライアントコードは `/api/...` にアクセスするだけで、CORS 設定を意識せずに Next.js がバックエンドへプロキシします。
+- アプリをサブパス配下で配信する場合は、`next.config.mjs` の `basePath` または `.env` の `BASEPATH` を設定してください。クライアント側では `NEXT_PUBLIC_BASE_PATH` を参照しており、`/api/...` の手前に自動で付与されます。
+
 ## 対応ブラウザ 🖥️
 
 ![chrome](https://github.com/nuxt/nuxt/assets/47495003/bbb6d7b0-2db6-4af4-abdc-a73de71dd287)
