@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
 // React Imports
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Next Imports
 import { useRouter } from 'next/navigation'
@@ -33,12 +33,75 @@ const BadgeContentSpan = styled('span')({
 const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   // Refs
   const anchorRef = useRef(null)
 
   // Hooks
   const router = useRouter()
+
+  // Helpers
+  const getStoredToken = () => {
+    try {
+      if (typeof window === 'undefined') return null
+      return (
+        window.localStorage.getItem('access_token') ||
+        window.sessionStorage.getItem('access_token')
+      )
+    } catch {
+      return null
+    }
+  }
+
+  const clearStoredAuth = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('access_token')
+        window.localStorage.removeItem('user')
+        window.sessionStorage.removeItem('access_token')
+        window.sessionStorage.removeItem('user')
+      }
+    } catch {}
+  }
+
+  // Fetch current user on mount
+  useEffect(() => {
+    let isMounted = true
+    const fetchMe = async () => {
+      setLoading(true)
+      const token = getStoredToken()
+      if (!token) {
+        setLoading(false)
+        return
+      }
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${apiBase}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include'
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          if (isMounted) setUser(data)
+        } else if (res.status === 401) {
+          clearStoredAuth()
+          // ここでは即リダイレクトはしない。メニューからログイン導線に誘導する想定
+        }
+      } catch (e) {
+        // ネットワークエラーは黙って無視（UIはゲスト表示）
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchMe()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleDropdownOpen = () => {
     !open ? setOpen(true) : setOpen(false)
@@ -67,14 +130,7 @@ const UserDropdown = () => {
       // ignore network errors; proceed to clear client state
     }
 
-    try {
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem('access_token')
-        window.localStorage.removeItem('user')
-        window.sessionStorage.removeItem('access_token')
-        window.sessionStorage.removeItem('user')
-      }
-    } catch {}
+    clearStoredAuth()
 
     router.replace('/login')
   }
@@ -90,7 +146,7 @@ const UserDropdown = () => {
       >
         <Avatar
           ref={anchorRef}
-          alt='John Doe'
+          alt={user?.employee_name || 'ゲスト'}
           src='/images/avatars/1.png'
           onClick={handleDropdownOpen}
           className='cursor-pointer bs-[38px] is-[38px]'
@@ -115,12 +171,14 @@ const UserDropdown = () => {
               <ClickAwayListener onClickAway={e => handleDropdownClose(e)}>
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
-                    <Avatar alt='John Doe' src='/images/avatars/1.png' />
+                    <Avatar alt={user?.employee_name || 'ゲスト'} src='/images/avatars/1.png' />
                     <div className='flex items-start flex-col'>
                       <Typography className='font-medium' color='text.primary'>
-                        John Doe
+                        {user?.employee_name || (loading ? '読み込み中…' : 'ゲスト')}
                       </Typography>
-                      <Typography variant='caption'>Admin</Typography>
+                      <Typography variant='caption'>
+                        {user?.role_name || ''}
+                      </Typography>
                     </div>
                   </div>
                   <Divider className='mlb-1' />
