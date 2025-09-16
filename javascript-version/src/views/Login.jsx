@@ -99,6 +99,9 @@ const Login = ({ mode }) => {
               <Typography className='mbs-1'>アカウントにサインインして始めましょう</Typography>
             </div>
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
+              {searchParams?.get('registered') === '1' ? (
+                <Alert severity='success'>アカウント登録が完了しました。ログインしてください。</Alert>
+              ) : null}
               {error ? <Alert severity='error'>{error}</Alert> : null}
               <TextField
                 autoFocus
