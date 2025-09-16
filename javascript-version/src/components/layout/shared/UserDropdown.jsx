@@ -30,6 +30,62 @@ const BadgeContentSpan = styled('span')({
   boxShadow: '0 0 0 2px var(--mui-palette-background-paper)'
 })
 
+// --- Avatar helpers ---------------------------------------------------------
+// 抽出ルール:
+// 1) スペース(半角/全角)や中点があれば先頭トークンを姓とみなす
+// 2) それ以外は連続する漢字ブロック(最長3文字)を姓とみなす
+// 3) 漢字がなければ先頭語の先頭1-2文字
+const extractFamilyName = name => {
+  if (!name || typeof name !== 'string') return 'ゲ'
+  const n = name.trim()
+  if (!n) return 'ゲ'
+
+  // 分割候補: 半角/全角スペース, 中点
+  const token = n.split(/[	\s\u3000・]+/)[0]
+  if (token && token.length < n.length) return token
+
+  // 連続する漢字ブロックを抽出 (CJK統合漢字+拡張A)
+  const m = n.match(/^[\u4E00-\u9FFF\u3400-\u4DBF]{1,3}/)
+  if (m) return m[0]
+
+  // 漢字がない場合: 先頭語の先頭2文字(日本語/ローマ字を想定)
+  const firstWord = n.split(/[\s\u3000]+/)[0]
+  return firstWord.slice(0, 2)
+}
+
+// 名前から安定したカラー(HSL)を生成
+const stringToHslColor = (str, s = 65, l = 48) => {
+  let hash = 0
+  for (let i = 0; i < (str || '').length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue} ${s}% ${l}%)`
+}
+
+// ユーザーにカラーコード属性があればそれを優先
+const getUserColor = user => {
+  const c =
+    user?.color_code ||
+    user?.avatar_color ||
+    user?.profile_color ||
+    user?.bg_color ||
+    user?.color
+  if (typeof c === 'string' && c.trim()) {
+    // 先頭に#がないhexも許容
+    const v = c.trim()
+    if (/^#?[0-9a-fA-F]{6}$/.test(v)) return v.startsWith('#') ? v : `#${v}`
+    return v // hsl(...) / rgb(...), CSSカラー名など
+  }
+  // 名前から生成
+  const name = user?.employee_name || user?.name || user?.username || 'guest'
+  return stringToHslColor(name)
+}
+
+// 3文字以上のときはやや小さめのフォント
+const getAvatarFontSize = text => (text && text.length >= 3 ? 14 : 16)
+
 const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
@@ -144,13 +200,22 @@ const UserDropdown = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         className='mis-2'
       >
-        <Avatar
-          ref={anchorRef}
-          alt={user?.employee_name || 'ゲスト'}
-          src='/images/avatars/1.png'
-          onClick={handleDropdownOpen}
-          className='cursor-pointer bs-[38px] is-[38px]'
-        />
+        {(() => {
+          const text = extractFamilyName(user?.employee_name || user?.name || (loading ? '…' : 'ゲスト'))
+          const bg = getUserColor(user)
+          const fontSize = getAvatarFontSize(text)
+          return (
+            <Avatar
+              ref={anchorRef}
+              alt={user?.employee_name || 'ゲスト'}
+              onClick={handleDropdownOpen}
+              className='cursor-pointer bs-[38px] is-[38px]'
+              sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 600 }}
+            >
+              {text}
+            </Avatar>
+          )
+        })()}
       </Badge>
       <Popper
         open={open}
@@ -171,7 +236,16 @@ const UserDropdown = () => {
               <ClickAwayListener onClickAway={e => handleDropdownClose(e)}>
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
-                    <Avatar alt={user?.employee_name || 'ゲスト'} src='/images/avatars/1.png' />
+                    {(() => {
+                      const text = extractFamilyName(user?.employee_name || user?.name || (loading ? '…' : 'ゲスト'))
+                      const bg = getUserColor(user)
+                      const fontSize = getAvatarFontSize(text)
+                      return (
+                        <Avatar alt={user?.employee_name || 'ゲスト'} sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 600 }}>
+                          {text}
+                        </Avatar>
+                      )
+                    })()}
                     <div className='flex items-start flex-col'>
                       <Typography className='font-medium' color='text.primary'>
                         {user?.employee_name || (loading ? '読み込み中…' : 'ゲスト')}
