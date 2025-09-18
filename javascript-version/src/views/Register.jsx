@@ -14,9 +14,7 @@ import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
-import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
 import MenuItem from '@mui/material/MenuItem'
@@ -34,13 +32,13 @@ const Register = ({ mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [employeeUserId, setEmployeeUserId] = useState('')
-  const [employeeName, setEmployeeName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [firstName, setFirstName] = useState('')
   const [password, setPassword] = useState('')
   const [roleName, setRoleName] = useState('一般')
   const [lineName, setLineName] = useState('')
   const [specialNotes, setSpecialNotes] = useState('')
   const [colorCode, setColorCode] = useState('FF8800')
-  const [agree, setAgree] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -54,8 +52,7 @@ const Register = ({ mode }) => {
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
   const isValid = () => {
-    if (!employeeUserId || !employeeName || !password) return false
-    if (!agree) return false
+    if (!employeeUserId || !lastName || !firstName || !password) return false
     return true
   }
 
@@ -72,7 +69,7 @@ const Register = ({ mode }) => {
         body: JSON.stringify({
           employee_user_id: employeeUserId,
           password,
-          employee_name: employeeName,
+          employee_name: `${String(lastName || '').trim()}${(lastName && firstName) ? ' ' : ''}${String(firstName || '').trim()}`.trim(),
           employee_role_name: roleName,
           employee_line_name: lineName || undefined,
           employee_special_notes: specialNotes || undefined,
@@ -103,9 +100,26 @@ const Register = ({ mode }) => {
   const basePalette = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e']
   const paletteColors = Array.from(new Set([...basePalette, '#FF8800']))
 
-  const getInitials = name => {
-    const parts = String(name || '').trim().split(/\s+/)
-    return parts[0] || '氏'
+  const getAvatarText = (ln, fn) => {
+    // 姓を優先、空なら名、それも空なら『氏名』
+    const base = String(ln || fn || '氏名').trim()
+    if (!base) return '氏名'
+    return base.slice(0, 3)
+  }
+
+  const getAvatarFontSize = text => {
+    const len = String(text || '').length
+    // 文字数に応じてフォントサイズを調整（80px円内）
+    if (len <= 1) return 36
+    if (len === 2) return 30
+    return 24
+  }
+
+  const getDisplayName = (ln, fn) => {
+    const l = String(ln || '').trim()
+    const f = String(fn || '').trim()
+    if (!l && !f) return '氏名'
+    return f ? `${l} ${f}` : l
   }
 
   return (
@@ -115,9 +129,9 @@ const Register = ({ mode }) => {
           <Link href='/' className='flex justify-center items-start mbe-6'>
             <Logo />
           </Link>
-          <Typography variant='h4'>ここから冒険が始まります 🚀</Typography>
+          <Typography variant='h4' align='center'>ここから冒険が始まります 🚀</Typography>
           <div className='flex flex-col gap-5'>
-            <Typography className='mbs-1'>アプリ管理をもっと簡単で楽しく！</Typography>
+            <Typography className='mbs-1' align='center'>アプリ管理をもっと簡単で楽しく！</Typography>
 
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
               {error ? <Alert severity='error'>{error}</Alert> : null}
@@ -127,14 +141,14 @@ const Register = ({ mode }) => {
                 <Grid item xs={12} md={4}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <Avatar
-                      sx={{ width: 80, height: 80, bgcolor: `#${colorCode}`, fontSize: 36, fontWeight: 700, mb: 1, color: '#fff' }}
+                      sx={{ width: 80, height: 80, bgcolor: `#${colorCode}`, fontWeight: 700, mb: 1, color: '#fff', fontSize: getAvatarFontSize(getAvatarText(lastName, firstName)) }}
                     >
-                      {getInitials(employeeName || '氏名')}
+                      {getAvatarText(lastName, firstName)}
                     </Avatar>
-                    <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{employeeName || '氏名'}</Typography>
-                    <Typography variant='body2' color='text.secondary'>{employeeUserId || 'ID'}</Typography>
+                    <Typography variant='subtitle1' sx={{ fontWeight: 700 }} align='center'>{getDisplayName(lastName, firstName)}</Typography>
+                    <Typography variant='body2' color='text.secondary' align='center'>{employeeUserId || 'ID'}</Typography>
                     <div style={{ marginTop: 16, width: '100%' }}>
-                      <Typography variant='body2' sx={{ mb: 1 }}>色を選択</Typography>
+                      <Typography variant='body2' sx={{ mb: 1 }} align='center'>色を選択</Typography>
                       <Grid container spacing={1}>
                         {paletteColors.map(color => {
                           const hex = color.replace('#', '').toUpperCase()
@@ -177,13 +191,23 @@ const Register = ({ mode }) => {
                         disabled={loading}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={3}>
                       <TextField
                         fullWidth
-                        label='氏名'
-                        placeholder='加藤 花'
-                        value={employeeName}
-                        onChange={e => setEmployeeName(e.target.value)}
+                        label='姓'
+                        placeholder='加藤'
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
+                        disabled={loading}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        label='名'
+                        placeholder='花'
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
                         disabled={loading}
                       />
                     </Grid>
@@ -249,33 +273,29 @@ const Register = ({ mode }) => {
                         minRows={2}
                       />
                     </Grid>
-                    <Grid item xs={12}>
-                      <FormControlLabel
-                        control={<Checkbox checked={agree} onChange={e => setAgree(e.target.checked)} disabled={loading} />}
-                        label={
-                          <>
-                            <span>以下に同意します: </span>
-                            <Link className='text-primary' href='/' onClick={e => e.preventDefault()}>
-                              プライバシーポリシーおよび利用規約
-                            </Link>
-                          </>
-                        }
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button fullWidth variant='contained' type='submit' disabled={loading || !isValid()}>
-                        {loading ? '作成中…' : 'アカウント作成'}
-                      </Button>
-                    </Grid>
                   </Grid>
                 </Grid>
               </Grid>
 
-              <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>すでにアカウントをお持ちですか？</Typography>
-                <Typography component={Link} href='/login' color='primary'>
-                  こちらからサインイン
-                </Typography>
+              <div className='flex flex-col items-center gap-2'>
+                <Grid item xs={12}>
+                  <Button
+                    fullWidth
+                    variant='contained'
+                    type='submit'
+                    disabled={loading || !isValid()}
+                    sx={{ maxWidth: 400, minWidth: 280, alignSelf: 'center' }}
+                  >
+                    {loading ? '作成中…' : 'アカウント作成'}
+                  </Button>
+                </Grid>
+
+                <div className='flex flex-row items-center justify-center gap-1'>
+                  <Typography align='center'>すでにアカウントをお持ちですか？</Typography>
+                  <Typography component={Link} href='/login' color='primary' align='center'>
+                    こちらからサインイン
+                  </Typography>
+                </div>
               </div>
               <Divider className='gap-3'>または(未実装)</Divider>
               <div className='flex justify-center items-center gap-2'>
