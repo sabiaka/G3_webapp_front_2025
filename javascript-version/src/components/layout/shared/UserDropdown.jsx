@@ -31,26 +31,26 @@ const BadgeContentSpan = styled('span')({
 })
 
 // --- Avatar helpers ---------------------------------------------------------
-// 抽出ルール:
+// Register に合わせた表示テキスト生成:
 // 1) スペース(半角/全角)や中点があれば先頭トークンを姓とみなす
 // 2) それ以外は連続する漢字ブロック(最長3文字)を姓とみなす
-// 3) 漢字がなければ先頭語の先頭1-2文字
-const extractFamilyName = name => {
-  if (!name || typeof name !== 'string') return 'ゲ'
-  const n = name.trim()
-  if (!n) return 'ゲ'
+// 3) 漢字がなければ先頭語から最大3文字
+// 4) 空なら『氏名』
+const getAvatarText = name => {
+  const raw = typeof name === 'string' ? name.trim() : ''
+  if (!raw) return '氏名'
 
   // 分割候補: 半角/全角スペース, 中点
-  const token = n.split(/[	\s\u3000・]+/)[0]
-  if (token && token.length < n.length) return token
+  const token = raw.split(/[\t\s\u3000・]+/)[0]
+  if (token && token.length < raw.length) return token.slice(0, 3)
 
   // 連続する漢字ブロックを抽出 (CJK統合漢字+拡張A)
-  const m = n.match(/^[\u4E00-\u9FFF\u3400-\u4DBF]{1,3}/)
+  const m = raw.match(/^[\u4E00-\u9FFF\u3400-\u4DBF]{1,3}/)
   if (m) return m[0]
 
-  // 漢字がない場合: 先頭語の先頭2文字(日本語/ローマ字を想定)
-  const firstWord = n.split(/[\s\u3000]+/)[0]
-  return firstWord.slice(0, 2)
+  // 非漢字のみ: 先頭語から最大3文字
+  const firstWord = raw.split(/[\s\u3000]+/)[0]
+  return firstWord.slice(0, 3) || '氏名'
 }
 
 // 名前から安定したカラー(HSL)を生成
@@ -84,8 +84,14 @@ const getUserColor = user => {
   return stringToHslColor(name)
 }
 
-// 3文字以上のときはやや小さめのフォント
-const getAvatarFontSize = text => (text && text.length >= 3 ? 14 : 16)
+// Register の 80px 用 36/30/24 を 38px 用にスケール
+// 文字数に応じてフォントサイズを調整（38px円内）
+const getAvatarFontSize = text => {
+  const len = String(text || '').length
+  if (len <= 1) return 17
+  if (len === 2) return 14
+  return 12
+}
 
 const UserDropdown = () => {
   // States
@@ -202,16 +208,17 @@ const UserDropdown = () => {
         className='mis-2'
       >
         {(() => {
-          const text = extractFamilyName(user?.employee_name || user?.name || (loading ? '…' : 'ゲスト'))
+          const displayName = user?.employee_name || user?.name || ''
+          const text = getAvatarText(displayName)
           const bg = getUserColor(user)
           const fontSize = getAvatarFontSize(text)
           return (
             <Avatar
               ref={anchorRef}
-              alt={user?.employee_name || 'ゲスト'}
+              alt={displayName || '氏名'}
               onClick={handleDropdownOpen}
               className='cursor-pointer bs-[38px] is-[38px]'
-              sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 600 }}
+              sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 700 }}
             >
               {text}
             </Avatar>
@@ -238,11 +245,12 @@ const UserDropdown = () => {
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
                     {(() => {
-                      const text = extractFamilyName(user?.employee_name || user?.name || (loading ? '…' : 'ゲスト'))
+                      const displayName = user?.employee_name || user?.name || ''
+                      const text = getAvatarText(displayName)
                       const bg = getUserColor(user)
                       const fontSize = getAvatarFontSize(text)
                       return (
-                        <Avatar alt={user?.employee_name || 'ゲスト'} sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 600 }}>
+                        <Avatar alt={displayName || '氏名'} sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 700 }}>
                           {text}
                         </Avatar>
                       )
