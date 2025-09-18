@@ -67,6 +67,7 @@ const stringToHslColor = (str, s = 65, l = 48) => {
 // ユーザーにカラーコード属性があればそれを優先
 const getUserColor = user => {
   const c =
+    user?.employee_color_code ||
     user?.color_code ||
     user?.avatar_color ||
     user?.profile_color ||
