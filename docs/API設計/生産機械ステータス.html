@@ -82,16 +82,25 @@
                     </div>
                     <p class="mb-4">IDで指定した機械の基本的な情報と、その日の稼働データをまとめてGETするAPI。ページを開いたときの初期表示で使うよ！</p>
 
+                    <div class="mt-4 p-4 bg-amber-100 border-l-4 border-amber-500 text-amber-700 rounded-r-lg">
+                        <p class="font-bold">設計メモ: 稼働時間の扱い</p>
+                        <ul class="list-disc pl-6 text-sm mt-2">
+                            <li>稼働秒数 (today_uptime_seconds) をDBに逐次保存しない。毎秒更新が必要となり負荷が高いため。</li>
+                            <li>代わりに「今日の起動日時」(<span class="font-mono">started_at</span>) を保存し、稼働時間は <span class="font-mono">started_at</span> と現在時刻の差分で算出する。</li>
+                            <li>フロントは表示更新時に差分を計算するか、バックエンド/WSが算出した値を返してもOK。いずれもソースは <span class="font-mono">started_at</span>。</li>
+                        </ul>
+                    </div>
+
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
     "machine_id": 1,
     "machine_name": "自動表層バネどめ機",
     "image_url": "/images/machine-01.png",
     "status": "稼働中", // "稼働中", "停止中", "異常あり", "メンテ中"
-    "today_uptime_seconds": 30300, // 今日の稼働時間（秒）
-    "today_production_count": 1520,
-    "last_inspection_date": "2024-06-15",
-    "next_inspection_date": "2024-09-15"
+    "started_at": "2025-07-15T08:00:00Z", // 今日の起動日時（ISO8601形式）
+    "today_production_count": 1520, // 今日の生産数
+    "last_inspection_date": "2024-06-15", // 最終点検日
+    "next_inspection_date": "2024-09-15" // 次回点検日
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <pre><code class="language-json">{
@@ -198,6 +207,7 @@
         "today_production_count": 1521
     }
 }</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">注: <span class="font-mono">today_uptime_seconds</span> はDBに保存せず、初回GETで取得した <span class="font-mono">started_at</span> と現在時刻の差分から算出すること（サーバーで算出して配信する場合も、元データは <span class="font-mono">started_at</span>）。</p>
 
                     <h4 class="font-semibold mt-4 mb-2">イベント: `new_log` (新規ログ発生)</h4>
                     <pre><code class="language-json">{
