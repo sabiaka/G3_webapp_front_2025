@@ -2,6 +2,14 @@
 // 注意: DOMContentLoaded ラッパーは外し、この関数呼び出し時に初期化します
 
 export function initPartsInventoryApp() {
+    // 二重初期化ガード（React Strict Mode の二重実行対策）
+    if (typeof window !== 'undefined') {
+        if (window.__piAppInitialized) {
+            console.debug('PartsInventoryApp already initialized. Skipping duplicate init.');
+            return;
+        }
+        window.__piAppInitialized = true;
+    }
     // =============================
     // 画面ロジック概要
     // - レイアウトをサイドバーからタブ形式に変更
@@ -105,7 +113,16 @@ export function initPartsInventoryApp() {
             const txt = await res.text().catch(() => '');
             throw new Error(`HTTP ${res.status} ${res.statusText} - ${txt}`);
         }
-        return res.json();
+        // Handle 204 No Content or non-JSON responses gracefully
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        if (res.status === 204) return null;
+        if (!contentType.includes('application/json')) {
+            const txt = await res.text().catch(() => '');
+            if (!txt) return null;
+            try { return JSON.parse(txt); } catch { return null; }
+        }
+        // Normal JSON
+        return res.json().catch(() => null);
     }
 
     // ラック一覧 + 各ラック詳細(スロット)を取得
@@ -192,6 +209,8 @@ export function initPartsInventoryApp() {
     let selectedSlotId = null;
     let isMoveMode = false;
     let moveOriginSlotId = null;
+    // 移動 API の二重送信防止フラグ
+    let isPostingMove = false;
 
     // ===== DOM参照の取得 =====
     const rackNameEl = document.getElementById('rack-name');
@@ -572,7 +591,7 @@ export function initPartsInventoryApp() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ quantity_to_use: quantity })
                 });
-                const remain = Number(res.remaining_quantity);
+                const remain = res && res.remaining_quantity != null ? Number(res.remaining_quantity) : NaN;
                 if (Number.isFinite(remain)) {
                     if (remain <= 0) {
                         currentRack.slots[slotId] = null;
@@ -717,12 +736,12 @@ export function initPartsInventoryApp() {
                                         };
 
                                         try {
-                                                const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, {
+                                            const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, {
                                                         method: 'PUT',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify(body)
                                                 });
-                                                const saved = res.slot || body;
+                                            const saved = (res && res.slot) ? res.slot : body;
                                                 currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
                                                 updateDetails(slotId);
                                                 closeModal();
@@ -935,7 +954,7 @@ export function initPartsInventoryApp() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)
                     });
-                    const saved = res.slot || body;
+                    const saved = (res && res.slot) ? res.slot : body;
                     currentRack.slots[emptySlot] = mapApiSlotToAppPart(saved);
                     updateDetails(emptySlot);
                     closeModal();
@@ -1028,7 +1047,7 @@ export function initPartsInventoryApp() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(body)
                         });
-                        const saved = res.slot || body;
+                        const saved = (res && res.slot) ? res.slot : body;
                         currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
                         updateDetails(slotId);
                         closeModal();
@@ -1078,9 +1097,14 @@ export function initPartsInventoryApp() {
                         alert('ラックIDの解決に失敗しました');
                         return;
                     }
+                    if (isPostingMove) {
+                        // すでに送信中なら無視（ダブルクリック・二重リスナ対策）
+                        return;
+                    }
                     (async () => {
                         try {
-                            await fetchJson(`${apiBase}/api/racks/move`, {
+                            isPostingMove = true;
+                            await fetchJson(`${apiBase}/api/racks/move/`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1090,14 +1114,18 @@ export function initPartsInventoryApp() {
                                     to_slot_identifier: clickedSlotId
                                 })
                             });
+                            // サーバーが204や空レスを返してもここまで来たら成功として扱い、ローカル状態を更新
                             currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
                             currentRack.slots[moveOriginSlotId] = null;
                             isMoveMode = false;
                             moveOriginSlotId = null;
                             updateDetails(clickedSlotId);
+                            console.debug('部品移動: UI更新完了');
                         } catch (err) {
                             console.error('移動に失敗', err);
                             alert('移動に失敗しました。スロットの状態やサーバーをご確認ください。');
+                        } finally {
+                            isPostingMove = false;
                         }
                     })();
                 }
