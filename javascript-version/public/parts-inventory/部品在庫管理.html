@@ -334,6 +334,24 @@
             // 優先度: URLクエリ ?apiBase= → window.API_BASE → 同一オリジン(空文字)
             const apiBase = (new URLSearchParams(location.search)).get('apiBase') || window.API_BASE || '';
 
+            // ラック内部ID("rack-1")から数値IDを取り出すヘルパー
+            function getRackNumericId(rack) {
+                if (!rack) return null;
+                const id = parseInt(String(rack.id).replace(/[^0-9]/g, ''), 10);
+                return Number.isFinite(id) ? id : null;
+            }
+
+            // APIのslotレスポンスをアプリ内部形式に変換
+            function mapApiSlotToAppPart(slot) {
+                if (!slot) return null;
+                return {
+                    partName: slot.part_name,
+                    partModelNumber: slot.part_model_number || '',
+                    quantity: slot.quantity,
+                    color: (slot.color_code || '').toString().replace(/^#/, '')
+                };
+            }
+
             // 汎用fetch(JSON)ヘルパー
             async function fetchJson(url, options = {}) {
                 const res = await fetch(url, options);
@@ -756,17 +774,39 @@
                         <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">確定</button>
                     </div>`);
 
-                document.getElementById('confirm-use-btn').onclick = () => {
+                document.getElementById('confirm-use-btn').onclick = async () => {
                     const quantity = parseInt(document.getElementById('use-quantity').value);
-                    if (quantity > 0 && quantity <= part.quantity) {
-                        part.quantity -= quantity;
-                        if (part.quantity === 0) {
-                            currentRack.slots[slotId] = null;
+                    if (!(quantity > 0 && quantity <= part.quantity)) {
+                        alert('正しい数量を入力してください。');
+                        return;
+                    }
+                    const rackNumericId = getRackNumericId(currentRack);
+                    if (!Number.isFinite(rackNumericId)) {
+                        alert('ラックIDの解決に失敗しました');
+                        return;
+                    }
+                    try {
+                        const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}/use`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ quantity_to_use: quantity })
+                        });
+                        const remain = Number(res.remaining_quantity);
+                        if (Number.isFinite(remain)) {
+                            if (remain <= 0) {
+                                currentRack.slots[slotId] = null;
+                            } else {
+                                part.quantity = remain;
+                            }
+                        } else {
+                            part.quantity -= quantity;
+                            if (part.quantity <= 0) currentRack.slots[slotId] = null;
                         }
                         updateDetails(slotId);
                         closeModal();
-                    } else {
-                        alert('正しい数量を入力してください。');
+                    } catch (err) {
+                        console.error('使用APIに失敗', err);
+                        alert('部品の使用に失敗しました。サーバーの状態を確認してください。');
                     }
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
@@ -787,10 +827,21 @@
                         <button id="confirm-delete-part-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">削除</button>
                     </div>`);
 
-                document.getElementById('confirm-delete-part-btn').onclick = () => {
-                    currentRack.slots[slotId] = null;
-                    updateDetails(slotId);
-                    closeModal();
+                document.getElementById('confirm-delete-part-btn').onclick = async () => {
+                    const rackNumericId = getRackNumericId(currentRack);
+                    if (!Number.isFinite(rackNumericId)) {
+                        alert('ラックIDの解決に失敗しました');
+                        return;
+                    }
+                    try {
+                        await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, { method: 'DELETE' });
+                        currentRack.slots[slotId] = null;
+                        updateDetails(slotId);
+                        closeModal();
+                    } catch (err) {
+                        console.error('部品削除に失敗', err);
+                        alert('部品の削除に失敗しました。サーバーの状態を確認してください。');
+                    }
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
@@ -862,23 +913,50 @@
                     hiddenColorInput.value = swatch.dataset.color;
                 });
 
-                document.getElementById('edit-part-form').onsubmit = (e) => {
+                document.getElementById('edit-part-form').onsubmit = async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.target);
                     const newQuantity = parseInt(formData.get('quantity'));
-
-                    if(newQuantity === 0) {
-                        // 数量が0になったら削除
-                        currentRack.slots[slotId] = null;
-                    } else {
-                        part.partName = formData.get('partName');
-                        part.partModelNumber = formData.get('partModelNumber');
-                        part.quantity = newQuantity;
-                        part.color = formData.get('color'); // 色を更新
+                    const rackNumericId = getRackNumericId(currentRack);
+                    if (!Number.isFinite(rackNumericId)) {
+                        alert('ラックIDの解決に失敗しました');
+                        return;
                     }
-                    
-                    updateDetails(slotId);
-                    closeModal();
+
+                    if (newQuantity === 0) {
+                        try {
+                            await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, { method: 'DELETE' });
+                            currentRack.slots[slotId] = null;
+                            updateDetails(slotId);
+                            closeModal();
+                        } catch (err) {
+                            console.error('部品削除(数量0)に失敗', err);
+                            alert('削除に失敗しました。サーバーをご確認ください。');
+                        }
+                        return;
+                    }
+
+                    const body = {
+                        part_name: formData.get('partName'),
+                        part_model_number: (formData.get('partModelNumber') || '').toString().trim() || null,
+                        quantity: newQuantity,
+                        color_code: (formData.get('color') || '').toString().replace(/^#/, '') || null
+                    };
+
+                    try {
+                        const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                        });
+                        const saved = res.slot || body;
+                        currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
+                        updateDetails(slotId);
+                        closeModal();
+                    } catch (err) {
+                        console.error('部品更新に失敗', err);
+                        alert('更新に失敗しました。サーバーの状態を確認してください。');
+                    }
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
@@ -1038,7 +1116,7 @@
             // FAB: QR入庫フロー
             document.getElementById('qr-stock-in-btn').addEventListener('click', () => {
                 showStorePartModal((newPart) => {
-                    showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', () => {
+                    showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', async () => {
                         const currentRack = racks.find(r => r.id === currentRackId);
                         if (!currentRack) {
                             console.error('対象のラックが見つかりません。');
@@ -1059,13 +1137,36 @@
                             if (emptySlot) break;
                         }
 
-                        if (emptySlot) {
-                            currentRack.slots[emptySlot] = newPart;
-                            updateDetails(emptySlot);
-                            closeModal();
-                        } else {
+                        if (!emptySlot) {
                             closeModal();
                             console.error('現在のラックに空きがありません。');
+                            return;
+                        }
+
+                        const rackNumericId = getRackNumericId(currentRack);
+                        if (!Number.isFinite(rackNumericId)) {
+                            alert('ラックIDの解決に失敗しました');
+                            return;
+                        }
+                        const body = {
+                            part_name: newPart.partName,
+                            part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
+                            quantity: newPart.quantity,
+                            color_code: (newPart.color || '').toString().replace(/^#/, '') || null
+                        };
+                        try {
+                            const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(emptySlot)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                            });
+                            const saved = res.slot || body;
+                            currentRack.slots[emptySlot] = mapApiSlotToAppPart(saved);
+                            updateDetails(emptySlot);
+                            closeModal();
+                        } catch (err) {
+                            console.error('部品の格納に失敗', err);
+                            alert('格納に失敗しました。サーバーの状態を確認してください。');
                         }
                     });
                 });
@@ -1104,10 +1205,32 @@
 
                 switch (action) {
                     case 'use': showUsePartModal(slotId); break;
-                    case 'store': showStorePartModal((newPart) => {
-                        currentRack.slots[slotId] = newPart;
-                        updateDetails(slotId);
-                        closeModal();
+                    case 'store': showStorePartModal(async (newPart) => {
+                        const rackNumericId = getRackNumericId(currentRack);
+                        if (!Number.isFinite(rackNumericId)) {
+                            alert('ラックIDの解決に失敗しました');
+                            return;
+                        }
+                        const body = {
+                            part_name: newPart.partName,
+                            part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
+                            quantity: newPart.quantity,
+                            color_code: (newPart.color || '').toString().replace(/^#/, '') || null
+                        };
+                        try {
+                            const res = await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                            });
+                            const saved = res.slot || body;
+                            currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
+                            updateDetails(slotId);
+                            closeModal();
+                        } catch (err) {
+                            console.error('部品の格納に失敗', err);
+                            alert('格納に失敗しました。スロットが空か、サーバーの状態をご確認ください。');
+                        }
                     }); break;
                     case 'move':
                         isMoveMode = true;
