@@ -667,21 +667,36 @@
                         <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
                         <button id="confirm-add-rack-btn" type="submit" form="add-rack-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">作成</button>
                     </div>`);
-
-                document.getElementById('add-rack-form').onsubmit = (e) => {
+                document.getElementById('add-rack-form').onsubmit = async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.target);
-                    const newRack = {
-                        id: `rack-${Date.now()}`,
-                        name: formData.get('rackName'),
-                        rows: parseInt(formData.get('rows')),
-                        cols: parseInt(formData.get('cols')),
-                        slots: {}
+                    const payload = {
+                        rack_name: formData.get('rackName'),
+                        rows: Number(formData.get('rows')),
+                        cols: Number(formData.get('cols'))
                     };
-                    racks.push(newRack);
-                    currentRackId = newRack.id;
-                    renderApp();
-                    closeModal();
+                    try {
+                        const created = await fetchJson(`${apiBase}/api/racks`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        // 内部形式へ
+                        const newRack = {
+                            id: `rack-${created.rack_id}`,
+                            name: created.rack_name || payload.rack_name,
+                            rows: created.rows || payload.rows,
+                            cols: created.cols || payload.cols,
+                            slots: {}
+                        };
+                        racks.push(newRack);
+                        currentRackId = newRack.id;
+                        renderApp();
+                        closeModal();
+                    } catch (err) {
+                        console.error('ラック作成に失敗', err);
+                        alert('ラックの作成に失敗しました。サーバーの状態を確認してください。');
+                    }
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
@@ -703,13 +718,22 @@
                         <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">削除</button>
                     </div>`);
 
-                document.getElementById('confirm-delete-btn').onclick = () => {
-                    racks = racks.filter(r => r.id !== rackId);
-                    if (currentRackId === rackId) {
-                        currentRackId = racks.length > 0 ? racks[0].id : null;
+                document.getElementById('confirm-delete-btn').onclick = async () => {
+                    try {
+                        // 内部ID("rack-1")から数値IDへ
+                        const rackNumericId = parseInt(String(rackId).replace(/[^0-9]/g, ''), 10);
+                        if (!Number.isFinite(rackNumericId)) throw new Error('無効なrack_id');
+                        await fetchJson(`${apiBase}/api/racks/${rackNumericId}`, { method: 'DELETE' });
+                        racks = racks.filter(r => r.id !== rackId);
+                        if (currentRackId === rackId) {
+                            currentRackId = racks.length > 0 ? racks[0].id : null;
+                        }
+                        renderApp();
+                        closeModal();
+                    } catch (err) {
+                        console.error('ラック削除に失敗', err);
+                        alert('ラックの削除に失敗しました。サーバーの状態を確認してください。');
                     }
-                    renderApp();
-                    closeModal();
                 };
                 document.getElementById('cancel-btn').onclick = closeModal;
             }
