@@ -2,13 +2,10 @@
 // 注意: DOMContentLoaded ラッパーは外し、この関数呼び出し時に初期化します
 
 export function initPartsInventoryApp() {
-    // 二重初期化ガード（React Strict Mode の二重実行対策）
-    if (typeof window !== 'undefined') {
-        if (window.__piAppInitialized) {
-            console.debug('PartsInventoryApp already initialized. Skipping duplicate init.');
-            return;
-        }
-        window.__piAppInitialized = true;
+    // 既存インスタンスがあればクリーンアップしてから再初期化（戻ってきた時の再描画用）
+    if (typeof window !== 'undefined' && window.__piAppTeardown) {
+        try { window.__piAppTeardown(); } catch (e) { console.debug('previous teardown failed', e); }
+        window.__piAppTeardown = undefined;
     }
     // =============================
     // 画面ロジック概要
@@ -887,22 +884,49 @@ export function initPartsInventoryApp() {
                 }});
     }
 
-    // FABメニューの開閉
-    fabMain?.addEventListener('click', () => {
-        const isExpanded = fabMain.getAttribute('aria-expanded') === 'true';
-        fabMain.setAttribute('aria-expanded', (!isExpanded).toString());
-        fabIcon?.classList.toggle('rotate-45');
-        if (!isExpanded) {
-            fabMenuItems.forEach((item, index) => {
-                item.style.transitionDelay = `${index * 40}ms`;
-                item.style.transform = 'scale(1)';
-            });
-        } else {
-            fabMenuItems.forEach(item => {
-                item.style.transform = 'scale(0)';
-            });
+    // FABメニューの開閉（再入場でも確実にバインド）
+    const bindFabHandlers = () => {
+        const btn = document.getElementById('fab-main');
+        const icon = document.getElementById('fab-icon');
+        const items = document.querySelectorAll('.fab-item');
+        if (!btn || !icon) return false;
+
+        // 初期状態ではメニュー項目を隠す
+        items.forEach(item => {
+            item.style.transform = 'scale(0)';
+            item.style.transition = 'transform 150ms ease';
+        });
+
+        // 既存ハンドラを解除
+        if (typeof window !== 'undefined' && window.__piOnFabMainClick && window.__piFabMainEl) {
+            try { window.__piFabMainEl.removeEventListener('click', window.__piOnFabMainClick); } catch {}
         }
-    });
+        const onClick = () => {
+            const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+            btn.setAttribute('aria-expanded', (!isExpanded).toString());
+            icon.classList.toggle('rotate-45');
+            if (!isExpanded) {
+                items.forEach((item, index) => {
+                    item.style.transitionDelay = `${index * 40}ms`;
+                    item.style.transform = 'scale(1)';
+                });
+            } else {
+                items.forEach(item => {
+                    item.style.transform = 'scale(0)';
+                });
+            }
+        };
+        btn.addEventListener('click', onClick);
+        if (typeof window !== 'undefined') {
+            window.__piOnFabMainClick = onClick;
+            window.__piFabMainEl = btn;
+        }
+        return true;
+    };
+    if (!bindFabHandlers()) {
+        // 初期化タイミングのズレに備えて1フレーム後に再試行
+        setTimeout(bindFabHandlers, 0);
+    }
 
     // FAB: ラック作成
     document.getElementById('add-rack-btn')?.addEventListener('click', showAddRackModal);
@@ -1081,7 +1105,11 @@ export function initPartsInventoryApp() {
     });
 
     // メッシュラックのクリック処理（移動/選択）
-    document.body.addEventListener('click', e => {
+    // 既存のグローバルクリックリスナを解除してから登録
+    if (typeof window !== 'undefined' && window.__piOnBodyClick) {
+        try { document.body.removeEventListener('click', window.__piOnBodyClick); } catch {}
+    }
+    const __onBodyClick = e => {
         const rackDisplayArea = document.getElementById('rack-display-area');
         if (rackDisplayArea && rackDisplayArea.contains(e.target)) {
             const slotEl = e.target.closest('.rack-slot');
@@ -1133,7 +1161,26 @@ export function initPartsInventoryApp() {
                 updateDetails(clickedSlotId);
             }
         }
-    });
+    };
+    if (typeof window !== 'undefined') {
+        window.__piOnBodyClick = __onBodyClick;
+        document.body.addEventListener('click', window.__piOnBodyClick);
+    }
+
+    // teardown登録（戻り時のクリーンアップ用）
+    if (typeof window !== 'undefined') {
+        window.__piAppTeardown = () => {
+            if (window.__piOnBodyClick) {
+                try { document.body.removeEventListener('click', window.__piOnBodyClick); } catch {}
+                window.__piOnBodyClick = undefined;
+            }
+            if (window.__piOnFabMainClick && window.__piFabMainEl) {
+                try { window.__piFabMainEl.removeEventListener('click', window.__piOnFabMainClick); } catch {}
+                window.__piOnFabMainClick = undefined;
+                window.__piFabMainEl = undefined;
+            }
+        };
+    }
 
     // 部品検索
     searchInput?.addEventListener('input', () => {

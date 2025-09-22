@@ -15,17 +15,24 @@ const Page = () => {
         };
         if (typeof window !== 'undefined' && window.__pi_modal_ready) {
             start();
-            return;
+        } else {
+            const onReady = () => {
+                window.removeEventListener('pi:modal-ready', onReady);
+                start();
+            };
+            window.addEventListener('pi:modal-ready', onReady);
+            return () => {
+                window.removeEventListener('pi:modal-ready', onReady);
+                if (typeof window !== 'undefined' && window.__piAppTeardown) {
+                    try { window.__piAppTeardown(); } catch { }
+                }
+            };
         }
-        const onReady = () => {
-            window.removeEventListener('pi:modal-ready', onReady);
-            start();
-        };
-        window.addEventListener('pi:modal-ready', onReady);
         return () => {
-            window.removeEventListener('pi:modal-ready', onReady);
+            if (typeof window !== 'undefined' && window.__piAppTeardown) {
+                try { window.__piAppTeardown(); } catch { }
+            }
         };
-        // 将来的にクリーンアップが必要ならここで removeEventListener を実装
     }, [apiBase]);
 
     return (
@@ -97,7 +104,7 @@ const Page = () => {
                                     {/* 詳細表示 */}
                                     <div id="details-panel">
                                         <div className="text-center text-gray-500 py-10">
-                                              <ion-icon name="grid-outline" className="text-5xl mx-auto"></ion-icon>
+                                            <ion-icon name="grid-outline" className="text-5xl mx-auto"></ion-icon>
                                             <p className="mt-2">ラックの場所を選択して詳細を表示</p>
                                         </div>
                                     </div>
@@ -108,15 +115,15 @@ const Page = () => {
                 </main>
             </div>
 
-            {/* フローティングアクションボタン (FAB) */}
-            <div className="fixed right-8 z-20" id="fab-container" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
+
+            <div className="fixed right-8 z-20" id="fab-container" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.75rem)' }}>
                 <div id="fab-menu" className="flex flex-col items-end space-y-3 mb-3">
                     <button
                         id="add-rack-btn"
                         data-tooltip="新しいラックを作成"
                         className="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg"
                     >
-                        <ion-icon name="add-circle-outline" className="text-xl"></ion-icon>
+                        <ion-icon name="add-circle-outline" className="text-xl font-bold"></ion-icon>
                         <span className="ml-2 text-sm">ラック作成</span>
                     </button>
                     <button
@@ -124,7 +131,7 @@ const Page = () => {
                         data-tooltip="QR入庫"
                         className="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg"
                     >
-                        <ion-icon name="qr-code-outline" className="text-xl"></ion-icon>
+                        <ion-icon name="qr-code-outline" className="text-xl font-bold"></ion-icon>
                         <span className="ml-2 text-sm">QR入庫</span>
                     </button>
                     <button
@@ -132,7 +139,7 @@ const Page = () => {
                         data-tooltip="QR出庫"
                         className="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg"
                     >
-                        <ion-icon name="qr-code-outline" className="text-xl"></ion-icon>
+                        <ion-icon name="qr-code-outline" className="text-xl font-bold"></ion-icon>
                         <span className="ml-2 text-sm">QR出庫</span>
                     </button>
                 </div>
@@ -140,7 +147,7 @@ const Page = () => {
                     id="fab-main"
                     className="w-16 h-16 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full shadow-lg transition-transform transform hover:scale-110"
                 >
-                      <ion-icon id="fab-icon" name="add-outline" className="text-4xl transition-transform duration-300"></ion-icon>
+                    <ion-icon id="fab-icon" name="add-outline" className="transition-transform duration-300 font-bold" style={{ fontSize: '40px' }}></ion-icon>
                 </button>
             </div>
 
