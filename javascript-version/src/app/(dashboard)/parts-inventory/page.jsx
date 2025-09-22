@@ -6,6 +6,10 @@
 const IframePage = () => {
     // レイアウト側で付与されている上部パディング/マージンを打ち消して余白を詰める
     // (必要に応じて値を微調整: -24px -> -16px など)
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+    const src = apiBase
+      ? `/parts-inventory/部品在庫管理.html?apiBase=${encodeURIComponent(apiBase)}`
+      : '/parts-inventory/部品在庫管理.html';
     return (
         <div
             style={{
@@ -27,7 +31,7 @@ const IframePage = () => {
                                         これが無いと sandbox 制約で submit がブロックされ、モーダル内の「作成」「保存」等ボタンが無反応に見える */}
                                 <iframe
                                     title="部品在庫管理"
-                                    src="/parts-inventory/部品在庫管理.html"
+                                    src={src}
                                     style={{ width: '100%', height: '100%', border: 0 }}
                                     sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
                                 />

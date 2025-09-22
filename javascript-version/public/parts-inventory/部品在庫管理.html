@@ -265,7 +265,7 @@
             // - モーダルは openModal/closeModal で共通管理
             // =============================
 
-            // APIから返ってくるであろうサンプルデータ
+            // APIから返ってくるであろうサンプルデータ (フェールバック用)
             const mockApiData = [
                 {
                     "rack_id": 1,
@@ -323,12 +323,77 @@
                 }
             ];
 
+            // 表示用サニタイズ: null/undefined/文字列"null"等は空文字へ
+            function s(v, fallback = '') {
+                if (v === null || v === undefined) return fallback;
+                if (v === 'null' || v === 'undefined') return fallback;
+                return String(v);
+            }
+
+            // APIエンドポイントのベースURL
+            // 優先度: URLクエリ ?apiBase= → window.API_BASE → 同一オリジン(空文字)
+            const apiBase = (new URLSearchParams(location.search)).get('apiBase') || window.API_BASE || '';
+
+            // 汎用fetch(JSON)ヘルパー
+            async function fetchJson(url, options = {}) {
+                const res = await fetch(url, options);
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status} ${res.statusText} - ${txt}`);
+                }
+                return res.json();
+            }
+
+            // ラック一覧 + 各ラック詳細(スロット)を取得
+            async function loadRacksFromApi() {
+                const list = await fetchJson(`${apiBase}/api/racks`);
+                // 並列で詳細取得
+                const racksWithDetails = await Promise.all(
+                    list.map(async (rack) => {
+                        try {
+                            const detail = await fetchJson(`${apiBase}/api/racks/${rack.rack_id}`);
+                            // API設計では slots は { 'A-1': {...} | null } のオブジェクトなので配列に変換
+                            const slotsObj = detail.slots || {};
+                            const slotsArr = Object.entries(slotsObj).map(([slotId, part]) => ({
+                                slot_id: slotId,
+                                part: part
+                                    ? {
+                                        part_name: part.part_name,
+                                        part_model_number: part.part_model_number,
+                                        quantity: part.quantity,
+                                        color_code: part.color_code
+                                    }
+                                    : null
+                            }));
+                            return {
+                                rack_id: detail.rack_id,
+                                rack_name: detail.rack_name,
+                                rows: detail.rows,
+                                cols: detail.cols,
+                                slots: slotsArr
+                            };
+                        } catch (e) {
+                            console.error('ラック詳細取得に失敗:', rack.rack_id, e);
+                            // 詳細が取得できない場合は最低限の情報で返す
+                            return {
+                                rack_id: rack.rack_id,
+                                rack_name: rack.rack_name,
+                                rows: rack.rows,
+                                cols: rack.cols,
+                                slots: []
+                            };
+                        }
+                    })
+                );
+                return racksWithDetails;
+            }
+
             // APIデータをアプリ内部で使いやすい形式に変換する関数
             function transformApiDataToAppData(apiData) {
                 return apiData.map(rack => {
                     const slotsObject = {};
-                    let maxRow = 0;
-                    let maxCol = 0;
+                    let maxRow = rack.rows || 0;
+                    let maxCol = rack.cols || 0;
 
                     if (rack.slots) {
                         rack.slots.forEach(slot => {
@@ -339,14 +404,15 @@
                                     quantity: slot.part.quantity,
                                     color: slot.part.color_code
                                 };
-                            } else {
-                                slotsObject[slot.slot_id] = null;
                             }
-                            const [rowChar, colNumStr] = slot.slot_id.split('-');
-                            const rowNum = rowChar.charCodeAt(0) - 64;
-                            const colNum = parseInt(colNumStr);
-                            if (rowNum > maxRow) maxRow = rowNum;
-                            if (colNum > maxCol) maxCol = colNum;
+                            // rows/cols がAPI側で未提供の場合のみ補完
+                            if (!rack.rows || !rack.cols) {
+                                const [rowChar, colNumStr] = slot.slot_id.split('-');
+                                const rowNum = rowChar.charCodeAt(0) - 64;
+                                const colNum = parseInt(colNumStr);
+                                if (rowNum > maxRow) maxRow = rowNum;
+                                if (colNum > maxCol) maxCol = colNum;
+                            }
                         });
                     }
 
@@ -361,8 +427,8 @@
             }
 
             // ===== アプリ全体の状態 =====
-            let racks = transformApiDataToAppData(mockApiData);
-            let currentRackId = racks.length > 0 ? racks[0].id : null;
+            let racks = [];
+            let currentRackId = null;
             let selectedSlotId = null;
             let isMoveMode = false;
             let moveOriginSlotId = null;
@@ -483,9 +549,9 @@
                             slot.classList.add('bg-white', 'shadow');
                             content += `
                                 <div class="text-center overflow-hidden min-w-0">
-                                    <div class="w-full h-4 rounded-full mb-2" style="background-color: #${part.color};"></div>
-                                    <p class="font-bold text-gray-800 text-sm truncate">${part.partName}</p>
-                                    <p class="text-xs text-gray-500 truncate">${part.partModelNumber || ''}</p>
+                                    <div class="w-full h-4 rounded-full mb-2" style="background-color: ${part.color ? '#' + part.color : '#e5e7eb'};"></div>
+                                    <p class="font-bold text-gray-800 text-sm truncate">${s(part.partName)}</p>
+                                    <p class="text-xs text-gray-500 truncate">${s(part.partModelNumber, '')}</p>
                                 </div>
                                 <div class="text-right text-lg font-bold">${part.quantity}</div>`;
                         } else if (isMoveMode) {
@@ -525,9 +591,9 @@
                 if (part) {
                     content = `
                         <div class="fade-in">
-                            <div class="flex items-center mb-4"><div class="w-4 h-4 rounded-full mr-3" style="background-color: #${part.color};"></div><h3 class="text-xl font-bold">${part.partName}</h3></div>
+                            <div class="flex items-center mb-4"><div class="w-4 h-4 rounded-full mr-3" style="background-color: ${part.color ? '#' + part.color : '#e5e7eb'};"></div><h3 class="text-xl font-bold">${s(part.partName)}</h3></div>
                             <div class="space-y-2 text-sm">
-                                <p><strong class="w-24 inline-block text-gray-500">部品型番:</strong> ${part.partModelNumber || 'N/A'}</p>
+                                <p><strong class="w-24 inline-block text-gray-500">部品型番:</strong> ${s(part.partModelNumber, 'N/A')}</p>
                                 <p><strong class="w-24 inline-block text-gray-500">現在庫数:</strong> <span class="text-2xl font-bold">${part.quantity}</span></p>
                                 <p><strong class="w-24 inline-block text-gray-500">保管場所:</strong> <span class="text-lg font-bold">${currentRack.name} / ${slotId}</span></p>
                             </div>
@@ -654,7 +720,7 @@
                 const part = currentRack.slots[slotId];
                 openModal(`
                     <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2 text-center">「${part.partName}」を使用</h3>
+                        <h3 class="text-xl font-bold mb-2 text-center">「${s(part.partName)}」を使用</h3>
                         <div class="p-4 rounded-lg">
                             <label for="use-quantity" class="block text-sm font-medium text-gray-700">使用する数量</label>
                             <p class="text-xs text-gray-500 mb-2">(現在庫: ${part.quantity})</p>
@@ -689,7 +755,7 @@
                 openModal(`
                     <div class="p-6">
                         <h3 class="text-lg font-bold">箱の削除</h3>
-                        <p class="mt-2 text-sm text-gray-600">本当に「<strong class="text-gray-900">${part.partName}</strong>」を棚から削除しますか？</p>
+                        <p class="mt-2 text-sm text-gray-600">本当に「<strong class="text-gray-900">${s(part.partName)}</strong>」を棚から削除しますか？</p>
                         <p class="text-red-600 bg-red-100 p-3 rounded-lg text-sm mt-4"><ion-icon name="warning-outline" class="mr-2"></ion-icon>この操作は取り消せません。</p>
                     </div>
                     <div class="p-4 bg-gray-50 flex justify-end space-x-2 rounded-b-xl">
@@ -727,11 +793,11 @@
                         <form id="edit-part-form" class="space-y-4">
                             <div>
                                 <label class="text-sm font-medium text-gray-700">部品名</label>
-                                <input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.partName}">
+                                <input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part.partName)}">
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-700">部品型番 (任意)</label>
-                                <input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.partModelNumber || ''}">
+                                <input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part.partModelNumber, '')}">
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-700">数量</label>
@@ -740,7 +806,7 @@
                             <div>
                                 <label class="text-sm font-medium text-gray-700">カラーラベル</label>
                                 <div id="color-palette" class="flex flex-wrap gap-2 mt-2 p-2 bg-white rounded-md">${colorPaletteHtml}</div>
-                                <input type="hidden" name="color" value="${part.color}">
+                                <input type="hidden" name="color" value="${s(part.color, '')}">
                             </div>
                         </form>
                     </div>
@@ -753,7 +819,8 @@
                 const hiddenColorInput = document.querySelector('input[name="color"]');
 
                 // Set initial selected color
-                const initialColorEl = colorPaletteEl.querySelector(`[data-color="${part.color.toUpperCase()}"]`);
+                const initialColor = (part.color || '').toString().toUpperCase();
+                const initialColorEl = initialColor ? colorPaletteEl.querySelector(`[data-color="${initialColor}"]`) : null;
                 if (initialColorEl) {
                     initialColorEl.classList.add('selected');
                 }
@@ -1080,8 +1147,22 @@
                 }
             });
 
-            // 初期レンダリング
-            renderApp();
+            // 初期データロード → レンダリング
+            (async function init() {
+                // 簡易ローディング表示
+                const rackNameEl = document.getElementById('rack-name');
+                rackNameEl.textContent = '読み込み中...';
+                try {
+                    const apiData = await loadRacksFromApi();
+                    racks = transformApiDataToAppData(apiData);
+                    currentRackId = racks.length > 0 ? racks[0].id : null;
+                } catch (e) {
+                    console.error('APIからのデータ取得に失敗したため、モックデータを使用します。', e);
+                    racks = transformApiDataToAppData(mockApiData);
+                    currentRackId = racks.length > 0 ? racks[0].id : null;
+                }
+                renderApp();
+            })();
         });
     </script>
 
