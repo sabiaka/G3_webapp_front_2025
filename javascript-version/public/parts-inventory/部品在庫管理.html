@@ -238,6 +238,11 @@
                 <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
                 <span class="ml-2 text-sm">QR入庫</span>
             </button>
+            <button id="qr-stock-out-btn" data-tooltip="QR出庫"
+                class="fab-item flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-full shadow-lg">
+                <ion-icon name="qr-code-outline" class="text-xl"></ion-icon>
+                <span class="ml-2 text-sm">QR出庫</span>
+            </button>
         </div>
         <!-- メインFAB -->
         <button id="fab-main"
@@ -767,6 +772,7 @@
                             <label for="use-quantity" class="block text-sm font-medium text-gray-700">使用する数量</label>
                             <p class="text-xs text-gray-500 mb-2">(現在庫: ${part.quantity})</p>
                             <input id="use-quantity" type="number" min="1" max="${part.quantity}" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" placeholder="数量を入力">
+                            <p id="use-error" class="mt-2 text-sm text-red-600 hidden"></p>
                         </div>
                     </div>
                     <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
@@ -774,12 +780,41 @@
                         <button id="confirm-use-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">確定</button>
                     </div>`);
 
-                document.getElementById('confirm-use-btn').onclick = async () => {
-                    const quantity = parseInt(document.getElementById('use-quantity').value);
-                    if (!(quantity > 0 && quantity <= part.quantity)) {
-                        alert('正しい数量を入力してください。');
-                        return;
+                const qtyInput = document.getElementById('use-quantity');
+                const errEl = document.getElementById('use-error');
+                const confirmBtn = document.getElementById('confirm-use-btn');
+
+                function showErrorMsg(msg) {
+                    errEl.textContent = msg;
+                    errEl.classList.remove('hidden');
+                }
+                function hideErrorMsg() {
+                    errEl.textContent = '';
+                    errEl.classList.add('hidden');
+                }
+                function validateUseInput() {
+                    const v = parseInt(qtyInput.value);
+                    if (!Number.isFinite(v) || v < 1) {
+                        showErrorMsg('1以上の数量を入力してください。');
+                        confirmBtn.disabled = true;
+                        return false;
                     }
+                    if (v > part.quantity) {
+                        showErrorMsg(`現在庫数(${part.quantity})を超えています。`);
+                        confirmBtn.disabled = true;
+                        return false;
+                    }
+                    hideErrorMsg();
+                    confirmBtn.disabled = false;
+                    return true;
+                }
+
+                qtyInput.addEventListener('input', validateUseInput);
+                validateUseInput();
+
+                document.getElementById('confirm-use-btn').onclick = async () => {
+                    if (!validateUseInput()) { qtyInput.focus(); return; }
+                    const quantity = parseInt(qtyInput.value);
                     const rackNumericId = getRackNumericId(currentRack);
                     if (!Number.isFinite(rackNumericId)) {
                         alert('ラックIDの解決に失敗しました');
@@ -1172,6 +1207,35 @@
                 });
             });
 
+            // FAB: QR出庫フロー
+            document.getElementById('qr-stock-out-btn').addEventListener('click', () => {
+                showQrScannerModal('QR出庫', '出庫する棚QRコードを読み取ってください', async () => {
+                    const currentRack = racks.find(r => r.id === currentRackId);
+                    if (!currentRack) {
+                        console.error('対象のラックが見つかりません。');
+                        closeModal();
+                        return;
+                    }
+                    // 擬似的に、先頭の在庫ありスロットをスキャン結果とする
+                    let targetSlot = null;
+                    outer: for (let r = 1; r <= currentRack.rows; r++) {
+                        const rowChar = String.fromCharCode(64 + r);
+                        for (let c = 1; c <= currentRack.cols; c++) {
+                            const slotId = `${rowChar}-${c}`;
+                            if (currentRack.slots[slotId]) { targetSlot = slotId; break outer; }
+                        }
+                    }
+                    closeModal();
+                    if (!targetSlot) {
+                        alert('このラックに出庫可能な部品が見つかりません。');
+                        return;
+                    }
+                    updateDetails(targetSlot);
+                    // 詳細パネルが更新された直後に使用モーダルを開く
+                    showUsePartModal(targetSlot);
+                });
+            });
+
             // 一括QR生成ボタン
             bulkQrBtn.addEventListener('click', () => {
                 const currentRack = racks.find(r => r.id === currentRackId);
@@ -1261,11 +1325,34 @@
 
                     if (isMoveMode) {
                         if (!currentRack.slots[clickedSlotId] && clickedSlotId !== moveOriginSlotId) {
-                            currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
-                            currentRack.slots[moveOriginSlotId] = null;
-                            isMoveMode = false;
-                            moveOriginSlotId = null;
-                            updateDetails(clickedSlotId);
+                            const rackNumericId = getRackNumericId(currentRack);
+                            if (!Number.isFinite(rackNumericId)) {
+                                alert('ラックIDの解決に失敗しました');
+                                return;
+                            }
+                            // サーバーに移動リクエスト
+                            (async () => {
+                                try {
+                                    await fetchJson(`${apiBase}/api/racks/move`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            from_rack_id: rackNumericId,
+                                            from_slot_identifier: moveOriginSlotId,
+                                            to_rack_id: rackNumericId,
+                                            to_slot_identifier: clickedSlotId
+                                        })
+                                    });
+                                    currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
+                                    currentRack.slots[moveOriginSlotId] = null;
+                                    isMoveMode = false;
+                                    moveOriginSlotId = null;
+                                    updateDetails(clickedSlotId);
+                                } catch (err) {
+                                    console.error('移動に失敗', err);
+                                    alert('移動に失敗しました。スロットの状態やサーバーをご確認ください。');
+                                }
+                            })();
                         }
                     } else {
                         updateDetails(clickedSlotId);
