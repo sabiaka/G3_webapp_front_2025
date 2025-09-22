@@ -3,6 +3,7 @@ import 'react-perfect-scrollbar/dist/css/styles.css'
 
 // Style Imports
 import '@/app/globals.css'
+import './(dashboard)/parts-inventory/parts-inventory.css'
 
 // Generated Icon CSS Imports
 import '@assets/iconify-icons/generated-icons.css'

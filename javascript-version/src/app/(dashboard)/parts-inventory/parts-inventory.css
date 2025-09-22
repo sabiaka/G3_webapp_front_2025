@@ -1,0 +1,36 @@
+/* フォント設定 */
+body, .bg-slate-100.text-gray-800 {
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* スクロールバー */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #F4F5FA; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* アニメーション */
+.fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.modal-enter { animation: modal-enter-animation 0.3s ease-out forwards; }
+@keyframes modal-enter-animation { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+/* スロット選択等 */
+.selected-slot { outline: 4px solid #4f46e5; transform: scale(1.02); }
+.highlight-slot { animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.7); } 50% { box-shadow: 0 0 0 10px rgba(99,102,241,0); } }
+.move-mode-empty { background-color: #d1fae5 !important; outline: 2px dashed #10b981; }
+.move-mode-origin { animation: pulse-red 1.5s infinite; }
+@keyframes pulse-red { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } }
+
+/* QRスキャナー */
+.scanner-line { animation: scan 2s linear infinite; }
+@keyframes scan { 0%,100% { top: 0; } 50% { top: 100%; } }
+
+/* FAB */
+.fab-item { transform: scale(0); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* 見出しハイライト */
+.header-highlight { background-color: #c7d2fe; color: #3730a3; }
