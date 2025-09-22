@@ -72,6 +72,31 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">このページの集計・一覧は <code>inspection_results</code> テーブルを元にしています。基本の定義は以下です。</p>
+                    <pre><code class="language-sql">CREATE TABLE inspection_results (
+    inspection_id SERIAL PRIMARY KEY,                                   -- 自動採番
+    inspection_camera_id VARCHAR(50) NOT NULL,                          -- カメラ名
+    inspection_product_id VARCHAR(50) NOT NULL,                         -- 製品名
+    inspection_result VARCHAR(50) NULL,                                 -- 検査結果（PASS/FAIL等）
+    inspection_reason TEXT NULL,                                        -- 不良理由
+    inspection_image_path TEXT NOT NULL,                                -- 画像パス
+    inspection_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 撮影日時
+    inspection_inspected_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  -- 検査日時
+);
+
+-- よく使うクエリのための補助インデックス例
+-- CREATE INDEX idx_inspection_captured_time ON inspection_results (inspection_captured_time DESC);
+-- CREATE INDEX idx_inspection_result ON inspection_results (inspection_result);
+-- CREATE INDEX idx_inspection_product_id ON inspection_results (inspection_product_id);
+</code></pre>
+                    <p class="mt-2 text-sm text-slate-600">集計API（summary）では日付や結果別のGROUP BYを行います。負荷が高い場合は日次集計テーブルの導入も検討してください。</p>
+                </div>
+            </section>
+
             <!-- 1. 検査サマリー取得 -->
             <section id="get-summary">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 検査サマリー取得</h2>

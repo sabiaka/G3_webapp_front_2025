@@ -71,6 +71,45 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">このページは機械マスタ、状態、ログの3テーブルを想定します。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">machines（機械マスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE machines (
+    machine_id SERIAL PRIMARY KEY,
+    machine_name VARCHAR(100) UNIQUE NOT NULL
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">machine_status（機械状態）</h3>
+                    <pre><code class="language-sql">CREATE TABLE machine_status (
+    machine_status_id SERIAL PRIMARY KEY,
+    machine_data_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    machine_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('稼働中','停止中','異常あり','メンテ中')),
+    today_uptime_seconds INT DEFAULT 0,
+    today_production_count INT DEFAULT 0,
+    machine_last_inspection DATE,
+    next_inspection_date DATE
+    -- ,FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
+);</code></pre>
+                    <div class="mt-2 text-sm text-slate-600">稼働時間は <code>started_at</code> などの元データから計算配信する設計でもOKです。</div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE machine_logs (
+    log_id SERIAL PRIMARY KEY,
+    machine_id INT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')),
+    title VARCHAR(100) NOT NULL,
+    message TEXT,
+    FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
+);</code></pre>
+                </div>
+            </section>
+
             <!-- 1. 機械の基本情報・稼働データ取得 -->
             <section id="get-machine-status">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 機械の基本情報・稼働データ取得</h2>

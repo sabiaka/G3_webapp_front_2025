@@ -61,6 +61,47 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">出荷指示は優先度・ラインを参照する通知テーブルで管理します。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">priorities（優先度マスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE priorities (
+    priority_id SERIAL PRIMARY KEY,
+    priority_label VARCHAR(20) UNIQUE NOT NULL
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">production_lines（ラインマスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE production_lines (
+    line_id SERIAL PRIMARY KEY,
+    line_name VARCHAR(100) UNIQUE NOT NULL
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">notifications（製造出荷指示）</h3>
+                    <pre><code class="language-sql">CREATE TABLE notifications (
+    notification_id SERIAL PRIMARY KEY,
+    notification_data_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notification_line_id INT NOT NULL,
+    notification_quantity INT NOT NULL,
+    notification_item_name VARCHAR(50),
+    notification_item_size VARCHAR(50),
+    notification_color VARCHAR(50),
+    notification_spring_type VARCHAR(50),
+    notification_accessories VARCHAR(50),
+    notification_delivery_method VARCHAR(50),
+    notification_delivery_address VARCHAR(100),
+    notification_delivery_company VARCHAR(50),
+    notification_remarks TEXT,
+    notification_priority_id INT NOT NULL,
+    FOREIGN KEY (notification_line_id) REFERENCES production_lines(line_id),
+    FOREIGN KEY (notification_priority_id) REFERENCES priorities(priority_id)
+);</code></pre>
+                    <p class="mt-2 text-sm text-slate-600">検索用に <code>notification_data_time</code>, <code>notification_line_id</code>, <code>notification_priority_id</code> へのインデックス付与を検討してください。</p>
+                </div>
+            </section>
+
             <!-- 1. 指示一覧の取得 -->
             <section id="get-instructions">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 指示一覧の取得</h2>

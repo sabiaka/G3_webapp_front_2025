@@ -117,6 +117,44 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">認証まわりは以下の3テーブルが基本です。ユーザーは <code>employees</code> に格納し、権限や担当ラインは列で管理します（将来的に正規化する場合は <code>roles</code> / <code>production_lines</code> の参照に切替）。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">roles（権限マスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE roles (
+    role_id SERIAL PRIMARY KEY,            -- 自動採番
+    role_name VARCHAR(50) UNIQUE NOT NULL  -- 権限名（例:"管理者"や"一般"）
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">production_lines（ラインマスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE production_lines (
+    line_id SERIAL PRIMARY KEY,            -- 自動採番
+    line_name VARCHAR(100) UNIQUE NOT NULL -- ライン名（例:"ラインA"や"ラインB"）
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">employees（ユーザー）</h3>
+                    <pre><code class="language-sql">CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,               -- 自動採番
+    employee_name VARCHAR(100) NOT NULL,          -- 氏名
+    employee_user_id VARCHAR(50) UNIQUE NOT NULL, -- ログインID
+    employee_password VARCHAR(255) NOT NULL,      -- パスワード（ハッシュ推奨）
+    employee_is_active BOOLEAN DEFAULT TRUE,      -- 有効/無効
+    employee_role_name VARCHAR(50) NOT NULL,      -- 権限名
+    employee_line_name VARCHAR(50) NOT NULL,      -- 担当ライン名
+    employee_special_notes TEXT,                  -- 特記事項
+    employee_color_code CHAR(6)                   -- カラーコード（例:"FF0000"）
+    -- 将来的に roles / production_lines と外部キーで結ぶなら以下を有効化
+    -- ,FOREIGN KEY (employee_role_name) REFERENCES roles(role_name)
+    -- ,FOREIGN KEY (employee_line_name) REFERENCES production_lines(line_name)
+);</code></pre>
+
+                    <p class="mt-3 text-sm text-slate-600">レスポンス例にある <code>user</code> オブジェクトは <code>employees</code> からの抽出です。ハッシュ化とユニーク制約のエラー処理（409）を合わせて実装してください。</p>
+                </div>
+            </section>
+
             <!-- 1. ログイン -->
             <section id="login">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. ログイン</h2>
@@ -264,9 +302,9 @@
                 el.classList.add('hljs');
             }
         });
-        // Add copy buttons to JSON / HTTP code blocks
+        // Add copy buttons to JSON / HTTP / SQL code blocks
         (function() {
-            const blocks = document.querySelectorAll('pre code.language-json, pre code.language-http');
+            const blocks = document.querySelectorAll('pre code.language-json, pre code.language-http, pre code.language-sql');
             blocks.forEach(code => {
                 const pre = code.parentElement;
                 if (!pre.classList.contains('code-block-wrapper')) {

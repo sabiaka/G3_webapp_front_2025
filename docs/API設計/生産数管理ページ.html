@@ -59,6 +59,27 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">生産実績の集計・一覧は <code>production_reports</code> を基本とします。</p>
+                    <pre><code class="language-sql">CREATE TABLE production_reports (
+    prodreport_id SERIAL PRIMARY KEY,              -- 自動採番
+    prodreport_date DATE NOT NULL,                 -- 日付
+    prodreport_product_name VARCHAR(100) NOT NULL, -- 製品名
+    prodreport_plan_quantity INT NOT NULL,         -- 計画数量
+    prodreport_actual_quantity INT NOT NULL,       -- 実績数量
+    prodreport_achievement_rate DECIMAL(5,2),      -- 達成率（例: 95.00）
+    prodreport_defective_quantity INT NOT NULL,    -- 不良数
+    prodreport_employee_id INT,                    -- 担当者ID
+    prodreport_remarks TEXT,                       -- 備考
+    FOREIGN KEY (prodreport_employee_id) REFERENCES employees(employee_id)
+);</code></pre>
+                    <p class="mt-2 text-sm text-slate-600">担当者名の表示は <code>employees</code> とJOINして取得します。性能要件に応じてインデックス（<code>prodreport_date</code>, <code>prodreport_product_name</code> など）を検討してください。</p>
+                </div>
+            </section>
+
             <!-- 1. 生産サマリーデータ取得 -->
             <section id="get-summary">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 生産サマリーデータ取得</h2>

@@ -81,6 +81,41 @@
 
         <div class="space-y-12">
 
+            <!-- 0. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">従業員一覧は以下のテーブルをベースにしています。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">roles（権限マスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) UNIQUE NOT NULL
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">production_lines（ラインマスタ）</h3>
+                    <pre><code class="language-sql">CREATE TABLE production_lines (
+    line_id SERIAL PRIMARY KEY,
+    line_name VARCHAR(100) UNIQUE NOT NULL
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">employees（従業員）</h3>
+                    <pre><code class="language-sql">CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    employee_name VARCHAR(100) NOT NULL,
+    employee_user_id VARCHAR(50) UNIQUE NOT NULL,
+    employee_password VARCHAR(255) NOT NULL,
+    employee_is_active BOOLEAN DEFAULT TRUE,
+    employee_role_name VARCHAR(50) NOT NULL,
+    employee_line_name VARCHAR(50) NOT NULL,
+    employee_special_notes TEXT,
+    employee_color_code CHAR(6)
+);</code></pre>
+
+                    <p class="mt-3 text-sm text-slate-600">検索パラメータ（name_like, line_name, is_active）は <code>employees</code> の列を対象に絞り込みます。</p>
+                </div>
+            </section>
+
             <!-- 1. 従業員一覧取得 -->
             <section id="get-employees">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 従業員一覧取得</h2>

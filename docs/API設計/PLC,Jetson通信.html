@@ -137,6 +137,42 @@
 
         <div class="space-y-12">
 
+            <!-- 1. DB設計 -->
+            <section id="db-design">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">このページで扱うデータは主に「検査結果」と「生産カウンタ」です。以下は対応するテーブル定義です。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">inspection_results（検査結果）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_results (
+    inspection_id SERIAL PRIMARY KEY,                                   -- 自動採番
+    inspection_camera_id VARCHAR(50) NOT NULL,                          -- カメラ名
+    inspection_product_id VARCHAR(50) NOT NULL,                         -- 製品名
+    inspection_result VARCHAR(50) NULL,                                 -- 検査結果（良品、不良など）
+    inspection_reason TEXT NULL,                                        -- 問題点詳細
+    inspection_image_path TEXT NOT NULL,                                -- 検査画像パス
+    inspection_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 撮影日時
+    inspection_inspected_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  -- 検査日時
+);</code></pre>
+
+                    <div class="mt-2 text-sm text-slate-600">
+                        <p>POST <code>/api/ingress/inspection</code> で受け取る <code>metadata</code> と画像は、本テーブルに保存します。</p>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">machine_production（ホックリング残数・生産数）</h3>
+                    <pre><code class="language-sql">CREATE TABLE machine_production (
+    machine_prod_id SERIAL PRIMARY KEY,                             -- 生産データID（自動採番）
+    machine_prod_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 記録日時
+    machine_prod_hook_remaining INT NOT NULL,                       -- ホックリング残数
+    machine_prod_count INT NOT NULL                                 -- 生産数
+);</code></pre>
+
+                    <div class="mt-2 text-sm text-slate-600">
+                        <p>POST <code>/api/ingress/plc</code> で受け取るカウント情報の格納先です（必要に応じて <code>machine_id</code> 等の列追加をご検討ください）。</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- 3. PLC情報送信 -->
             <section id="post-plc-data">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLC情報送信 (機械 → サーバー)</h2>
