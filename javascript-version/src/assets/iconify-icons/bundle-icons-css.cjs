@@ -10,12 +10,12 @@
  * This example uses Iconify Tools to import and clean up icons.
  * For Iconify Tools documentation visit https://docs.iconify.design/tools/tools2/
  */
-import { promises as fs } from 'node:fs'
-import { dirname, join } from 'node:path'
+const { promises: fs } = require('node:fs')
+const { dirname, join } = require('node:path')
 
 // Installation: npm install --save-dev @iconify/tools @iconify/utils @iconify/json @iconify/iconify
-import { cleanupSVG, importDirectory, isEmptyColor, parseColors, runSVGO } from '@iconify/tools'
-import { getIcons, getIconsCSS, stringToIcon } from '@iconify/utils'
+const { cleanupSVG, importDirectory, isEmptyColor, parseColors, runSVGO } = require('@iconify/tools')
+const { getIcons, getIconsCSS, stringToIcon } = require('@iconify/utils')
 
 const sources = {
   json: [
