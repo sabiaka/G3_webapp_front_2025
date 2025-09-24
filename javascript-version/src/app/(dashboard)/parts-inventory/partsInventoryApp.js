@@ -85,6 +85,18 @@ export function initPartsInventoryApp() {
     // 優先度: URLクエリ ?apiBase= → window.API_BASE → 同一オリジン(空文字)
     const apiBase = new URLSearchParams(location.search).get('apiBase') || window.API_BASE || '';
 
+    // 最後に表示していたラックIDを保存/復元するためのキー
+    const LAST_RACK_KEY = `pi:lastRackId:${apiBase || 'same-origin'}`;
+    const setLastRackId = id => {
+        try {
+            if (id) localStorage.setItem(LAST_RACK_KEY, id);
+            else localStorage.removeItem(LAST_RACK_KEY);
+        } catch {}
+    };
+    const getLastRackId = () => {
+        try { return localStorage.getItem(LAST_RACK_KEY); } catch { return null; }
+    };
+
     // ラック内部ID("rack-1")から数値IDを取り出すヘルパー
     function getRackNumericId(rack) {
         if (!rack) return null;
@@ -468,6 +480,7 @@ export function initPartsInventoryApp() {
                 };
                 racks.push(newRack);
                 currentRackId = newRack.id;
+                setLastRackId(currentRackId);
                 renderApp();
                 closeModal();
             } catch (err) {
@@ -508,6 +521,7 @@ export function initPartsInventoryApp() {
                 if (currentRackId === rackId) {
                     currentRackId = racks.length > 0 ? racks[0].id : null;
                 }
+                setLastRackId(currentRackId);
                 renderApp();
                 closeModal();
             } catch (err) {
@@ -522,7 +536,13 @@ export function initPartsInventoryApp() {
 
     function showUsePartModal(slotId) {
         const currentRack = racks.find(r => r.id === currentRackId);
-        const part = currentRack.slots[slotId];
+        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+        if (!part) {
+            // スロットの状態が直前に変化した可能性に対応（競合/レースコンディション対策）
+            alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
+            updateDetails(slotId);
+            return;
+        }
                 openModalWithBridge({
             title: `「${s(part.partName)}」を使用`,
             html: `
@@ -613,7 +633,12 @@ export function initPartsInventoryApp() {
 
     function showDeletePartModal(slotId) {
         const currentRack = racks.find(r => r.id === currentRackId);
-        const part = currentRack.slots[slotId];
+        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+        if (!part) {
+            alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
+            updateDetails(slotId);
+            return;
+        }
         openModalWithBridge({
             title: '箱の削除',
             html: `
@@ -647,9 +672,14 @@ export function initPartsInventoryApp() {
         });
     }
 
-        function showEditPartModal(slotId) {
-                const currentRack = racks.find(r => r.id === currentRackId);
-                const part = currentRack.slots[slotId];
+    function showEditPartModal(slotId) {
+        const currentRack = racks.find(r => r.id === currentRackId);
+        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+        if (!part) {
+            alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
+            updateDetails(slotId);
+            return;
+        }
                 const colorPalette = ['4A90E2', '50E3C2', 'F5A623', 'D0021B', '9013FE', '7ED321', 'F8E71C', 'BD10E0', '4A4A4A', 'E9E9E9'];
                 const colorPaletteHtml = colorPalette
                         .map(color => `<button type="button" data-color="${color}" class="color-swatch w-8 h-8 rounded-full border-2" style="background-color: #${color};"></button>`)
@@ -665,20 +695,20 @@ export function initPartsInventoryApp() {
                 <form id="edit-part-form" class="space-y-4">
                     <div>
                         <label class="text-sm font-medium text-gray-700">部品名</label>
-                        <input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part.partName)}">
+                        <input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part?.partName)}">
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-700">部品型番 (任意)</label>
-                        <input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part.partModelNumber, '')}">
+                        <input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${s(part?.partModelNumber, '')}">
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-700">数量</label>
-                        <input name="quantity" type="number" min="0" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part.quantity}">
+                        <input name="quantity" type="number" min="0" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3" value="${part?.quantity ?? ''}">
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-700">カラーラベル</label>
                         <div id="color-palette" class="flex flex-wrap gap-2 mt-2 p-2 bg-white rounded-md">${colorPaletteHtml}</div>
-                        <input type="hidden" name="color" value="${s(part.color, '')}">
+                        <input type="hidden" name="color" value="${s(part?.color, '')}">
                     </div>
                 </form>
             </div>
@@ -690,7 +720,7 @@ export function initPartsInventoryApp() {
                                 const colorPaletteEl = document.getElementById('color-palette');
                                 const hiddenColorInput = document.querySelector('input[name="color"]');
 
-                                const initialColor = (part.color || '').toString().toUpperCase();
+                                const initialColor = ((part?.color) || '').toString().toUpperCase();
                                 const initialColorEl = initialColor ? colorPaletteEl.querySelector(`[data-color="${initialColor}"]`) : null;
                                 if (initialColorEl) initialColorEl.classList.add('selected');
 
@@ -758,14 +788,14 @@ export function initPartsInventoryApp() {
             html: `
       <div class="p-6">
         <form id="store-form" class="space-y-4">
-          <div><label class="text-sm font-medium text-gray-700">部品名</label><input name="partName" required class="w-full bg-gray-100 focus:bg白 border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
-          <div><label class="text-sm font-medium text-gray-700">部品型番 (任意)</label><input name="partModelNumber" class="w-full bg-gray-100 focus:bg白 border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
-          <div><label class="text-sm font-medium text-gray-700">数量</label><input name="quantity" type="number" min="1" required class="w-full bg-gray-100 focus:bg白 border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+          <div><label class="text-sm font-medium text-gray-700">部品名</label><input name="partName" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+          <div><label class="text-sm font-medium text-gray-700">部品型番 (任意)</label><input name="partModelNumber" class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
+          <div><label class="text-sm font-medium text-gray-700">数量</label><input name="quantity" type="number" min="1" required class="w-full bg-gray-100 focus:bg-white border-gray-300 rounded-md mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3"></div>
         </form>
       </div>
       <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
         <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
-        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text白 rounded-md hover:bg-indigo-700">棚をスキャンして格納</button>
+    <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">棚をスキャンして格納</button>
             </div>`,
             onOpen: () => {
                 document.getElementById('store-form').onsubmit = e => {
@@ -1035,6 +1065,7 @@ export function initPartsInventoryApp() {
             showDeleteRackModal(deleteBtn.dataset.rackId, deleteBtn.dataset.rackName);
         } else if (tab) {
             currentRackId = tab.dataset.rackId;
+            setLastRackId(currentRackId);
             selectedSlotId = null;
             isMoveMode = false;
             renderApp();
@@ -1190,11 +1221,12 @@ export function initPartsInventoryApp() {
             const currentRack = racks.find(r => r.id === currentRackId);
             if (!currentRack || searchTerm.length < 2) return;
             const part = currentRack.slots[slot.dataset.slotId];
-            if (
-                part &&
-                (part.partName.toLowerCase().includes(searchTerm) || (part.partModelNumber && part.partModelNumber.toLowerCase().includes(searchTerm)))
-            ) {
+            if (part) {
+                const nameLc = ((part.partName || '') + '').toLowerCase();
+                const modelLc = ((part.partModelNumber || '') + '').toLowerCase();
+                if (nameLc.includes(searchTerm) || modelLc.includes(searchTerm)) {
                 slot.classList.add('highlight-slot');
+                }
             }
         });
     });
@@ -1209,12 +1241,20 @@ export function initPartsInventoryApp() {
         try {
             const apiData = await loadRacksFromApi();
             racks = transformApiDataToAppData(apiData);
-            currentRackId = racks.length > 0 ? racks[0].id : null;
+            // 保存されているラックIDが存在すれば復元、なければ先頭ラック
+            const savedId = getLastRackId();
+            currentRackId = (savedId && racks.some(r => r.id === savedId))
+                ? savedId
+                : (racks.length > 0 ? racks[0].id : null);
         } catch (e) {
             console.error('APIからのデータ取得に失敗したため、モックデータを使用します。', e);
             racks = transformApiDataToAppData(mockApiData);
-            currentRackId = racks.length > 0 ? racks[0].id : null;
+            const savedId = getLastRackId();
+            currentRackId = (savedId && racks.some(r => r.id === savedId))
+                ? savedId
+                : (racks.length > 0 ? racks[0].id : null);
         }
+        setLastRackId(currentRackId);
         renderApp();
     })();
 }
