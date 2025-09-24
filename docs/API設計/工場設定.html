@@ -177,7 +177,7 @@ CREATE TABLE roles (
                     <p class="mb-4">登録されているすべてのロール（ロール名 + is_admin）を一覧で取得します。is_admin=true は「管理者」、false は「一般従業員」を表します。
                     </p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
-<pre><code class="language-json">[
+                    <pre><code class="language-json">[
     { "role_id": 1, "role_name": "管理画面運用", "is_admin": true },
     { "role_id": 2, "role_name": "閲覧のみ", "is_admin": false },
     { "role_id": 3, "role_name": "検査業務", "is_admin": false }
@@ -193,7 +193,7 @@ CREATE TABLE roles (
                     </div>
                     <p class="mb-4">新しいロールを登録します（ロール名は自由入力、is_admin は true/false の二択）。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
-<pre><code class="language-json">{
+                    <pre><code class="language-json">{
     "role_name": "閲覧のみ",
     "is_admin": false // 省略時は false
 }</code></pre>
@@ -253,25 +253,26 @@ CREATE TABLE roles (
                     </div>
                 </div>
 
-                <!-- 1.3 権限削除 -->
-                <div id="delete-role" class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-xl font-bold text-slate-800 mb-4">1.3 権限削除</h3>
-                    <div class="flex items-center space-x-4 mb-4">
-                        <span class="method-badge delete">DELETE</span>
-                        <span class="font-mono text-lg font-semibold">/api/roles/{id}</span>
-                    </div>
-                    <p class="mb-4">指定されたIDのロールを削除します。</p>
-                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (204 No Content)</h4>
-                    <p>削除が成功した場合、ボディには何も返されません。</p>
-                    <div class="mt-4 text-sm text-slate-600">
-                        <p>注意:</p>
-                        <ul class="list-disc ml-5 mt-1">
-                            <li>ユーザーが紐づく等で削除不可の場合は 409 Conflict を返す（例: 外部キー制約違反）</li>
-                            <li>必要に応じてソフトデリート（is_deleted）で運用</li>
-                        </ul>
-                    </div>
-                </div>
             </section>
+            <!-- 1.3 権限削除 -->
+            <div id="delete-role" class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">1.3 権限削除</h3>
+                <div class="flex items-center space-x-4 mb-4">
+                    <span class="method-badge delete">DELETE</span>
+                    <span class="font-mono text-lg font-semibold">/api/roles/{id}</span>
+                </div>
+                <p class="mb-4">指定されたIDのロールを削除します。</p>
+                <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (204 No Content)</h4>
+                <p>削除が成功した場合、ボディには何も返されません。</p>
+                <div class="mt-4 text-sm text-slate-600">
+                    <p>注意:</p>
+                    <ul class="list-disc ml-5 mt-1">
+                        <li>ユーザーが紐づく等で削除不可の場合は 409 Conflict を返す（例: 外部キー制約違反）</li>
+                        <li>必要に応じてソフトデリート（is_deleted）で運用</li>
+                    </ul>
+                </div>
+            </div>
+            
 
             <!-- 2. 工場ラインAPI -->
             <section id="lines-api">
@@ -312,9 +313,35 @@ CREATE TABLE roles (
 }</code></pre>
                 </div>
 
-                <!-- 2.3 ライン削除 -->
+                <!-- 2.3 ライン名更新 -->
+                <div id="update-line" class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">2.3 ライン名更新</h3>
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge put">PUT</span>
+                        <span class="font-mono text-lg font-semibold">/api/lines/{id}</span>
+                    </div>
+                    <p class="mb-4">指定されたIDの工場ラインの名前を更新します。</p>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
+                    <pre><code class="language-json">{
+    "line_name": "Dライン (最終検査)"
+}</code></pre>
+                    <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
+                    <pre><code class="language-json">{
+    "line_id": 2,
+    "line_name": "Dライン (最終検査)"
+}</code></pre>
+                    <div class="mt-4 text-sm text-slate-600">
+                        <p>バリデーション:</p>
+                        <ul class="list-disc ml-5 mt-1">
+                            <li>line_name は重複不可（409 Conflict）</li>
+                            <li>対象が存在しない場合は 404 Not Found</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2.4 ライン削除 -->
                 <div id="delete-line" class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-xl font-bold text-slate-800 mb-4">2.3 ライン削除</h3>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">2.4 ライン削除</h3>
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge delete">DELETE</span>
                         <span class="font-mono text-lg font-semibold">/api/lines/{id}</span>
