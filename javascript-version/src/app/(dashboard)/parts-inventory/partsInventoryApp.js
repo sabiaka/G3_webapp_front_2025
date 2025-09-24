@@ -175,6 +175,47 @@ export function initPartsInventoryApp() {
         return racksWithDetails;
     }
 
+    // 現在のラックをサーバーから再取得してローカル状態を同期
+    async function refreshCurrentRackFromApi() {
+        const currentRack = racks.find(r => r.id === currentRackId);
+        if (!currentRack) return null;
+        const rackNumericId = getRackNumericId(currentRack);
+        if (!Number.isFinite(rackNumericId)) return null;
+        try {
+            const detail = await fetchJson(`${apiBase}/api/racks/${rackNumericId}`);
+            const slotsObj = detail?.slots || {};
+            const newSlots = {};
+            Object.entries(slotsObj).forEach(([slotId, part]) => {
+                newSlots[slotId] = part
+                    ? {
+                        partName: part.part_name,
+                        partModelNumber: part.part_model_number,
+                        quantity: part.quantity,
+                        color: part.color_code
+                    }
+                    : null;
+            });
+            currentRack.rows = detail.rows || currentRack.rows;
+            currentRack.cols = detail.cols || currentRack.cols;
+            currentRack.slots = newSlots; // 置き換えで同期
+            return currentRack;
+        } catch (e) {
+            console.warn('ラック再取得に失敗しました', e);
+            return null;
+        }
+    }
+
+    // 指定スロットの部品を確認し、なければ再同期して再確認
+    async function ensurePartInSlot(slotId) {
+        let currentRack = racks.find(r => r.id === currentRackId);
+        let part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+        if (part) return { currentRack, part };
+        await refreshCurrentRackFromApi();
+        currentRack = racks.find(r => r.id === currentRackId);
+        part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+        return { currentRack, part };
+    }
+
     // APIデータをアプリ内部で使いやすい形式に変換
     function transformApiDataToAppData(apiData) {
         return apiData.map(rack => {
@@ -220,6 +261,8 @@ export function initPartsInventoryApp() {
     let moveOriginSlotId = null;
     // 移動 API の二重送信防止フラグ
     let isPostingMove = false;
+    // モーダルを閉じた直後のゴーストクリック抑制用タイムスタンプ
+    let clickGuardUntil = 0;
 
     // ===== DOM参照の取得 =====
     const rackNameEl = document.getElementById('rack-name');
@@ -428,6 +471,8 @@ export function initPartsInventoryApp() {
     }
     function closeModal() {
         if (typeof window.__pi_closeModal === 'function') window.__pi_closeModal();
+        // モーダルがDOMから消えた直後に、背後の要素にclickが落ちないよう短時間ガード
+        clickGuardUntil = Date.now() + 400; // 400ms 無視
     }
 
     function showAddRackModal() {
@@ -534,11 +579,9 @@ export function initPartsInventoryApp() {
         });
     }
 
-    function showUsePartModal(slotId) {
-        const currentRack = racks.find(r => r.id === currentRackId);
-        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
-        if (!part) {
-            // スロットの状態が直前に変化した可能性に対応（競合/レースコンディション対策）
+    async function showUsePartModal(slotId) {
+        const { currentRack, part } = await ensurePartInSlot(slotId);
+        if (!currentRack || !part) {
             alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
             updateDetails(slotId);
             return;
@@ -631,10 +674,9 @@ export function initPartsInventoryApp() {
     });
     }
 
-    function showDeletePartModal(slotId) {
-        const currentRack = racks.find(r => r.id === currentRackId);
-        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
-        if (!part) {
+    async function showDeletePartModal(slotId) {
+        const { currentRack, part } = await ensurePartInSlot(slotId);
+        if (!currentRack || !part) {
             alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
             updateDetails(slotId);
             return;
@@ -672,10 +714,9 @@ export function initPartsInventoryApp() {
         });
     }
 
-    function showEditPartModal(slotId) {
-        const currentRack = racks.find(r => r.id === currentRackId);
-        const part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
-        if (!part) {
+    async function showEditPartModal(slotId) {
+        const { currentRack, part } = await ensurePartInSlot(slotId);
+        if (!currentRack || !part) {
             alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。');
             updateDetails(slotId);
             return;
@@ -1074,6 +1115,10 @@ export function initPartsInventoryApp() {
 
     // 詳細パネルの操作
     detailsPanel?.addEventListener('click', e => {
+        if (Date.now() < clickGuardUntil) {
+            e.preventDefault();
+            return;
+        }
         const button = e.target.closest('button');
         if (!button) return;
         const { action, slotId } = button.dataset;
@@ -1141,6 +1186,10 @@ export function initPartsInventoryApp() {
         try { document.body.removeEventListener('click', window.__piOnBodyClick); } catch {}
     }
     const __onBodyClick = e => {
+        if (Date.now() < clickGuardUntil) {
+            e.preventDefault();
+            return;
+        }
         const rackDisplayArea = document.getElementById('rack-display-area');
         if (rackDisplayArea && rackDisplayArea.contains(e.target)) {
             const slotEl = e.target.closest('.rack-slot');
@@ -1176,10 +1225,12 @@ export function initPartsInventoryApp() {
                             // サーバーが204や空レスを返してもここまで来たら成功として扱い、ローカル状態を更新
                             currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
                             currentRack.slots[moveOriginSlotId] = null;
+                            // 念のためサーバーの最新状態で同期
+                            await refreshCurrentRackFromApi();
                             isMoveMode = false;
                             moveOriginSlotId = null;
                             updateDetails(clickedSlotId);
-                            console.debug('部品移動: UI更新完了');
+                            console.debug('部品移動: UI更新完了(同期済み)');
                         } catch (err) {
                             console.error('移動に失敗', err);
                             alert('移動に失敗しました。スロットの状態やサーバーをご確認ください。');
