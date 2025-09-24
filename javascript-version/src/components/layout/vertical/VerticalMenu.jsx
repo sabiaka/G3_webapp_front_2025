@@ -75,6 +75,9 @@ const VerticalMenu = ({ scrollMenu }) => {
           </MenuItem>
         </MenuSection>
         <MenuSection label='その他のページ'>
+          <MenuItem href='/factory-settings' icon={<span role='img' aria-label='factory'>🏭</span>}>
+            工場設定
+          </MenuItem>
           <MenuItem
             href='/machine-signage/生産機械サイネージ.html'
             icon={<span role='img' aria-label='display'>🖥️</span>}
