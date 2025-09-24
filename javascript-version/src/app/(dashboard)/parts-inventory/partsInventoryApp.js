@@ -117,7 +117,16 @@ export function initPartsInventoryApp() {
 
     // 汎用fetch(JSON)ヘルパー
     async function fetchJson(url, options = {}) {
-        const res = await fetch(url, options);
+        const opts = { ...options };
+        const method = (opts.method || 'GET').toUpperCase();
+        let finalUrl = url;
+        if (method === 'GET') {
+            // キャッシュバイパス: no-store + タイムスタンプ付与
+            finalUrl = url + (url.includes('?') ? '&' : '?') + `_=ts${Date.now()}`;
+            opts.cache = 'no-store';
+            opts.headers = { ...(opts.headers || {}), 'Cache-Control': 'no-cache' };
+        }
+        const res = await fetch(finalUrl, opts);
         if (!res.ok) {
             const txt = await res.text().catch(() => '');
             throw new Error(`HTTP ${res.status} ${res.statusText} - ${txt}`);
@@ -198,6 +207,8 @@ export function initPartsInventoryApp() {
             currentRack.rows = detail.rows || currentRack.rows;
             currentRack.cols = detail.cols || currentRack.cols;
             currentRack.slots = newSlots; // 置き換えで同期
+            // メッシュも即時更新（詳細は呼び出し元でupdateDetailsを使う）
+            renderCurrentRack();
             return currentRack;
         } catch (e) {
             console.warn('ラック再取得に失敗しました', e);
@@ -263,6 +274,16 @@ export function initPartsInventoryApp() {
     let isPostingMove = false;
     // モーダルを閉じた直後のゴーストクリック抑制用タイムスタンプ
     let clickGuardUntil = 0;
+
+    // 移動モードを確実に解除
+    function exitMoveMode() {
+        if (isMoveMode || moveOriginSlotId) {
+            isMoveMode = false;
+            moveOriginSlotId = null;
+            // ハイライトなどを即時反映
+            renderCurrentRack();
+        }
+    }
 
     // ===== DOM参照の取得 =====
     const rackNameEl = document.getElementById('rack-name');
@@ -471,8 +492,6 @@ export function initPartsInventoryApp() {
     }
     function closeModal() {
         if (typeof window.__pi_closeModal === 'function') window.__pi_closeModal();
-        // モーダルがDOMから消えた直後に、背後の要素にclickが落ちないよう短時間ガード
-        clickGuardUntil = Date.now() + 400; // 400ms 無視
     }
 
     function showAddRackModal() {
@@ -662,8 +681,8 @@ export function initPartsInventoryApp() {
                     part.quantity -= quantity;
                     if (part.quantity <= 0) currentRack.slots[slotId] = null;
                 }
-                updateDetails(slotId);
                 closeModal();
+                setTimeout(() => updateDetails(slotId), 0);
             } catch (err) {
                 console.error('使用APIに失敗', err);
                 alert('部品の使用に失敗しました。サーバーの状態を確認してください。');
@@ -702,8 +721,8 @@ export function initPartsInventoryApp() {
                     try {
                         await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, { method: 'DELETE' });
                         currentRack.slots[slotId] = null;
-                        updateDetails(slotId);
                         closeModal();
+                        setTimeout(() => updateDetails(slotId), 0);
                     } catch (err) {
                         console.error('部品削除に失敗', err);
                         alert('部品の削除に失敗しました。サーバーの状態を確認してください。');
@@ -787,8 +806,9 @@ export function initPartsInventoryApp() {
                                                 try {
                                                         await fetchJson(`${apiBase}/api/racks/${rackNumericId}/slots/${encodeURIComponent(slotId)}`, { method: 'DELETE' });
                                                         currentRack.slots[slotId] = null;
-                                                        updateDetails(slotId);
+                                                        await refreshCurrentRackFromApi();
                                                         closeModal();
+                                                        setTimeout(() => updateDetails(slotId), 0);
                                                 } catch (err) {
                                                         console.error('部品削除(数量0)に失敗', err);
                                                         alert('削除に失敗しました。サーバーをご確認ください。');
@@ -811,8 +831,9 @@ export function initPartsInventoryApp() {
                                                 });
                                             const saved = (res && res.slot) ? res.slot : body;
                                                 currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
-                                                updateDetails(slotId);
+                                                await refreshCurrentRackFromApi();
                                                 closeModal();
+                                                setTimeout(() => updateDetails(slotId), 0);
                                         } catch (err) {
                                                 console.error('部品更新に失敗', err);
                                                 alert('更新に失敗しました。サーバーの状態を確認してください。');
@@ -1051,8 +1072,9 @@ export function initPartsInventoryApp() {
                     });
                     const saved = (res && res.slot) ? res.slot : body;
                     currentRack.slots[emptySlot] = mapApiSlotToAppPart(saved);
-                    updateDetails(emptySlot);
+                    await refreshCurrentRackFromApi();
                     closeModal();
+                    setTimeout(() => updateDetails(emptySlot), 0);
                 } catch (err) {
                     console.error('部品の格納に失敗', err);
                     alert('格納に失敗しました。サーバーの状態を確認してください。');
@@ -1126,9 +1148,11 @@ export function initPartsInventoryApp() {
         if (!currentRack) return;
         switch (action) {
             case 'use':
-                showUsePartModal(slotId);
+                exitMoveMode();
+                (async () => { await refreshCurrentRackFromApi(); showUsePartModal(slotId) })();
                 break;
             case 'store':
+                exitMoveMode();
                 showStorePartModal(async newPart => {
                     const rackNumericId = getRackNumericId(currentRack);
                     if (!Number.isFinite(rackNumericId)) {
@@ -1149,8 +1173,9 @@ export function initPartsInventoryApp() {
                         });
                         const saved = (res && res.slot) ? res.slot : body;
                         currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
-                        updateDetails(slotId);
+                        await refreshCurrentRackFromApi();
                         closeModal();
+                        setTimeout(() => updateDetails(slotId), 0);
                     } catch (err) {
                         console.error('部品の格納に失敗', err);
                         alert('格納に失敗しました。スロットが空か、サーバーの状態をご確認ください。');
@@ -1169,13 +1194,16 @@ export function initPartsInventoryApp() {
                 renderCurrentRack();
                 break;
             case 'show-shelf-qr':
-                showShelfQrModal(slotId);
+                exitMoveMode();
+                (async () => { await refreshCurrentRackFromApi(); showShelfQrModal(slotId) })();
                 break;
             case 'edit':
-                showEditPartModal(slotId);
+                exitMoveMode();
+                (async () => { await refreshCurrentRackFromApi(); showEditPartModal(slotId) })();
                 break;
             case 'delete':
-                showDeletePartModal(slotId);
+                exitMoveMode();
+                (async () => { await refreshCurrentRackFromApi(); showDeletePartModal(slotId) })();
                 break;
         }
     });
@@ -1240,13 +1268,28 @@ export function initPartsInventoryApp() {
                     })();
                 }
             } else {
-                updateDetails(clickedSlotId);
+                // スロット選択時も最新化してから詳細更新
+                (async () => {
+                    await refreshCurrentRackFromApi();
+                    updateDetails(clickedSlotId);
+                })();
             }
         }
     };
     if (typeof window !== 'undefined') {
         window.__piOnBodyClick = __onBodyClick;
         document.body.addEventListener('click', window.__piOnBodyClick);
+        // クリックに先行するpointerdown/mousedownをキャプチャ段階で抑止（より確実）
+        const guarder = ev => {
+            if (Date.now() < clickGuardUntil) {
+                ev.stopPropagation();
+                ev.preventDefault();
+            }
+        };
+        // 保存してteardownで解除
+        window.__piPointerGuard = guarder;
+        document.addEventListener('pointerdown', guarder, true);
+        document.addEventListener('mousedown', guarder, true);
     }
 
     // teardown登録（戻り時のクリーンアップ用）
@@ -1260,6 +1303,13 @@ export function initPartsInventoryApp() {
                 try { window.__piFabMainEl.removeEventListener('click', window.__piOnFabMainClick); } catch {}
                 window.__piOnFabMainClick = undefined;
                 window.__piFabMainEl = undefined;
+            }
+            if (window.__piPointerGuard) {
+                try {
+                    document.removeEventListener('pointerdown', window.__piPointerGuard, true);
+                    document.removeEventListener('mousedown', window.__piPointerGuard, true);
+                } catch {}
+                window.__piPointerGuard = undefined;
             }
         };
     }
