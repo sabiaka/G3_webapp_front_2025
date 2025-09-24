@@ -64,13 +64,24 @@
 
                 <!-- 権限種別管理 -->
                 <div class="bg-white p-6 rounded-xl shadow-md fade-in">
-                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b pb-2">権限種別管理</h2>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b pb-2 flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <ion-icon name="shield-checkmark-outline" class="text-2xl"></ion-icon>
+                        </span>
+                        <span>権限種別管理</span>
+                    </h2>
                     <div class="space-y-4">
                         <div id="roles-list" class="space-y-2">
                             <!-- 権限リストはJSで動的に生成 -->
                         </div>
-                        <div class="flex space-x-2 pt-2">
-                            <input type="text" id="new-role-input" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="新しい権限名 (例: 閲覧者)">
+                        <div class="flex items-center gap-2 pt-2">
+                            <input type="text" id="new-role-input" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="ロール名を入力 (例: 閲覧のみ)">
+                            <button type="button" id="new-role-type-toggle" class="px-3 py-2 border rounded-md text-sm bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 transition">
+                                <span class="inline-flex items-center gap-1">
+                                    <ion-icon name="person-outline" class="text-base"></ion-icon>
+                                    <span>一般従業員</span>
+                                </span>
+                            </button>
                             <button id="add-role-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
                                 <ion-icon name="add-outline" class="text-xl"></ion-icon>
                             </button>
@@ -80,7 +91,19 @@
 
                 <!-- 工場ライン管理 -->
                 <div class="bg-white p-6 rounded-xl shadow-md fade-in" style="animation-delay: 0.1s;">
-                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b pb-2">工場ライン管理</h2>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b pb-2 flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                            <!-- ベルトコンベア風アイコン -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                                <rect x="3" y="14" width="18" height="4" rx="2"></rect>
+                                <circle cx="7" cy="18" r="1.5"></circle>
+                                <circle cx="17" cy="18" r="1.5"></circle>
+                                <rect x="6" y="8" width="4" height="4" rx="1"></rect>
+                                <rect x="12" y="8" width="4" height="4" rx="1"></rect>
+                            </svg>
+                        </span>
+                        <span>工場ライン管理</span>
+                    </h2>
                     <div class="space-y-4">
                         <div id="lines-list" class="space-y-2">
                             <!-- 工場ラインリストはJSで動的に生成 -->
@@ -110,12 +133,33 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- サンプルデータ ---
-            let roles = ['管理者', '一般', '検査員'];
+            const permissionTypes = ['管理者', '一般従業員'];
+            let roles = [
+                { name: '管理画面運用', type: '管理者' },
+                { name: '閲覧のみ', type: '一般従業員' }
+            ];
             let lines = ['Aライン (組立)', 'Bライン (塗装)', '検査ライン'];
 
             // --- DOM要素 ---
             const rolesList = document.getElementById('roles-list');
             const newRoleInput = document.getElementById('new-role-input');
+            const newRoleTypeToggle = document.getElementById('new-role-type-toggle');
+            let newRoleType = '一般従業員';
+
+            const updateNewRoleTypeButton = () => {
+                const isAdmin = newRoleType === '管理者';
+                newRoleTypeToggle.className = `px-3 py-2 border rounded-md text-sm transition ${isAdmin ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`;
+                newRoleTypeToggle.innerHTML = `<span class="inline-flex items-center gap-1">${isAdmin
+                    ? '<ion-icon name="shield-checkmark-outline" class="text-base"></ion-icon><span>管理者</span>'
+                    : '<ion-icon name=\"person-outline\" class=\"text-base\"></ion-icon><span>一般従業員</span>'}</span>`;
+            };
+            if (newRoleTypeToggle) {
+                newRoleTypeToggle.addEventListener('click', () => {
+                    newRoleType = newRoleType === '管理者' ? '一般従業員' : '管理者';
+                    updateNewRoleTypeButton();
+                });
+                updateNewRoleTypeButton();
+            }
             const addRoleButton = document.getElementById('add-role-button');
 
             const linesList = document.getElementById('lines-list');
@@ -126,39 +170,165 @@
             const createListItem = (text, listId, onDelete) => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-md';
-                
+
+                // 左側(アイコン + テキスト)
+                const left = document.createElement('div');
+                left.className = 'flex items-center';
+
+                const iconWrap = document.createElement('span');
+                iconWrap.className = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-white text-gray-500 mr-3';
+
+                if (listId === 'roles-list') {
+                    const icon = document.createElement('ion-icon');
+                    icon.setAttribute('name', 'shield-outline');
+                    icon.className = 'text-xl';
+                    iconWrap.appendChild(icon);
+                } else {
+                    // ライン用: ベルトコンベア風のインラインSVG
+                    const svgNS = 'http://www.w3.org/2000/svg';
+                    const svg = document.createElementNS(svgNS, 'svg');
+                    svg.setAttribute('viewBox', '0 0 24 24');
+                    svg.setAttribute('fill', 'none');
+                    svg.setAttribute('stroke', 'currentColor');
+                    svg.setAttribute('stroke-width', '2');
+                    svg.setAttribute('stroke-linecap', 'round');
+                    svg.setAttribute('stroke-linejoin', 'round');
+                    svg.setAttribute('class', 'h-5 w-5');
+
+                    const rectBelt = document.createElementNS(svgNS, 'rect');
+                    rectBelt.setAttribute('x', '3');
+                    rectBelt.setAttribute('y', '14');
+                    rectBelt.setAttribute('width', '18');
+                    rectBelt.setAttribute('height', '4');
+                    rectBelt.setAttribute('rx', '2');
+
+                    const wheel1 = document.createElementNS(svgNS, 'circle');
+                    wheel1.setAttribute('cx', '7');
+                    wheel1.setAttribute('cy', '18');
+                    wheel1.setAttribute('r', '1.5');
+
+                    const wheel2 = document.createElementNS(svgNS, 'circle');
+                    wheel2.setAttribute('cx', '17');
+                    wheel2.setAttribute('cy', '18');
+                    wheel2.setAttribute('r', '1.5');
+
+                    const box1 = document.createElementNS(svgNS, 'rect');
+                    box1.setAttribute('x', '6');
+                    box1.setAttribute('y', '8');
+                    box1.setAttribute('width', '4');
+                    box1.setAttribute('height', '4');
+                    box1.setAttribute('rx', '1');
+
+                    const box2 = document.createElementNS(svgNS, 'rect');
+                    box2.setAttribute('x', '12');
+                    box2.setAttribute('y', '8');
+                    box2.setAttribute('width', '4');
+                    box2.setAttribute('height', '4');
+                    box2.setAttribute('rx', '1');
+
+                    svg.appendChild(rectBelt);
+                    svg.appendChild(wheel1);
+                    svg.appendChild(wheel2);
+                    svg.appendChild(box1);
+                    svg.appendChild(box2);
+
+                    iconWrap.appendChild(svg);
+                }
+
                 const span = document.createElement('span');
                 span.className = 'text-gray-700';
                 span.textContent = text;
-                
+
+                left.appendChild(iconWrap);
+                left.appendChild(span);
+
+                // 右側(削除ボタン)
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'text-gray-400 hover:text-red-500 transition';
                 deleteButton.innerHTML = '<ion-icon name="trash-outline" class="text-xl"></ion-icon>';
                 deleteButton.onclick = () => onDelete(text, div);
 
-                div.appendChild(span);
+                div.appendChild(left);
                 div.appendChild(deleteButton);
                 return div;
             };
 
             // --- 権限管理 ---
+            const createRoleItem = (role) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-md';
+
+                // 左側: アイコン + ロール名
+                const left = document.createElement('div');
+                left.className = 'flex items-center';
+
+                const iconWrap = document.createElement('span');
+                iconWrap.className = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-white text-gray-500 mr-3';
+                const icon = document.createElement('ion-icon');
+                icon.setAttribute('name', 'shield-outline');
+                icon.className = 'text-xl';
+                iconWrap.appendChild(icon);
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-gray-800 font-medium';
+                nameSpan.textContent = role.name;
+
+                left.appendChild(iconWrap);
+                left.appendChild(nameSpan);
+
+                // 右側: 種別トグル + 削除
+                const right = document.createElement('div');
+                right.className = 'flex items-center gap-2';
+
+                const typeToggle = document.createElement('button');
+                typeToggle.type = 'button';
+                const applyTypeStyle = () => {
+                    const isAdmin = role.type === '管理者';
+                    typeToggle.className = `px-3 py-1.5 border rounded-md text-sm transition ${isAdmin ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`;
+                    typeToggle.innerHTML = isAdmin
+                        ? '<span class="inline-flex items-center gap-1"><ion-icon name="shield-checkmark-outline" class="text-base"></ion-icon><span>管理者</span></span>'
+                        : '<span class="inline-flex items-center gap-1"><ion-icon name="person-outline" class="text-base"></ion-icon><span>一般従業員</span></span>';
+                };
+                typeToggle.addEventListener('click', () => {
+                    role.type = role.type === '管理者' ? '一般従業員' : '管理者';
+                    applyTypeStyle();
+                });
+                applyTypeStyle();
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'text-gray-400 hover:text-red-500 transition';
+                deleteButton.innerHTML = '<ion-icon name="trash-outline" class="text-xl"></ion-icon>';
+                deleteButton.onclick = () => {
+                    roles = roles.filter(r => !(r.name === role.name && r.type === role.type));
+                    div.remove();
+                };
+
+                right.appendChild(typeToggle);
+                right.appendChild(deleteButton);
+
+                div.appendChild(left);
+                div.appendChild(right);
+                return div;
+            };
+
             const renderRoles = () => {
                 rolesList.innerHTML = '';
                 roles.forEach(role => {
-                    const item = createListItem(role, 'roles-list', (roleText, element) => {
-                        roles = roles.filter(r => r !== roleText);
-                        element.remove();
-                    });
+                    const item = createRoleItem(role);
                     rolesList.appendChild(item);
                 });
             };
 
             addRoleButton.addEventListener('click', () => {
-                const newRole = newRoleInput.value.trim();
-                if (newRole && !roles.includes(newRole)) {
-                    roles.push(newRole);
+                const name = newRoleInput.value.trim();
+                const type = newRoleType;
+                const exists = roles.some(r => r.name === name);
+                if (name && !exists) {
+                    roles.push({ name, type });
                     renderRoles();
                     newRoleInput.value = '';
+                    newRoleType = '一般従業員';
+                    updateNewRoleTypeButton();
                 }
             });
 
