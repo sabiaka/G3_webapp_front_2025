@@ -159,40 +159,42 @@
                         <p>POST <code>/api/ingress/inspection</code> で受け取る <code>metadata</code> と画像は、本テーブルに保存します。</p>
                     </div>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2">machine_production（ホックリング残数・生産数）</h3>
-                    <pre><code class="language-sql">CREATE TABLE machine_production (
-    machine_prod_id SERIAL PRIMARY KEY,                             -- 生産データID（自動採番）
-    machine_prod_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 記録日時
-    machine_prod_hook_remaining INT NOT NULL,                       -- ホックリング残数
-    machine_prod_count INT NOT NULL                                 -- 生産数
+                    <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
+<pre><code class="language-sql">CREATE TABLE machine_logs (
+    log_id SERIAL PRIMARY KEY,
+    machine_id INT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')),
+    title VARCHAR(100) NOT NULL,
+    message TEXT,
+    FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
 );</code></pre>
-
                     <div class="mt-2 text-sm text-slate-600">
-                        <p>POST <code>/api/ingress/plc</code> で受け取るカウント情報の格納先です（必要に応じて <code>machine_id</code> 等の列追加をご検討ください）。</p>
+                        <p>POST <code>/api/ingress/plc</code> で受け取る各種ログ情報をこのテーブルに保存します。</p>
                     </div>
                 </div>
             </section>
 
             <!-- 3. PLC情報送信 -->
             <section id="post-plc-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLC情報送信 (機械 → サーバー)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (機械 → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/plc</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">生産機械 (PLC) が、製品を1個作るたびに「できたよー！」ってサーバーに報告するためのAPI。実績数がリアルタイムで増えてくのは、こいつのおかげ！</p>
+                    <p class="mb-4">生産機械 (PLC) からの様々な情報をサーバーに送信するための汎用APIです。エラー、起動通知、消耗品（ホックリングなど）の残量警告など、あらゆる種類のログをこのエンドポイントで受け付けます。</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>, <code>warning</code>, <code>error</code>）</p>
                     <pre><code class="language-json">{
-    "machine_id": "press-machine-01",
-    "product_id": "A-102-001",
-    "count": 1,
-    "timestamp": "2025-08-04T11:20:35Z"
+    "timestamp": "2025-07-15T10:15:32Z",
+    "log_type": "error",
+    "title": "E-102: トルク過負荷",
+    "message": "モーターの負荷が規定値を超えました。"
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データを受け取ったら、サーバーはすぐ「りょ！」って返事して、裏側でゆっくりデータを処理する。だから`202
-                        Accepted`がイケてる。返事の中身はこんな感じのJSONだよ！</p>
+                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは <code>202 Accepted</code> が最適です。</p>
                     <pre><code class="language-json">{
     "message": "データを受け付けました。処理を開始します。"
 }</code></pre>
@@ -306,7 +308,7 @@ print("レスポンス:", response.json())
 
             <!-- 6. 未検査の画像とデータをゲトるAPI -->
             <section id="get-uninspected-item">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 未検査の画像とデータをゲトるAPI (検査Jetson ←
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 未検査の画像とデータ取得 (検査Jetson ←
                     サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
