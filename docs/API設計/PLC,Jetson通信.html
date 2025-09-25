@@ -190,9 +190,11 @@
                     <pre><code class="language-json">{
     "timestamp": "2025-07-15T10:15:32Z",
     "log_type": "error",
+    "status": "停止中",
     "title": "E-102: トルク過負荷",
     "message": "モーターの負荷が規定値を超えました。"
 }</code></pre>
+    <p class="text-sm">statusはmachine_statusの中のstatusに書き込むようにしてください｡</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
                     <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは <code>202 Accepted</code> が最適です。</p>
                     <pre><code class="language-json">{
