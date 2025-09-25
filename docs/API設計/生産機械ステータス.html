@@ -79,32 +79,32 @@
 
                     <h3 class="text-lg font-semibold mt-4 mb-2">machines（機械マスタ）</h3>
                     <pre><code class="language-sql">CREATE TABLE machines (
-    machine_id SERIAL PRIMARY KEY,
-    machine_name VARCHAR(100) UNIQUE NOT NULL
+    machine_id SERIAL PRIMARY KEY,            -- 主キー: 機械ID
+    machine_name VARCHAR(100) UNIQUE NOT NULL -- 機械名称（ユニーク）
 );</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_status（機械状態）</h3>
                     <pre><code class="language-sql">CREATE TABLE machine_status (
-    machine_status_id SERIAL PRIMARY KEY,
-    machine_data_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    machine_id INT NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('稼働中','停止中','異常あり','メンテ中')),
-    today_uptime_seconds INT DEFAULT 0,
-    today_production_count INT DEFAULT 0,
-    machine_last_inspection DATE,
-    next_inspection_date DATE
-    -- ,FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
+    machine_status_id SERIAL PRIMARY KEY,                        -- 主キー
+    machine_data_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 状態記録時刻
+    machine_id INT NOT NULL,                                     -- 対象機械ID（machines.machine_id）
+    status VARCHAR(20) NOT NULL CHECK (status IN ('稼働中','停止中','異常あり','メンテ中')), -- 現在ステータス
+    today_uptime_seconds INT DEFAULT 0,                          -- 今日の稼働秒数（算出配信方式なら冗長列）
+    today_production_count INT DEFAULT 0,                        -- 今日の累計生産数
+    machine_last_inspection DATE,                                -- 最終点検日
+    next_inspection_date DATE                                    -- 次回点検予定日
+    -- ,FOREIGN KEY (machine_id) REFERENCES machines(machine_id) -- 必要なら制約を有効化
 );</code></pre>
-                    <div class="mt-2 text-sm text-slate-600">稼働時間は <code>started_at</code> などの元データから計算配信する設計でもOKです。</div>
+                    <div class="mt-2 text-sm text-slate-600">稼働時間は <code>started_at</code> 等の元データから計算配信する設計でもOKです。</div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
                     <pre><code class="language-sql">CREATE TABLE machine_logs (
-    log_id SERIAL PRIMARY KEY,
-    machine_id INT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')),
-    title VARCHAR(100) NOT NULL,
-    message TEXT,
+    log_id SERIAL PRIMARY KEY,                                           -- ログID
+    machine_id INT NOT NULL,                                             -- 対象機械ID
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
+    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')), -- 種別
+    title VARCHAR(100) NOT NULL,                                         -- ログタイトル（コード + 概要）
+    message TEXT,                                                        -- 詳細メッセージ
     FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
 );</code></pre>
                 </div>

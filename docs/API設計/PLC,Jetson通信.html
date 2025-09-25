@@ -161,12 +161,12 @@
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
 <pre><code class="language-sql">CREATE TABLE machine_logs (
-    log_id SERIAL PRIMARY KEY,
-    machine_id INT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')),
-    title VARCHAR(100) NOT NULL,
-    message TEXT,
+    log_id SERIAL PRIMARY KEY,                                           -- ログID
+    machine_id INT NOT NULL,                                             -- 対象機械ID
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
+    log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')), -- 種別
+    title VARCHAR(100) NOT NULL,                                         -- ログタイトル（コード + 概要）
+    message TEXT,                                                        -- 詳細メッセージ
     FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
 );</code></pre>
                     <div class="mt-2 text-sm text-slate-600">
