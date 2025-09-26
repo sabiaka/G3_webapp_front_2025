@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 
 // MUI Components
 import Box from '@mui/material/Box'
@@ -15,6 +15,8 @@ import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Avatar from '@mui/material/Avatar'
 import Divider from '@mui/material/Divider'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 
 // MUI Icons
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
@@ -29,6 +31,54 @@ import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionMan
 // 型の簡易表現
 const ADMIN = '管理者'
 const MEMBER = '一般従業員'
+
+// API ヘルパー
+function getToken() {
+	if (typeof window === 'undefined') return null
+	try {
+		return (
+			window.localStorage.getItem('access_token') ||
+			window.sessionStorage.getItem('access_token') ||
+			null
+		)
+	} catch {
+		return null
+	}
+}
+
+async function api(path, { method = 'GET', body, headers } = {}) {
+	const token = getToken()
+	const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+	const res = await fetch(`${base}${path}`, {
+		method,
+		headers: {
+			...(body ? { 'Content-Type': 'application/json' } : {}),
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			...headers,
+		},
+		body: body ? JSON.stringify(body) : undefined,
+	})
+
+	if (!res.ok) {
+		let payload = null
+		try {
+			payload = await res.json()
+		} catch {
+			try {
+				payload = await res.text()
+			} catch {
+				payload = null
+			}
+		}
+		const err = new Error('Request failed')
+		err.status = res.status
+		err.payload = payload
+		throw err
+	}
+
+	if (res.status === 204) return null
+	return res.json()
+}
 
 function RoleItem({ role, onUpdate, onDelete }) {
 	const [editing, setEditing] = useState(false)
@@ -132,22 +182,22 @@ function RoleItem({ role, onUpdate, onDelete }) {
 	)
 }
 
-function LineItem({ name, onRename, onDelete }) {
+function LineItem({ line, onRename, onDelete }) {
 	const [editing, setEditing] = useState(false)
-	const [draft, setDraft] = useState(name)
+	const [draft, setDraft] = useState(line.name)
 
 	const startEdit = () => {
-		setDraft(name)
+		setDraft(line.name)
 		setEditing(true)
 	}
 	const cancelEdit = () => {
 		setEditing(false)
-		setDraft(name)
+		setDraft(line.name)
 	}
 	const saveEdit = () => {
 		const trimmed = draft.trim()
 		if (!trimmed) return cancelEdit()
-		if (trimmed === name) return cancelEdit()
+		if (trimmed === line.name) return cancelEdit()
 		onRename(trimmed)
 		setEditing(false)
 	}
@@ -168,7 +218,7 @@ function LineItem({ name, onRename, onDelete }) {
 					<PrecisionManufacturingOutlinedIcon fontSize="small" />
 				</Avatar>
 				{!editing ? (
-					<Typography className="text-gray-700">{name}</Typography>
+					<Typography className="text-gray-700">{line.name}</Typography>
 				) : (
 					<TextField
 						size="small"
@@ -208,53 +258,149 @@ function LineItem({ name, onRename, onDelete }) {
 }
 
 export default function FactorySettingsPage() {
-	// --- 初期データ（静的） ---
-	const [roles, setRoles] = useState([
-		{ id: 1, name: '管理画面運用', type: ADMIN },
-		{ id: 2, name: '閲覧のみ', type: MEMBER },
-	])
+	// --- ステート ---
+	const [roles, setRoles] = useState([])
 	const [newRoleName, setNewRoleName] = useState('')
 	const [newRoleType, setNewRoleType] = useState(MEMBER)
+	const [rolesLoading, setRolesLoading] = useState(false)
 
-	const [lines, setLines] = useState(['Aライン (組立)', 'Bライン (塗装)', '検査ライン'])
+	const [lines, setLines] = useState([]) // { id, name }
 	const [newLineName, setNewLineName] = useState('')
+	const [linesLoading, setLinesLoading] = useState(false)
+
+	const [snack, setSnack] = useState({ open: false, severity: 'info', message: '' })
+	const openSnack = useCallback((message, severity = 'info') => setSnack({ open: true, message, severity }), [])
+	const closeSnack = useCallback(() => setSnack(s => ({ ...s, open: false })), [])
 
 	const roleNames = useMemo(() => new Set(roles.map(r => r.name)), [roles])
-	const lineNames = useMemo(() => new Set(lines), [lines])
+	const lineNames = useMemo(() => new Set(lines.map(l => l.name)), [lines])
 
-	const addRole = () => {
+	// --- 初期ロード ---
+	useEffect(() => {
+		;(async () => {
+			setRolesLoading(true)
+			try {
+				const data = await api('/api/roles')
+				setRoles(
+					(Array.isArray(data) ? data : []).map(r => ({ id: r.role_id, name: r.role_name, type: r.is_admin ? ADMIN : MEMBER }))
+				)
+			} catch (e) {
+				openSnack(`権限一覧の取得に失敗しました (${e.status || ''})`, 'error')
+			} finally {
+				setRolesLoading(false)
+			}
+		})()
+
+		;(async () => {
+			setLinesLoading(true)
+			try {
+				const data = await api('/api/lines')
+				setLines((Array.isArray(data) ? data : []).map(l => ({ id: l.line_id, name: l.line_name })))
+			} catch (e) {
+				openSnack(`ライン一覧の取得に失敗しました (${e.status || ''})`, 'error')
+			} finally {
+				setLinesLoading(false)
+			}
+		})()
+	}, [openSnack])
+
+	// --- 役割 CRUD ---
+	const addRole = async () => {
 		const name = newRoleName.trim()
-		if (!name || roleNames.has(name)) return
-		setRoles(prev => [
-			...prev,
-			{ id: Math.max(0, ...prev.map(r => r.id)) + 1, name, type: newRoleType },
-		])
-		setNewRoleName('')
-		setNewRoleType(MEMBER)
+		if (!name) return
+		if (roleNames.has(name)) {
+			openSnack('同じロール名が既に存在します', 'warning')
+			return
+		}
+		try {
+			const created = await api('/api/roles', {
+				method: 'POST',
+				body: { role_name: name, is_admin: newRoleType === ADMIN },
+			})
+			setRoles(prev => [...prev, { id: created.role_id, name: created.role_name, type: created.is_admin ? ADMIN : MEMBER }])
+			setNewRoleName('')
+			setNewRoleType(MEMBER)
+			openSnack('ロールを追加しました', 'success')
+		} catch (e) {
+			if (e.status === 409) openSnack('ロール名が重複しています', 'warning')
+			else openSnack('ロールの追加に失敗しました', 'error')
+		}
 	}
 
-	const updateRole = updated => {
-		// 重複名チェック
-		if (roles.some(r => r.id !== updated.id && r.name === updated.name)) return
-		setRoles(prev => prev.map(r => (r.id === updated.id ? updated : r)))
+	const updateRole = async updated => {
+		const original = roles.find(r => r.id === updated.id)
+		if (!original) return
+		const body = {}
+		if (updated.name !== original.name) body.role_name = updated.name
+		if (updated.type !== original.type) body.is_admin = updated.type === ADMIN
+		if (Object.keys(body).length === 0) return
+		try {
+			const res = await api(`/api/roles/${updated.id}`, { method: 'PUT', body })
+			const mapped = { id: res.role_id, name: res.role_name, type: res.is_admin ? ADMIN : MEMBER }
+			setRoles(prev => prev.map(r => (r.id === mapped.id ? mapped : r)))
+			openSnack('ロールを更新しました', 'success')
+		} catch (e) {
+			if (e.status === 404) openSnack('対象のロールが見つかりません', 'warning')
+			else if (e.status === 409) openSnack('ロール名が重複しています', 'warning')
+			else openSnack('ロールの更新に失敗しました', 'error')
+		}
 	}
 
-	const deleteRole = id => setRoles(prev => prev.filter(r => r.id !== id))
+	const deleteRole = async id => {
+		try {
+			await api(`/api/roles/${id}`, { method: 'DELETE' })
+			setRoles(prev => prev.filter(r => r.id !== id))
+			openSnack('ロールを削除しました', 'success')
+		} catch (e) {
+			if (e.status === 409) openSnack('関連データがあり削除できません', 'warning')
+			else openSnack('ロールの削除に失敗しました', 'error')
+		}
+	}
 
-	const addLine = () => {
+	// --- ライン CRUD ---
+	const addLine = async () => {
 		const name = newLineName.trim()
-		if (!name || lineNames.has(name)) return
-		setLines(prev => [...prev, name])
-		setNewLineName('')
+		if (!name) return
+		if (lineNames.has(name)) {
+			openSnack('同じライン名が既に存在します', 'warning')
+			return
+		}
+		try {
+			const created = await api('/api/lines', { method: 'POST', body: { line_name: name } })
+			setLines(prev => [...prev, { id: created.line_id, name: created.line_name }])
+			setNewLineName('')
+			openSnack('ラインを追加しました', 'success')
+		} catch (e) {
+			if (e.status === 409) openSnack('ライン名が重複しています', 'warning')
+			else openSnack('ラインの追加に失敗しました', 'error')
+		}
 	}
 
-	const renameLine = (index, newName) => {
-		if (!newName || lineNames.has(newName)) return
-		setLines(prev => prev.map((l, i) => (i === index ? newName : l)))
+	const renameLine = async (id, newName) => {
+		if (!newName) return
+		if (lineNames.has(newName)) {
+			openSnack('同じライン名が既に存在します', 'warning')
+			return
+		}
+		try {
+			const res = await api(`/api/lines/${id}`, { method: 'PUT', body: { line_name: newName } })
+			setLines(prev => prev.map(l => (l.id === id ? { id: res.line_id, name: res.line_name } : l)))
+			openSnack('ライン名を更新しました', 'success')
+		} catch (e) {
+			if (e.status === 404) openSnack('対象のラインが見つかりません', 'warning')
+			else if (e.status === 409) openSnack('ライン名が重複しています', 'warning')
+			else openSnack('ライン名の更新に失敗しました', 'error')
+		}
 	}
 
-	const deleteLine = index => {
-		setLines(prev => prev.filter((_, i) => i !== index))
+	const deleteLine = async id => {
+		try {
+			await api(`/api/lines/${id}`, { method: 'DELETE' })
+			setLines(prev => prev.filter(l => l.id !== id))
+			openSnack('ラインを削除しました', 'success')
+		} catch (e) {
+			openSnack('ラインの削除に失敗しました', 'error')
+		}
 	}
 
 	return (
@@ -333,12 +479,12 @@ export default function FactorySettingsPage() {
 						<Divider />
 						<CardContent>
 							<Stack spacing={1.25}>
-								{lines.map((line, idx) => (
+								{lines.map((line) => (
 									<LineItem
-										key={`${line}-${idx}`}
-										name={line}
-										onRename={newName => renameLine(idx, newName)}
-										onDelete={() => deleteLine(idx)}
+										key={line.id}
+										line={line}
+										onRename={newName => renameLine(line.id, newName)}
+										onDelete={() => deleteLine(line.id)}
 									/>
 								))}
 							</Stack>
@@ -369,6 +515,12 @@ export default function FactorySettingsPage() {
 					</Card>
 				</Grid>
 			</Grid>
+
+				<Snackbar open={snack.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+					<Alert onClose={closeSnack} severity={snack.severity} sx={{ width: '100%' }}>
+						{snack.message}
+					</Alert>
+				</Snackbar>
 		</Box>
 	)
 }
