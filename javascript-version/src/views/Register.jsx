@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -35,12 +35,17 @@ const Register = ({ mode }) => {
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [password, setPassword] = useState('')
-  const [roleName, setRoleName] = useState('一般')
-  const [lineName, setLineName] = useState('')
+  const [selectedRoleId, setSelectedRoleId] = useState('') // number or ''
+  const [selectedLineId, setSelectedLineId] = useState('') // number or ''
   const [specialNotes, setSpecialNotes] = useState('')
   const [colorCode, setColorCode] = useState('FF8800')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // masters
+  const [roles, setRoles] = useState([])
+  const [lines, setLines] = useState([])
+  const [loadingRoles, setLoadingRoles] = useState(true)
+  const [loadingLines, setLoadingLines] = useState(true)
 
   // Vars
   const darkImg = '/images/pages/auth-v1-mask-dark.png'
@@ -53,6 +58,8 @@ const Register = ({ mode }) => {
 
   const isValid = () => {
     if (!employeeUserId || !lastName || !firstName || !password) return false
+    // 役割が取得できている場合は選択必須
+    if (roles.length > 0 && (selectedRoleId === '' || selectedRoleId === null || selectedRoleId === undefined)) return false
     return true
   }
 
@@ -70,8 +77,8 @@ const Register = ({ mode }) => {
           employee_user_id: employeeUserId,
           password,
           employee_name: `${String(lastName || '').trim()}${(lastName && firstName) ? ' ' : ''}${String(firstName || '').trim()}`.trim(),
-          employee_role_name: roleName,
-          employee_line_name: lineName || undefined,
+          employee_role_id: selectedRoleId || undefined,
+          employee_line_id: (selectedLineId === '' ? undefined : selectedLineId),
           employee_special_notes: specialNotes || undefined,
           employee_color_code: colorCode || undefined
         })
@@ -95,6 +102,60 @@ const Register = ({ mode }) => {
       setLoading(false)
     }
   }
+
+  // マスタ取得（ロール／ライン）
+  useEffect(() => {
+    const ac = new AbortController()
+    const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
+    // Roles
+    ;(async () => {
+      try {
+        setLoadingRoles(true)
+        const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal })
+        if (res.ok) {
+          const data = await res.json()
+          const list = Array.isArray(data) ? data : []
+          setRoles(list)
+          // 既存選択を優先し、なければ「一般」→先頭→空（IDで管理）
+          setSelectedRoleId(prev => {
+            if ((prev || prev === 0) && list.some(r => r?.role_id === prev)) return prev
+            const general = list.find(r => r?.role_name === '一般')?.role_id
+            return general ?? list[0]?.role_id ?? ''
+          })
+        } else {
+          setRoles([])
+        }
+      } catch (err) {
+        setRoles([])
+      } finally {
+        setLoadingRoles(false)
+      }
+    })()
+
+    // Lines
+    ;(async () => {
+      try {
+        setLoadingLines(true)
+        const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal })
+        if (res.ok) {
+          const data = await res.json()
+          const list = Array.isArray(data) ? data : []
+          setLines(list)
+          // ラインは未選択を許容。既存選択がリストにない場合は空のまま。
+          setSelectedLineId(prev => ((prev || prev === 0) && list.some(l => l?.line_id === prev) ? prev : ''))
+        } else {
+          setLines([])
+        }
+      } catch (err) {
+        setLines([])
+      } finally {
+        setLoadingLines(false)
+      }
+    })()
+
+    return () => ac.abort()
+  }, [])
 
   // カラーパレット（従業員編集ウィンドウに合わせた系統色 + 既定色 FF8800 を含む）
   const basePalette = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e']
@@ -241,25 +302,54 @@ const Register = ({ mode }) => {
                         fullWidth
                         select
                         label='役割'
-                        value={roleName}
-                        onChange={e => setRoleName(e.target.value)}
-                        disabled={loading}
+                        value={selectedRoleId === '' ? '' : selectedRoleId}
+                        onChange={e => {
+                          const v = e.target.value
+                          setSelectedRoleId(v === '' ? '' : (typeof v === 'number' ? v : Number(v)))
+                        }}
+                        disabled={loading || loadingRoles || roles.length === 0}
                       >
-                        <MenuItem value='一般'>一般</MenuItem>
-                        <MenuItem value='管理者'>管理者</MenuItem>
-                        <MenuItem value='検査員'>検査員</MenuItem>
-                        <MenuItem value='デバッガー'>デバッガー</MenuItem>
+                        {loadingRoles ? (
+                          <MenuItem value='' disabled>
+                            読み込み中…
+                          </MenuItem>
+                        ) : (
+                          roles.map(role => (
+                            <MenuItem key={role?.role_id ?? role?.role_name} value={role?.role_id}>
+                              {role?.role_name}
+                              {role?.is_admin ? '（管理者）' : ''}
+                            </MenuItem>
+                          ))
+                        )}
                       </TextField>
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label='担当ライン名'
-                        placeholder='第一ライン'
-                        value={lineName}
-                        onChange={e => setLineName(e.target.value)}
-                        disabled={loading}
-                      />
+                        select
+                        label='担当ライン'
+                        value={selectedLineId === '' ? '' : selectedLineId}
+                        onChange={e => {
+                          const v = e.target.value
+                          setSelectedLineId(v === '' ? '' : (typeof v === 'number' ? v : Number(v)))
+                        }}
+                        disabled={loading || loadingLines}
+                        SelectProps={{ MenuProps: { disablePortal: true } }}
+                        helperText={(!loadingLines && lines.length === 0) ? 'ラインが未登録です。管理画面から追加してください。' : '　'}
+                      >
+                        <MenuItem value=''>未選択</MenuItem>
+                        {loadingLines ? (
+                          <MenuItem value='' disabled>
+                            読み込み中…
+                          </MenuItem>
+                        ) : (
+                          lines.map(line => (
+                            <MenuItem key={line?.line_id ?? line?.line_name} value={line?.line_id}>
+                              {line?.line_name}
+                            </MenuItem>
+                          ))
+                        )}
+                      </TextField>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
