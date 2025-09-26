@@ -142,8 +142,8 @@
     employee_user_id VARCHAR(50) UNIQUE NOT NULL, -- ログインID
     employee_password VARCHAR(255) NOT NULL,      -- パスワード（ハッシュ推奨）
     employee_is_active BOOLEAN DEFAULT TRUE,      -- 有効/無効
-    employee_role_name VARCHAR(50) NOT NULL,      -- 権限名
-    employee_line_name VARCHAR(50) NOT NULL,      -- 担当ライン名
+    employee_role_id INTEGER NOT NULL,           -- 権限ID（roles.role_id）
+    employee_line_id INTEGER NOT NULL,           -- 担当ラインID（production_lines.line_id）
     employee_special_notes TEXT,                  -- 特記事項
     employee_color_code CHAR(6)                   -- カラーコード（例:"FF0000"）
     -- 将来的に roles / production_lines と外部キーで結ぶなら以下を有効化
@@ -207,8 +207,8 @@
     "employee_user_id": "hana.kato",
     "password": "P@ssw0rd2025",
     "employee_name": "加藤花",
-    "employee_role_name": "一般",
-    "employee_line_name": "第一ライン",
+    "employee_role_id": 2,
+    "employee_line_id": 1,
     "employee_special_notes": "夜勤中心",
     "employee_color_code": "FF8800"
 }</code></pre>
