@@ -100,12 +100,12 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
                     <pre><code class="language-sql">CREATE TABLE machine_logs (
     log_id SERIAL PRIMARY KEY,                                           -- ログID
-    machine_id INT NOT NULL,                                             -- 対象機械ID
+    machine_name VARCHAR(100) NOT NULL,                                  -- 対象機械NAME
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
     log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')), -- 種別
     title VARCHAR(100) NOT NULL,                                         -- ログタイトル（コード + 概要）
     message TEXT,                                                        -- 詳細メッセージ
-    FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
+    
 );</code></pre>
                 </div>
             </section>
@@ -132,7 +132,6 @@
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
-    "machine_id": 1,
     "machine_name": "自動表層バネどめ機",
     "image_url": "/images/machine-01.png",
     "status": "稼働中", // "稼働中", "停止中", "異常あり", "メンテ中"

@@ -162,12 +162,12 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
 <pre><code class="language-sql">CREATE TABLE machine_logs (
     log_id SERIAL PRIMARY KEY,                                           -- ログID
-    machine_id INT NOT NULL,                                             -- 対象機械ID
+    machine_name VARCHAR(100) NOT NULL,                                  -- 対象機械NAME
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
     log_type VARCHAR(10) CHECK (log_type IN ('error','warning','info')), -- 種別
     title VARCHAR(100) NOT NULL,                                         -- ログタイトル（コード + 概要）
     message TEXT,                                                        -- 詳細メッセージ
-    FOREIGN KEY (machine_id) REFERENCES machines(machine_id)
+    
 );</code></pre>
                     <div class="mt-2 text-sm text-slate-600">
                         <p>POST <code>/api/ingress/plc</code> で受け取る各種ログ情報をこのテーブルに保存します。</p>
@@ -189,6 +189,7 @@
                     <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>, <code>warning</code>, <code>error</code>）</p>
                     <pre><code class="language-json">{
     "timestamp": "2025-07-15T10:15:32Z",
+    "machine_name":"半自動バネどめ機",
     "log_type": "error",
     "status": "停止中",
     "title": "E-102: トルク過負荷",
