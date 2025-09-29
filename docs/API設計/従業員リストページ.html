@@ -89,8 +89,9 @@
 
                     <h3 class="text-lg font-semibold mt-4 mb-2">roles（権限マスタ）</h3>
                     <pre><code class="language-sql">CREATE TABLE roles (
-    role_id SERIAL PRIMARY KEY,
-    role_name VARCHAR(50) UNIQUE NOT NULL
+    role_id SERIAL PRIMARY KEY,            -- 自動採番
+    role_name VARCHAR(50) UNIQUE NOT NULL,  -- 権限名(例:"管理者"や"一般")
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE --追加 09/25
 );</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">production_lines（ラインマスタ）</h3>
