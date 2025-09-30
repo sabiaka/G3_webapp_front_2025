@@ -118,6 +118,7 @@ const MachineStatus = () => {
     正常稼働: 'success',
     エラー: 'error',
     不明: 'default',
+    停止中: 'default',
   }
 
   // API からログ取得（API設計: GET /api/machines/{id}/logs）
@@ -281,7 +282,8 @@ const MachineStatus = () => {
       'W-099': '残弾わずか', // その他 軽微なエラー
       'I-001': '正常稼働',
       'I-002': '正常稼働',
-      'I-003': '正常稼働',
+      // 新規要件: 生産機械 シャットダウンはランプを「停止中」
+      'I-003': '停止中',
     }
 
     const determineStatusFromLog = (l) => {
@@ -315,6 +317,17 @@ const MachineStatus = () => {
       }
     })
 
+    // 最新の I-003 (生産機械 シャットダウン) の時刻を取得（グローバル＝unit_id 無しを対象）
+    let latestGlobalShutdownTs = null
+    apiLogs.forEach(l => {
+      if (l.unit_id != null) return
+      const c = extractCode(l.title)
+      if (c === 'I-003') {
+        const ts = new Date(l.timestamp)
+        if (!latestGlobalShutdownTs || ts > latestGlobalShutdownTs) latestGlobalShutdownTs = ts
+      }
+    })
+
     const calcWithResetRule = (unitIdx) => {
       const latest = latestByUnit[unitIdx]
       let status = determineStatusFromLog(latest)
@@ -331,6 +344,21 @@ const MachineStatus = () => {
       Unit2: calcWithResetRule(2),
       Unit3: calcWithResetRule(3),
       Unit4: calcWithResetRule(4),
+    }
+
+    // グローバル I-003（停止）発生後に I-002 が来ていない場合、各ユニットも停止中に上書き
+    if (latestGlobalShutdownTs && (!latestI002Ts || latestI002Ts <= latestGlobalShutdownTs)) {
+      const overrideIfBeforeShutdown = (unitIdx, key) => {
+        const latest = latestByUnit[unitIdx]
+        const unitTs = latest ? new Date(latest.timestamp) : null
+        if (!unitTs || unitTs <= latestGlobalShutdownTs) {
+          next[key] = '停止中'
+        }
+      }
+      overrideIfBeforeShutdown(1, 'Unit1')
+      overrideIfBeforeShutdown(2, 'Unit2')
+      overrideIfBeforeShutdown(3, 'Unit3')
+      overrideIfBeforeShutdown(4, 'Unit4')
     }
 
     // まれに対象ユニットのログが全く無い場合のフォールバック
@@ -361,6 +389,8 @@ const MachineStatus = () => {
       // 大ランプ用に正規化
       if (gs === 'エラー' || gs === '残弾なし') globalLabel = 'エラー'
       else if (gs === '残弾わずか') globalLabel = '警告'
+      else if (gs === '不明') globalLabel = '不明'
+      else if (gs === '停止中') globalLabel = '停止中'
       else globalLabel = '正常稼働'
     } else if (fetchError && (!apiLogs || apiLogs.length === 0)) {
       globalLabel = '不明'
@@ -376,8 +406,10 @@ const MachineStatus = () => {
     const hasError = values.some(v => v === 'エラー' || v === '残弾なし')
     const hasWarn = values.some(v => v === '残弾わずか')
     const hasUnknown = values.some(v => v === '不明')
+    const hasStopped = values.some(v => v === '停止中')
 
     if (hasError) return { label: 'エラー', color: 'error' }
+    if (hasStopped) return { label: '停止中', color: 'default' }
     if (hasWarn) return { label: '警告', color: 'warning' }
     if (hasUnknown) return { label: '不明', color: 'default' }
     return { label: '正常に稼働中', color: 'success' }
