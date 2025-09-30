@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -92,28 +92,188 @@ const statusColorMap = {
 const MachineStatus = () => {
   const [logType, setLogType] = useState('すべて')
   const [logDate, setLogDate] = useState('')
+  // API ログ
+  const [apiLogs, setApiLogs] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState('')
 
-  const filteredLogs = errorLogSample.filter(log => {
-    const typeMatch = logType === 'すべて' || log.type === logType
-    const dateMatch = !logDate || log.date === logDate
-
-    
-return typeMatch && dateMatch
+  // ユニット ステータス（ログから自動判定）
+  const [unitStatuses, setUnitStatuses] = useState({
+    Unit1: '正常稼働',
+    Unit2: '正常稼働',
+    Unit3: '正常稼働',
+    Unit4: '正常稼働',
   })
+
+  const unitLampColorMap = {
+    残弾わずか: 'warning',
+    残弾なし: 'error',
+    正常稼働: 'success',
+    エラー: 'error',
+  }
+
+  // API からログ取得（エンドポイントは必要に応じて調整してください）
+  useEffect(() => {
+    const controller = new AbortController()
+    const fetchLogs = async () => {
+      try {
+        setLoading(true)
+        setFetchError('')
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const token =
+          (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+        const res = await fetch(`${base}/api/machine/logs`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error(`Failed to fetch logs: ${res.status}`)
+        const data = await res.json()
+        const logs = Array.isArray(data?.logs) ? data.logs : []
+        setApiLogs(logs)
+      } catch (err) {
+        // 失敗時はサンプルをフォールバックとして利用
+        setFetchError('ログの取得に失敗しました。サンプルデータで表示しています。')
+        const fallback = errorLogSample.map((s, idx) => ({
+          log_id: 1000 + idx,
+          unit_id: null,
+          timestamp: `${s.date}T${s.time}Z`,
+          log_type: s.color === 'error' ? 'error' : s.color === 'warning' ? 'warning' : 'info',
+          title: `${s.code}: ${s.title}`,
+          message: s.desc || '',
+        }))
+        setApiLogs(fallback)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchLogs()
+    return () => controller.abort()
+  }, [])
+
+  // ログの表示用に加工（フィルタ/整形）
+  const processedLogs = useMemo(() => {
+    const toDateOnly = (iso) => {
+      try {
+        const d = new Date(iso)
+        // YYYY-MM-DD
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const da = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${da}`
+      } catch {
+        return ''
+      }
+    }
+    const toTime = (iso) => {
+      try {
+        const d = new Date(iso)
+        const hh = String(d.getHours()).padStart(2, '0')
+        const mm = String(d.getMinutes()).padStart(2, '0')
+        const ss = String(d.getSeconds()).padStart(2, '0')
+        return `${hh}:${mm}:${ss}`
+      } catch {
+        return ''
+      }
+    }
+    const mapColor = t => (t === 'error' ? 'error' : t === 'warning' ? 'warning' : 'default')
+    const mapTypeJp = t => (t === 'error' ? 'エラー' : t === 'warning' ? '警告' : '情報')
+
+    return apiLogs
+      .slice()
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .map(l => {
+        const code = (l.title || '').split(':')[0] || ''
+        return {
+          type: mapTypeJp(l.log_type),
+          code,
+          title: (l.title || '').split(':').slice(1).join(':').trim() || l.title || '',
+          desc: l.message || '',
+          date: toDateOnly(l.timestamp),
+          time: toTime(l.timestamp),
+          color: mapColor(l.log_type),
+          unitId: l.unit_id,
+        }
+      })
+  }, [apiLogs])
+
+  // フィルタ適用
+  const filteredLogs = useMemo(() => {
+    return processedLogs.filter(log => {
+      const typeMatch = logType === 'すべて' || log.type === logType
+      const dateMatch = !logDate || log.date === logDate
+      return typeMatch && dateMatch
+    })
+  }, [processedLogs, logType, logDate])
+
+  // 最新ログからユニットの状態を推定
+  useEffect(() => {
+    const extractCode = (title) => {
+      const m = (title || '').match(/([A-Z]-\d{3})/)
+      return m?.[1] || ''
+    }
+
+    // エラーコード → ユニットランプ状態マッピング
+    // ご提示の一覧に基づく
+    const codeToStatus = {
+      'E-001': '正常稼働', // 非常停止ボタン作動は正常扱い
+      'E-002': '残弾なし', // 致命的低下
+      'E-003': 'エラー',   // 点検時期 超過
+      'E-099': 'エラー',   // その他 致命的停止
+      'W-001': '残弾わずか', // 残弾数 低下
+      'W-002': '残弾わずか', // 点検時期 間近（警告扱い）
+      'W-099': '残弾わずか', // その他 軽微なエラー
+      'I-001': '正常稼働',
+      'I-002': '正常稼働',
+      'I-003': '正常稼働',
+    }
+
+    const determineStatusFromLog = (l) => {
+      if (!l) return '正常稼働'
+      const code = extractCode(l.title)
+      if (code && codeToStatus[code]) return codeToStatus[code]
+
+      // コードが未知の場合のフォールバック
+      if (l.log_type === 'error') return 'エラー'
+      if (l.log_type === 'warning') return '残弾わずか'
+      return '正常稼働'
+    }
+
+    // ユニット毎に最新ログを抽出（1〜4）
+    const latestByUnit = { 1: null, 2: null, 3: null, 4: null }
+    apiLogs.forEach(l => {
+      if (l.unit_id == null) return
+      if (!(l.unit_id in latestByUnit)) return
+      if (!latestByUnit[l.unit_id] || new Date(l.timestamp) > new Date(latestByUnit[l.unit_id].timestamp)) {
+        latestByUnit[l.unit_id] = l
+      }
+    })
+
+    const next = {
+      Unit1: determineStatusFromLog(latestByUnit[1]),
+      Unit2: determineStatusFromLog(latestByUnit[2]),
+      Unit3: determineStatusFromLog(latestByUnit[3]),
+      Unit4: determineStatusFromLog(latestByUnit[4]),
+    }
+    setUnitStatuses(next)
+  }, [apiLogs])
 
   // ここから描画
 
   return (
     <Grid container spacing={6}>
       {/* タイトル・戻るリンク */}
-      <Typography variant='h4' sx={{ mb: 0, fontWeight: 700 }}>生産機械ステータス</Typography>
+      {/* <Typography variant='h4' sx={{ mb: 0, fontWeight: 700 }}>生産機械ステータス</Typography> */}
 
       {/* 2カラムレイアウト */}
       <Grid item xs={12}>
         <Grid container spacing={4}>
           {/* 左カラム: 機械画像・状態 */}
           <Grid item xs={12} md={5}>
-            <Card sx={{ mb: 4 }}>
+            <Card sx={{ mb: 4, height: '100%' }}>
               <CardContent>
                 <Typography variant='h6' fontWeight='bold' mb={2}>{machineInfo.name}</Typography>
                 <Box
@@ -131,6 +291,50 @@ return typeMatch && dateMatch
                     style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
                   />
                 </Box>
+                {/* ユニット ステータスランプ（Unit1〜Unit4） */}
+                <Box mb={2}>
+                  <Typography variant='subtitle2' color='text.secondary' mb={1}>
+                    ユニット ステータス
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    {['Unit1', 'Unit2', 'Unit3', 'Unit4'].map(unit => (
+                      <Grid item xs={6} key={unit}>
+                        <Box
+                          display='flex'
+                          alignItems='center'
+                          justifyContent='flex-start'
+                          p={1.25}
+                          borderRadius={1.5}
+                          sx={{
+                            bgcolor: 'grey.50',
+                            border: theme => `1px solid ${theme.palette.divider}`,
+                          }}
+                        >
+                          <Box display='flex' alignItems='center' gap={1.25}>
+                            <Typography variant='body2' fontWeight={600} minWidth={48}>
+                              {unit}
+                            </Typography>
+                            <Box display='flex' alignItems='center' gap={0.75}>
+                              <Box
+                                sx={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  bgcolor: theme =>
+                                    theme.palette[unitLampColorMap[unitStatuses[unit]]]?.main || theme.palette.text.disabled,
+                                  boxShadow: theme => `0 0 0 2px ${theme.palette.background.paper}`,
+                                }}
+                              />
+                              <Typography variant='caption' color='text.secondary'>
+                                {unitStatuses[unit]}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
                 <Chip
                   label={machineInfo.status}
                   color={statusColorMap[machineInfo.statusColor]}
@@ -141,7 +345,7 @@ return typeMatch && dateMatch
           </Grid>
 
           {/* 右カラム: 稼働データ・エラーログ */}
-          <Grid item xs={12} md={7}>
+          <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Card sx={{ mb: 4 }}>
               <CardContent>
                 <Typography variant='h6' fontWeight='bold' mb={2}>稼働データ</Typography>
@@ -175,8 +379,8 @@ return typeMatch && dateMatch
             </Card>
 
             {/* エラーログ */}
-            <Card>
-              <CardContent>
+            <Card sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 <Box display='flex' flexDirection={{ xs: 'column', sm: 'row' }} justifyContent='space-between' alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2} gap={2}>
                   <Typography variant='h6' fontWeight='bold'>エラーログ</Typography>
                   <Box display='flex' gap={2}>
@@ -202,7 +406,7 @@ return typeMatch && dateMatch
                   </Box>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
-                <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
+                <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
                   {filteredLogs.length === 0 ? (
                     <Box textAlign='center' py={6} color='text.secondary'>
                       <span className='material-icons' style={{ fontSize: 48, color: '#bdbdbd' }}>sentiment_dissatisfied</span>
@@ -213,7 +417,7 @@ return typeMatch && dateMatch
                       <Box
                         key={idx}
                         display='flex'
-                        alignItems='center'
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
                         justifyContent='space-between'
                         bgcolor={
                           log.color === 'error' ? 'error.lighter' :
@@ -225,7 +429,7 @@ return typeMatch && dateMatch
                         py={1.5}
                         mb={1.5}
                       >
-                        <Box>
+                        <Box pr={2}>
                           <Typography fontWeight='bold' color={
                             log.color === 'error' ? 'error.main' :
                             log.color === 'warning' ? 'warning.main' :
@@ -242,6 +446,15 @@ return typeMatch && dateMatch
                               {log.desc}
                             </Typography>
                           )}
+                          <Box mt={0.5}>
+                            <Chip
+                              size='small'
+                              label={log.unitId ? `Unit${log.unitId}` : '全体'}
+                              color={log.unitId ? 'primary' : 'default'}
+                              variant={log.unitId ? 'filled' : 'outlined'}
+                              sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: 11 } }}
+                            />
+                          </Box>
                         </Box>
                         <Typography variant='body2' color='text.secondary' whiteSpace='nowrap'>
                           {log.date.replace(/-/g, '/')} {log.time}
