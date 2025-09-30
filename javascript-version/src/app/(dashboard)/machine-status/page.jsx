@@ -114,6 +114,21 @@ const MachineStatus = () => {
   // unit未指定(全体)のログから導く大ランプ用ステータス
   const [globalStatusLabel, setGlobalStatusLabel] = useState('正常稼働')
 
+  // --- 機械基本情報（/api/machines/{id}） ---
+  const [machineName, setMachineName] = useState(machineInfo.name)
+  const [todayUptimeHms, setTodayUptimeHms] = useState(null)
+  const [todayProductionCount, setTodayProductionCount] = useState(null)
+  const [machineDataLoading, setMachineDataLoading] = useState(false)
+  const [machineDataError, setMachineDataError] = useState('')
+  // 稼働時間カウントアップ用
+  const [uptimeSeconds, setUptimeSeconds] = useState(null) // number | null
+  const uptimeAnchorRef = useRef({
+    mode: 'base', // 'start' | 'base'
+    startedAt: null, // Date | null
+    baseSeconds: 0, // number
+    baseTs: 0 // number(ms)
+  })
+
   // ユニット ステータス（ログから自動判定）
   const [unitStatuses, setUnitStatuses] = useState({
     Unit1: '正常稼働',
@@ -143,11 +158,32 @@ const MachineStatus = () => {
     const dt = new Date(y, mo, d)
     return isNaN(dt.getTime()) ? null : dt
   }
+  // YYYY-MM-DD と YYYY/MM/DD の両方を受けるパーサ
+  const parseYmd = (s) => {
+    if (!s) return null
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+      const [y, m, d] = s.split('-').map(Number)
+      const dt = new Date(y, m - 1, d)
+      return isNaN(dt.getTime()) ? null : dt
+    }
+    const bySlash = parseYmdSlash(s)
+    if (bySlash) return bySlash
+    const dt = new Date(s)
+    return isNaN(dt.getTime()) ? null : dt
+  }
   const formatYmdSlash = (d) => {
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const da = String(d.getDate()).padStart(2, '0')
     return `${y}/${m}/${da}`
+  }
+  const secondsToHMS = (sec) => {
+    if (sec == null || !Number.isFinite(sec)) return ''
+    const s = Math.max(0, Math.floor(sec))
+    const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+    const ss = String(s % 60).padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
   }
   const daysDiff = (a, b) => {
     // a, b: Date。b-aの日数（整数）
@@ -208,6 +244,109 @@ const MachineStatus = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
   const showSnack = (message, severity = 'success') => setSnackbar({ open: true, message, severity })
   const closeSnack = () => setSnackbar(s => ({ ...s, open: false }))
+
+  // 機械の基本情報を取得: GET /api/machines/{id}
+  useEffect(() => {
+    const controller = new AbortController()
+    // 非標準フォーマットの started_at をできる範囲で吸収
+    const tryParseStartedAt = (s) => {
+      if (!s || typeof s !== 'string') return null
+      // まずは素直に
+      let d = new Date(s)
+      if (!isNaN(d.getTime())) return d
+      // "TueTSep" → "Tue Sep" に修正
+      let fixed = s.replace(/([A-Za-z]{3})T([A-Za-z]{3})/, '$1 $2')
+      // 末尾の重複 "+09:00" を除去（例: "... (日本標準時)+09:00"）
+      fixed = fixed.replace(/\+\d{2}:\d{2}$/,'')
+      d = new Date(fixed)
+      if (!isNaN(d.getTime())) return d
+      return null
+    }
+    const fetchMachine = async () => {
+      try {
+        setMachineDataLoading(true)
+        setMachineDataError('')
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const token =
+          (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+
+        const url = `${base}/api/machines/${encodeURIComponent(machineId)}`
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          throw new Error(`Failed to fetch machine: ${res.status}`)
+        }
+        const data = await res.json()
+        // 期待レスポンス:
+        // { machine_name, started_at, today_uptime_hms, today_production_count, last_inspection_date, next_inspection_date, inspection_interval_days }
+        if (data?.machine_name) setMachineName(data.machine_name)
+        if (data?.today_uptime_hms) setTodayUptimeHms(data.today_uptime_hms)
+        if (typeof data?.today_production_count === 'number') setTodayProductionCount(data.today_production_count)
+
+        // 点検関連
+        if (data?.last_inspection_date) {
+          const d = parseYmd(data.last_inspection_date)
+          if (d) setLastInspectionDate(d)
+        }
+        if (Number.isFinite(Number(data?.inspection_interval_days))) {
+          setInspectionIntervalDays(Number(data.inspection_interval_days))
+        }
+        // next_inspection_date は UI では last+interval で表示するため直接は使わないが、
+        // 取得しておくことで今後の拡張に対応できる
+
+        // 稼働時間の初期化: started_at 優先、なければ today_uptime_seconds
+        const parsedStart = tryParseStartedAt(data?.started_at)
+        const apiSec = Number.isFinite(Number(data?.today_uptime_seconds)) ? Number(data.today_uptime_seconds) : null
+        if (parsedStart) {
+          const now = Date.now()
+          const secFromStart = Math.max(0, Math.floor((now - parsedStart.getTime()) / 1000))
+          const initial = apiSec != null ? Math.max(secFromStart, apiSec) : secFromStart
+          setUptimeSeconds(initial)
+          uptimeAnchorRef.current = { mode: 'start', startedAt: parsedStart, baseSeconds: initial, baseTs: now }
+        } else if (apiSec != null) {
+          setUptimeSeconds(apiSec)
+          uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: apiSec, baseTs: Date.now() }
+        } else if (data?.today_uptime_hms) {
+          const m = String(data.today_uptime_hms).match(/^(\d{1,2}):(\d{2}):(\d{2})$/)
+          if (m) {
+            const hh = Number(m[1]), mm = Number(m[2]), ss = Number(m[3])
+            const sec = hh * 3600 + mm * 60 + ss
+            setUptimeSeconds(sec)
+            uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: sec, baseTs: Date.now() }
+          }
+        }
+      } catch (e) {
+        setMachineDataError('機械情報の取得に失敗しました。ダミー情報を表示しています。')
+      } finally {
+        setMachineDataLoading(false)
+      }
+    }
+    fetchMachine()
+    return () => controller.abort()
+  }, [])
+
+  // 稼働時間を1秒ごとに更新
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now()
+      const anchor = uptimeAnchorRef.current
+      if (anchor.mode === 'start' && anchor.startedAt instanceof Date) {
+        const sec = Math.max(0, Math.floor((now - anchor.startedAt.getTime()) / 1000))
+        setUptimeSeconds(prev => (prev != null ? Math.max(sec, prev) : sec))
+      } else if (anchor.mode === 'base' && anchor.baseTs > 0) {
+        const elapsed = Math.floor((now - anchor.baseTs) / 1000)
+        setUptimeSeconds(anchor.baseSeconds + Math.max(0, elapsed))
+      }
+    }
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // API からログ取得（API設計: GET /api/machines/{id}/logs）
   useEffect(() => {
@@ -516,7 +655,7 @@ const MachineStatus = () => {
           <Grid item xs={12} md={5}>
             <Card ref={leftCardRef} sx={{ mb: 4, height: '100%' }}>
               <CardContent>
-                <Typography variant='h6' fontWeight='bold' mb={2}>{machineInfo.name}</Typography>
+                <Typography variant='h6' fontWeight='bold' mb={2}>{machineName}</Typography>
                 <Box
                   sx={{
                     width: '100%',
@@ -528,7 +667,7 @@ const MachineStatus = () => {
                 >
                   <img
                     src={machineInfo.image}
-                    alt={machineInfo.name}
+                    alt={machineName}
                     style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
                   />
                 </Box>
@@ -598,19 +737,24 @@ const MachineStatus = () => {
                     <Button variant='outlined' color='secondary' onClick={() => setOpenInterval(true)}>
                       点検期間変更
                     </Button>
+                    {machineDataLoading && <CircularProgress size={18} />}
                   </Box>
                 </Box>
                 <Grid container spacing={2} mb={2}>
                   <Grid item xs={6} sm={3}>
                     <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>本日の稼働時間</Typography>
-                      <Typography variant='h5' fontWeight='bold'>{machineInfo.todayWorkTime}</Typography>
+                      <Typography variant='h5' fontWeight='bold'>
+                        {uptimeSeconds != null ? secondsToHMS(uptimeSeconds) : (todayUptimeHms || machineInfo.todayWorkTime)}
+                      </Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>本日の生産数</Typography>
-                      <Typography variant='h5' fontWeight='bold'>{machineInfo.todayProduction}</Typography>
+                      <Typography variant='h5' fontWeight='bold'>
+                        {todayProductionCount != null ? `${todayProductionCount.toLocaleString()}個` : machineInfo.todayProduction}
+                      </Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -626,6 +770,11 @@ const MachineStatus = () => {
                     </Box>
                   </Grid>
                 </Grid>
+                {machineDataError && (
+                  <Typography variant='caption' color='warning.main'>
+                    {machineDataError}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
 

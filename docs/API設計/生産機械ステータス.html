@@ -133,12 +133,12 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
     "machine_name": "自動表層バネどめ機",
-    "image_url": "/images/machine-01.png",
-    "status": "稼働中", // "稼働中", "停止中", "異常あり", "メンテ中"
-    "started_at": "2025-07-15T08:00:00Z", // 今日の起動日時（ISO8601形式）
-    "today_production_count": 1520, // 今日の生産数
-    "last_inspection_date": "2024-06-15", // 最終点検日
-    "next_inspection_date": "2024-09-15" // 次回点検日
+    "started_at": "2025-07-15T08:00:00Z",   // 今日の起動日時（ISO8601形式）
+    "today_uptime_hms": "08:26:00",         // 起動時間から何時間たったか
+    "today_production_count": 1520,         // 今日の生産数
+    "last_inspection_date": "2024-06-15",   // 最終点検日
+    "next_inspection_date": "2024-09-15",   // 次回点検日
+    "inspection_interval_days":10           //点検間隔（日数）
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <pre><code class="language-json">{
