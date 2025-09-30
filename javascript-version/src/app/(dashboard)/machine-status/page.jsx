@@ -13,6 +13,16 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Divider from '@mui/material/Divider'
 import CircularProgress from '@mui/material/CircularProgress'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Checkbox from '@mui/material/Checkbox'
+import FormGroup from '@mui/material/FormGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 
 const errorLogSample = [
   {
@@ -120,6 +130,84 @@ const MachineStatus = () => {
     不明: 'default',
     停止中: 'default',
   }
+
+  // --- 点検関連のUI状態（フロントのみ） ---
+  // 最終点検日と点検間隔（日）を状態に保持し、次回点検日を計算
+  const parseYmdSlash = (s) => {
+    // 期待フォーマット: YYYY/MM/DD
+    const m = (s || '').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+    if (!m) return null
+    const y = Number(m[1])
+    const mo = Number(m[2]) - 1
+    const d = Number(m[3])
+    const dt = new Date(y, mo, d)
+    return isNaN(dt.getTime()) ? null : dt
+  }
+  const formatYmdSlash = (d) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const da = String(d.getDate()).padStart(2, '0')
+    return `${y}/${m}/${da}`
+  }
+  const daysDiff = (a, b) => {
+    // a, b: Date。b-aの日数（整数）
+    const MS = 24 * 60 * 60 * 1000
+    return Math.round((b.setHours(0,0,0,0) - a.setHours(0,0,0,0)) / MS)
+  }
+  const addDays = (d, days) => {
+    const nd = new Date(d)
+    nd.setDate(nd.getDate() + days)
+    return nd
+  }
+
+  const initialLastInspection = useMemo(() => parseYmdSlash(machineInfo.lastInspection) || new Date(), [])
+  const initialIntervalDays = useMemo(() => {
+    const last = parseYmdSlash(machineInfo.lastInspection)
+    const next = parseYmdSlash(machineInfo.nextInspection)
+    if (last && next) {
+      const diff = daysDiff(new Date(last), new Date(next))
+      if (Number.isFinite(diff) && diff > 0) return diff
+    }
+    return 90 // デフォルト: 90日ごと
+  }, [])
+
+  const [lastInspectionDate, setLastInspectionDate] = useState(initialLastInspection)
+  const [inspectionIntervalDays, setInspectionIntervalDays] = useState(initialIntervalDays)
+  const nextInspectionDate = useMemo(() => addDays(lastInspectionDate, inspectionIntervalDays), [lastInspectionDate, inspectionIntervalDays])
+
+  // ダイアログ管理
+  const [openInspection, setOpenInspection] = useState(false)
+  const [openInterval, setOpenInterval] = useState(false)
+
+  // 点検ダイアログ用のダミー点検項目
+  const inspectionItems = useMemo(() => [
+    { id: 'chk1', label: '安全カバーに異常なし' },
+    { id: 'chk2', label: '非常停止ボタンの動作確認' },
+    { id: 'chk3', label: '潤滑油レベル適正' },
+    { id: 'chk4', label: 'センサー清掃済み' },
+    { id: 'chk5', label: 'ボルト・ナットの緩みなし' },
+  ], [])
+  const [checkedMap, setCheckedMap] = useState({})
+  useEffect(() => {
+    if (openInspection) {
+      // 開くたびに未チェック状態へ
+      const init = {}
+      inspectionItems.forEach(it => { init[it.id] = false })
+      setCheckedMap(init)
+    }
+  }, [openInspection, inspectionItems])
+  const allChecked = useMemo(() => inspectionItems.length > 0 && inspectionItems.every(it => checkedMap[it.id]), [inspectionItems, checkedMap])
+  const toggleCheck = (id) => setCheckedMap(prev => ({ ...prev, [id]: !prev[id] }))
+  const checkAll = () => {
+    const m = {}
+    inspectionItems.forEach(it => { m[it.id] = true })
+    setCheckedMap(m)
+  }
+
+  // スナックバー
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const showSnack = (message, severity = 'success') => setSnackbar({ open: true, message, severity })
+  const closeSnack = () => setSnackbar(s => ({ ...s, open: false }))
 
   // API からログ取得（API設計: GET /api/machines/{id}/logs）
   useEffect(() => {
@@ -416,6 +504,7 @@ const MachineStatus = () => {
   }, [unitStatuses, globalStatusLabel])
 
   return (
+    <>
     <Grid container spacing={6}>
       {/* タイトル・戻るリンク */}
       {/* <Typography variant='h4' sx={{ mb: 0, fontWeight: 700 }}>生産機械ステータス</Typography> */}
@@ -500,7 +589,17 @@ const MachineStatus = () => {
           <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', height: '100%', ...(leftCardHeight ? { height: leftCardHeight } : {}) }}>
             <Card sx={{ mb: 4 }}>
               <CardContent>
-                <Typography variant='h6' fontWeight='bold' mb={2}>稼働データ</Typography>
+                <Box display='flex' alignItems='center' justifyContent='space-between' mb={2} gap={2}>
+                  <Typography variant='h6' fontWeight='bold'>稼働データ</Typography>
+                  <Box display='flex' gap={1} flexWrap='wrap'>
+                    <Button variant='contained' color='primary' onClick={() => setOpenInspection(true)}>
+                      点検
+                    </Button>
+                    <Button variant='outlined' color='secondary' onClick={() => setOpenInterval(true)}>
+                      点検期間変更
+                    </Button>
+                  </Box>
+                </Box>
                 <Grid container spacing={2} mb={2}>
                   <Grid item xs={6} sm={3}>
                     <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
@@ -517,13 +616,13 @@ const MachineStatus = () => {
                   <Grid item xs={6} sm={3}>
                     <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>最終点検日</Typography>
-                      <Typography variant='h5' fontWeight='bold'>{machineInfo.lastInspection}</Typography>
+                      <Typography variant='h5' fontWeight='bold'>{formatYmdSlash(lastInspectionDate)}</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>次回点検日</Typography>
-                      <Typography variant='h5' fontWeight='bold'>{machineInfo.nextInspection}</Typography>
+                      <Typography variant='h5' fontWeight='bold'>{formatYmdSlash(nextInspectionDate)}</Typography>
                     </Box>
                   </Grid>
                 </Grid>
@@ -637,7 +736,89 @@ const MachineStatus = () => {
           </Grid>
         </Grid>
       </Grid>
-    </Grid>
+  </Grid>
+  {/* 点検ダイアログ */}
+    <Dialog open={openInspection} onClose={() => setOpenInspection(false)} fullWidth maxWidth='sm'>
+      <DialogTitle>点検</DialogTitle>
+      <DialogContent dividers>
+        <Typography variant='body2' color='text.secondary' mb={2}>
+          ダミーの点検項目です。すべてチェックしてから「点検完了」を押してください。
+        </Typography>
+        <FormGroup>
+          {inspectionItems.map(item => (
+            <FormControlLabel
+              key={item.id}
+              control={<Checkbox checked={!!checkedMap[item.id]} onChange={() => toggleCheck(item.id)} />}
+              label={item.label}
+            />
+          ))}
+        </FormGroup>
+        <Box mt={1}>
+          <Button size='small' onClick={checkAll}>すべてチェック</Button>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenInspection(false)}>キャンセル</Button>
+        <Button
+          variant='contained'
+          onClick={() => {
+            // 点検完了（ダミー）: 最終点検日を今日に、次回は間隔で再計算
+            const today = new Date()
+            setLastInspectionDate(today)
+            showSnack('点検を記録しました（ダミー）', 'success')
+            setOpenInspection(false)
+          }}
+          disabled={!allChecked}
+        >
+          点検完了
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* 点検期間変更ダイアログ */}
+    <Dialog open={openInterval} onClose={() => setOpenInterval(false)} fullWidth maxWidth='xs'>
+      <DialogTitle>点検期間の変更</DialogTitle>
+      <DialogContent dividers>
+        <Typography variant='body2' color='text.secondary' mb={2}>
+          何日ごとに点検を行うかを設定できます（フロントのみ・ダミー）。
+        </Typography>
+        <TextField
+          type='number'
+          label='点検間隔（日）'
+          value={inspectionIntervalDays}
+          onChange={e => {
+            const v = Math.max(1, Number(e.target.value || 1))
+            setInspectionIntervalDays(v)
+          }}
+          inputProps={{ min: 1 }}
+          fullWidth
+        />
+        <Box mt={2}>
+          <Typography variant='caption' color='text.secondary'>
+            次回点検日: {formatYmdSlash(nextInspectionDate)}
+          </Typography>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenInterval(false)}>キャンセル</Button>
+        <Button
+          variant='contained'
+          onClick={() => {
+            showSnack('点検間隔を変更しました（ダミー）', 'success')
+            setOpenInterval(false)
+          }}
+        >
+          保存
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+      <Alert onClose={closeSnack} severity={snackbar.severity} sx={{ width: '100%' }}>
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+    </>
   )
 }
 
