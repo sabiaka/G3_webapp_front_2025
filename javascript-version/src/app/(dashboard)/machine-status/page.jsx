@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -12,6 +12,7 @@ import Avatar from '@mui/material/Avatar'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress'
 
 const errorLogSample = [
   {
@@ -90,12 +91,16 @@ const statusColorMap = {
 }
 
 const MachineStatus = () => {
+  // APIの{id}は固定でこの機械名を使用
+  const machineId = '半自動表層バネどめ機'
+
   const [logType, setLogType] = useState('すべて')
   const [logDate, setLogDate] = useState('')
   // API ログ
   const [apiLogs, setApiLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
+  const [isFallbackData, setIsFallbackData] = useState(false)
 
   // ユニット ステータス（ログから自動判定）
   const [unitStatuses, setUnitStatuses] = useState({
@@ -110,9 +115,10 @@ const MachineStatus = () => {
     残弾なし: 'error',
     正常稼働: 'success',
     エラー: 'error',
+    不明: 'default',
   }
 
-  // API からログ取得（エンドポイントは必要に応じて調整してください）
+  // API からログ取得（API設計: GET /api/machines/{id}/logs）
   useEffect(() => {
     const controller = new AbortController()
     const fetchLogs = async () => {
@@ -122,7 +128,15 @@ const MachineStatus = () => {
         const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
         const token =
           (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
-        const res = await fetch(`${base}/api/machine/logs`, {
+
+        // フィルタに依存せず最新のログ束を取得（表示はクライアントで絞り込む）
+        const qs = new URLSearchParams()
+        qs.set('page', '1')
+        qs.set('limit', '200')
+
+        const url = `${base}/api/machines/${encodeURIComponent(machineId)}/logs?${qs.toString()}`
+
+        const res = await fetch(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -134,8 +148,10 @@ const MachineStatus = () => {
         const data = await res.json()
         const logs = Array.isArray(data?.logs) ? data.logs : []
         setApiLogs(logs)
+        setIsFallbackData(false)
+        setFetchError('')
       } catch (err) {
-        // 失敗時はサンプルをフォールバックとして利用
+        // 失敗時はサンプルをフォールバックとして利用（ユニット判定は継続できるよう fetchError はUI表示専用に）
         setFetchError('ログの取得に失敗しました。サンプルデータで表示しています。')
         const fallback = errorLogSample.map((s, idx) => ({
           log_id: 1000 + idx,
@@ -146,6 +162,7 @@ const MachineStatus = () => {
           message: s.desc || '',
         }))
         setApiLogs(fallback)
+        setIsFallbackData(true)
       } finally {
         setLoading(false)
       }
@@ -209,8 +226,41 @@ const MachineStatus = () => {
     })
   }, [processedLogs, logType, logDate])
 
-  // 最新ログからユニットの状態を推定
+  // ログリストの初期高さを固定して、以降はスクロールに切り替え（縦に伸びない）
+  const logListRef = useRef(null)
+  const [logListMaxHeight, setLogListMaxHeight] = useState(null)
   useEffect(() => {
+    if (!logListRef.current || logListMaxHeight != null) return
+    // 次フレームで計測して初期高さをロック
+    const rAF = requestAnimationFrame(() => {
+      const h = logListRef.current?.getBoundingClientRect().height
+      if (h && h > 0) setLogListMaxHeight(h)
+    })
+    return () => cancelAnimationFrame(rAF)
+  }, [logListMaxHeight])
+
+  // 左カラム(Card)の高さを監視して右カラムに反映
+  const leftCardRef = useRef(null)
+  const [leftCardHeight, setLeftCardHeight] = useState(null)
+  useEffect(() => {
+    if (!leftCardRef.current || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (!entry) return
+      const h = entry.contentRect.height
+      if (h && h > 0) setLeftCardHeight(h)
+    })
+    ro.observe(leftCardRef.current)
+    return () => ro.disconnect()
+  }, [])
+
+  // 最新ログからユニットの状態を推定（UIのフィルタ値とは独立して apiLogs を参照）
+  useEffect(() => {
+    // 取得失敗かつログが空のときのみユニットランプを「不明」に固定
+    if (fetchError && (!apiLogs || apiLogs.length === 0)) {
+      setUnitStatuses({ Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' })
+      return
+    }
     const extractCode = (title) => {
       const m = (title || '').match(/([A-Z]-\d{3})/)
       return m?.[1] || ''
@@ -252,16 +302,57 @@ const MachineStatus = () => {
       }
     })
 
-    const next = {
-      Unit1: determineStatusFromLog(latestByUnit[1]),
-      Unit2: determineStatusFromLog(latestByUnit[2]),
-      Unit3: determineStatusFromLog(latestByUnit[3]),
-      Unit4: determineStatusFromLog(latestByUnit[4]),
+    // 最新の I-002 (PLC スタンバイ) の時刻を取得（unit_id 無視で全体から）
+    let latestI002Ts = null
+    apiLogs.forEach(l => {
+      const c = extractCode(l.title)
+      if (c === 'I-002') {
+        const ts = new Date(l.timestamp)
+        if (!latestI002Ts || ts > latestI002Ts) latestI002Ts = ts
+      }
+    })
+
+    const calcWithResetRule = (unitIdx) => {
+      const latest = latestByUnit[unitIdx]
+      let status = determineStatusFromLog(latest)
+      // 残弾エラー/警告の後に I-002 が来ていれば正常に戻す
+      if (latest && latestI002Ts && (status === '残弾なし' || status === '残弾わずか')) {
+        const unitTs = new Date(latest.timestamp)
+        if (latestI002Ts > unitTs) status = '正常稼働'
+      }
+      return status
+    }
+
+    let next = {
+      Unit1: calcWithResetRule(1),
+      Unit2: calcWithResetRule(2),
+      Unit3: calcWithResetRule(3),
+      Unit4: calcWithResetRule(4),
+    }
+
+    // まれに対象ユニットのログが全く無い場合のフォールバック
+    const vals = Object.values(next)
+    const allEmpty = vals.every(v => !v)
+    if (allEmpty) {
+      next = { Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' }
     }
     setUnitStatuses(next)
-  }, [apiLogs])
+  }, [apiLogs, fetchError])
 
   // ここから描画
+
+  // ユニット状態から全体ステータスを集約（優先度: エラー > 警告 > 不明 > 正常）
+  const overallStatus = useMemo(() => {
+    const values = Object.values(unitStatuses)
+    const hasError = values.some(v => v === 'エラー' || v === '残弾なし')
+    const hasWarn = values.some(v => v === '残弾わずか')
+    const hasUnknown = values.some(v => v === '不明')
+
+    if (hasError) return { label: 'エラー', color: 'error' }
+    if (hasWarn) return { label: '警告', color: 'warning' }
+    if (hasUnknown) return { label: '不明', color: 'default' }
+    return { label: '正常に稼働中', color: 'success' }
+  }, [unitStatuses])
 
   return (
     <Grid container spacing={6}>
@@ -273,7 +364,7 @@ const MachineStatus = () => {
         <Grid container spacing={4}>
           {/* 左カラム: 機械画像・状態 */}
           <Grid item xs={12} md={5}>
-            <Card sx={{ mb: 4, height: '100%' }}>
+            <Card ref={leftCardRef} sx={{ mb: 4, height: '100%' }}>
               <CardContent>
                 <Typography variant='h6' fontWeight='bold' mb={2}>{machineInfo.name}</Typography>
                 <Box
@@ -336,8 +427,8 @@ const MachineStatus = () => {
                   </Grid>
                 </Box>
                 <Chip
-                  label={machineInfo.status}
-                  color={statusColorMap[machineInfo.statusColor]}
+                  label={overallStatus.label}
+                  color={overallStatus.color}
                   sx={{ width: '100%', fontSize: 18, py: 2, fontWeight: 'bold' }}
                 />
               </CardContent>
@@ -345,7 +436,7 @@ const MachineStatus = () => {
           </Grid>
 
           {/* 右カラム: 稼働データ・エラーログ */}
-          <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', height: '100%', ...(leftCardHeight ? { height: leftCardHeight } : {}) }}>
             <Card sx={{ mb: 4 }}>
               <CardContent>
                 <Typography variant='h6' fontWeight='bold' mb={2}>稼働データ</Typography>
@@ -383,7 +474,7 @@ const MachineStatus = () => {
               <CardContent sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 <Box display='flex' flexDirection={{ xs: 'column', sm: 'row' }} justifyContent='space-between' alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2} gap={2}>
                   <Typography variant='h6' fontWeight='bold'>エラーログ</Typography>
-                  <Box display='flex' gap={2}>
+                  <Box display='flex' gap={2} alignItems='center'>
                     <TextField
                       type='date'
                       size='small'
@@ -403,10 +494,27 @@ const MachineStatus = () => {
                       <MenuItem value='警告'>警告</MenuItem>
                       <MenuItem value='情報'>情報</MenuItem>
                     </TextField>
+                    {loading && <CircularProgress size={20} />}
                   </Box>
                 </Box>
+                {isFallbackData && (
+                  <Typography variant='caption' color='warning.main' sx={{ mb: 1 }}>
+                    {fetchError || 'ログの取得に失敗しました。サンプルデータで表示しています。'}
+                  </Typography>
+                )}
                 <Divider sx={{ mb: 2 }} />
-                <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                <Box
+                  ref={logListRef}
+                  sx={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    minHeight: 0,
+                    // 左カラム高さが取れている場合は、右カラム固定高 - フィルタ行/ヘッダなどの概算を差し引き
+                    ...(leftCardHeight ? { maxHeight: `calc(${leftCardHeight}px - 140px)` } : {}),
+                    // 左が未取得の間は初期高さ固定にフォールバック
+                    ...(!leftCardHeight && logListMaxHeight ? { maxHeight: logListMaxHeight } : {}),
+                  }}
+                >
                   {filteredLogs.length === 0 ? (
                     <Box textAlign='center' py={6} color='text.secondary'>
                       <span className='material-icons' style={{ fontSize: 48, color: '#bdbdbd' }}>sentiment_dissatisfied</span>
