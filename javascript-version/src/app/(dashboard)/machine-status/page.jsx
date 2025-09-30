@@ -101,6 +101,8 @@ const MachineStatus = () => {
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [isFallbackData, setIsFallbackData] = useState(false)
+  // unit未指定(全体)のログから導く大ランプ用ステータス
+  const [globalStatusLabel, setGlobalStatusLabel] = useState('正常稼働')
 
   // ユニット ステータス（ログから自動判定）
   const [unitStatuses, setUnitStatuses] = useState({
@@ -259,6 +261,7 @@ const MachineStatus = () => {
     // 取得失敗かつログが空のときのみユニットランプを「不明」に固定
     if (fetchError && (!apiLogs || apiLogs.length === 0)) {
       setUnitStatuses({ Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' })
+      setGlobalStatusLabel('不明')
       return
     }
     const extractCode = (title) => {
@@ -337,13 +340,39 @@ const MachineStatus = () => {
       next = { Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' }
     }
     setUnitStatuses(next)
+
+    // --- unit未指定(全体)ログで大ランプにも反映 ---
+    // 最新の unit_id が null のログを取得
+    let latestGlobal = null
+    apiLogs.forEach(l => {
+      if (l.unit_id != null) return
+      if (!latestGlobal || new Date(l.timestamp) > new Date(latestGlobal.timestamp)) {
+        latestGlobal = l
+      }
+    })
+
+    let globalLabel = '正常稼働'
+    if (latestGlobal) {
+      let gs = determineStatusFromLog(latestGlobal) // 'エラー' | '残弾なし' | '残弾わずか' | '正常稼働'
+      if (latestI002Ts && (gs === '残弾なし' || gs === '残弾わずか')) {
+        const gts = new Date(latestGlobal.timestamp)
+        if (latestI002Ts > gts) gs = '正常稼働'
+      }
+      // 大ランプ用に正規化
+      if (gs === 'エラー' || gs === '残弾なし') globalLabel = 'エラー'
+      else if (gs === '残弾わずか') globalLabel = '警告'
+      else globalLabel = '正常稼働'
+    } else if (fetchError && (!apiLogs || apiLogs.length === 0)) {
+      globalLabel = '不明'
+    }
+    setGlobalStatusLabel(globalLabel)
   }, [apiLogs, fetchError])
 
   // ここから描画
 
   // ユニット状態から全体ステータスを集約（優先度: エラー > 警告 > 不明 > 正常）
   const overallStatus = useMemo(() => {
-    const values = Object.values(unitStatuses)
+    const values = [...Object.values(unitStatuses), globalStatusLabel]
     const hasError = values.some(v => v === 'エラー' || v === '残弾なし')
     const hasWarn = values.some(v => v === '残弾わずか')
     const hasUnknown = values.some(v => v === '不明')
@@ -352,7 +381,7 @@ const MachineStatus = () => {
     if (hasWarn) return { label: '警告', color: 'warning' }
     if (hasUnknown) return { label: '不明', color: 'default' }
     return { label: '正常に稼働中', color: 'success' }
-  }, [unitStatuses])
+  }, [unitStatuses, globalStatusLabel])
 
   return (
     <Grid container spacing={6}>
