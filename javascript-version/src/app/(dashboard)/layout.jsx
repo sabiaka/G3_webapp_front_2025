@@ -15,13 +15,15 @@ const Layout = async ({ children }) => {
 
   return (
     <Providers direction={direction}>
-      <LayoutWrapper
-        verticalLayout={
-          <VerticalLayout navigation={<Navigation />} navbar={<Navbar />} footer={<VerticalFooter />}>
-            <AuthGuard>{children}</AuthGuard>
-          </VerticalLayout>
-        }
-      />
+      <AuthGuard>
+        <LayoutWrapper
+          verticalLayout={
+            <VerticalLayout navigation={<Navigation />} navbar={<Navbar />} footer={<VerticalFooter />}>
+              {children}
+            </VerticalLayout>
+          }
+        />
+      </AuthGuard>
     </Providers>
   )
 }
