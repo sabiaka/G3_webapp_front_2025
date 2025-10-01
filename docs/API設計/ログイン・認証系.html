@@ -177,12 +177,13 @@
                     <p class="text-sm mb-2">アクセストークンと、ログインしたユーザーの情報を返す。このトークンはフロントで保存しといて、認証が必要なAPIを叩くときにヘッダーに付けて送ってね！
                     </p>
                     <pre><code class="language-json">{
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbXBsb3llZV9pZCI6NCwiZW1wbG95ZWVfdXNlcl9pZCI6InIub3NoaXlhbWEiLCJyb2xlX2lkIjoxLCJyb2xlX25hbWUiOiLnrqHnkIbogIUiLCJpc19hZG1pbiI6dHJ1ZSwiaWF0IjoxNzU5Mjk2NDEzLCJleHAiOjE3NTk5MDEyMTN9.-_8-eCEvD4O9sS_val5rlZRzxh7BXIUYATdQrgEnPRg",
     "user": {
-    "employee_id": 6,
-    "employee_user_id": "hana.kato",
-    "employee_name": "加藤花",
-    "role_name": "一般"
+        "employee_id": 4,
+        "employee_name": "押山 凜太朗",
+        "role_id": 1,
+        "role_name": "管理者",
+        "is_admin": true
     }
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (401 Unauthorized)</h3>
@@ -273,10 +274,12 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <p class="text-sm mb-2">トークンが有効なら、ログインしてるユーザーの情報を返す。</p>
                     <pre><code class="language-json">{
-    "employee_id": 10,
-    "employee_name": "大澤 連",
-    "role_name": "デバッガー",
-    "employee_color_code": "FF8800"
+    "employee_id": 4,
+    "employee_name": "押山 凜太朗",
+    "role_id": 1,
+    "role_name": "管理者",
+    "is_admin": true,
+    "employee_color_code": "84CC16"
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (401 Unauthorized)</h3>
