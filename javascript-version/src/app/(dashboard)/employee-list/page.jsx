@@ -9,6 +9,8 @@ import Typography from '@mui/material/Typography'
 import Fab from '@mui/material/Fab'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
 import useAuthMe from '@core/hooks/useAuthMe'
 
@@ -71,6 +73,11 @@ const EmployeeList = () => {
 
   // サーバー側でフィルタ済みを取得するため、そのまま表示
   const filtered = employees
+
+  // スナックバー（通知）
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const showSnack = (message, severity = 'success') => setSnackbar({ open: true, message, severity })
+  const closeSnack = () => setSnackbar(s => ({ ...s, open: false }))
 
   // メニュー
   const handleMenuClick = (e, employee) => {
@@ -190,9 +197,11 @@ const EmployeeList = () => {
       // 再取得
       await fetchEmployees()
       setModalOpen(false)
+      showSnack(editingEmployeeId ? '従業員情報を更新しました' : '従業員を追加しました', 'success')
     } catch (e) {
-      // TODO: エラーハンドリング（スナックバー等）
       console.error(e)
+      const msg = e?.message || String(e)
+      showSnack(`保存に失敗しました: ${msg}`, 'error')
     }
   }
 
@@ -205,8 +214,11 @@ const EmployeeList = () => {
       const res = await fetch(`${apiBase}/api/employees/${selectedEmployee.employeeId}`, { method: 'DELETE', headers })
       if (!res.ok && res.status !== 204) throw new Error(`DELETE /employees/${selectedEmployee.employeeId} ${res.status}`)
       await fetchEmployees()
+      showSnack('従業員を削除しました', 'success')
     } catch (e) {
       console.error(e)
+      const msg = e?.message || String(e)
+      showSnack(`削除に失敗しました: ${msg}`, 'error')
     } finally {
       handleMenuClose()
     }
@@ -317,6 +329,7 @@ const EmployeeList = () => {
       console.error(e)
       setEmployeesError(e)
       setEmployees([])
+      showSnack('従業員の取得に失敗しました。時間をおいて再度お試しください。', 'error')
     } finally {
       setEmployeesLoading(false)
     }
@@ -398,6 +411,18 @@ const EmployeeList = () => {
         onSave={handleSave}
         employees={employees}
       />
+
+      {/* 通知スナックバー */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={closeSnack}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={closeSnack} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   )
 }
