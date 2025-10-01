@@ -21,6 +21,7 @@ import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import AddIcon from '@mui/icons-material/Add'
+import useAuthMe from '@core/hooks/useAuthMe'
 
 const initialEmployees = [
   { id: '12345', name: '山田 太郎', department: '組立', role: 'リーダー', status: '在籍中', notes: 'フォークリフト免許保持', iconColor: '#a3a8e6' },
@@ -54,19 +55,21 @@ function getInitials(name) {
   return parts[0] || ''
 }
 
-const EmployeeCard = ({ employee, onMenuClick }) => {
+const EmployeeCard = ({ employee, onMenuClick, canEdit }) => {
   const isRetired = employee.status === '退職済'
 
 
   return (
     <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: isRetired ? 0.6 : 1, position: 'relative' }}>
-      <IconButton
-        size='small'
-        sx={{ position: 'absolute', top: 8, right: 8 }}
-        onClick={e => onMenuClick(e, employee)}
-      >
-        <MoreVertIcon fontSize='small' />
-      </IconButton>
+      {canEdit ? (
+        <IconButton
+          size='small'
+          sx={{ position: 'absolute', top: 8, right: 8 }}
+          onClick={e => onMenuClick(e, employee)}
+        >
+          <MoreVertIcon fontSize='small' />
+        </IconButton>
+      ) : null}
       <CardContent>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
           <Avatar
@@ -106,6 +109,7 @@ const EmployeeList = () => {
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const { isAdmin } = useAuthMe()
 
   // Register と同様のフォーム構成
   const [form, setForm] = useState({
@@ -167,6 +171,7 @@ const EmployeeList = () => {
 
   // モーダル
   const openAddModal = () => {
+    if (!isAdmin) return
     setForm(prev => ({
       employeeUserId: '',
       lastName: '',
@@ -183,6 +188,7 @@ const EmployeeList = () => {
   }
 
   const openEditModal = () => {
+    if (!isAdmin) return
     if (selectedEmployee) {
       // 氏名を姓/名に分割（最初のスペースで分割）
       const name = String(selectedEmployee.name || '').trim()
@@ -228,6 +234,7 @@ const EmployeeList = () => {
 
   // 保存
   const handleSave = () => {
+    if (!isAdmin) return
     // Register と揃えた最小バリデーション
     const requiredOk = form.employeeUserId && form.lastName && form.firstName
     const rolesOk = roles.length > 0 ? (form.roleId !== '' && form.roleId !== null && form.roleId !== undefined) : true
@@ -259,6 +266,7 @@ const EmployeeList = () => {
 
   // 削除
   const handleDelete = () => {
+    if (!isAdmin) return
     if (selectedEmployee) {
       setEmployees(emps => emps.filter(e => e.id !== selectedEmployee.id))
       handleMenuClose()
@@ -394,21 +402,23 @@ const EmployeeList = () => {
         ) : (
           filtered.map(emp => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={emp.id}>
-              <EmployeeCard employee={emp} onMenuClick={handleMenuClick} />
+              <EmployeeCard employee={emp} onMenuClick={handleMenuClick} canEdit={isAdmin} />
             </Grid>
           ))
         )}
       </Grid>
 
       {/* フローティング追加ボタン */}
-      <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={openAddModal}>
-        <AddIcon fontSize='large' />
-      </Fab>
+      {isAdmin ? (
+        <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={openAddModal}>
+          <AddIcon fontSize='large' />
+        </Fab>
+      ) : null}
 
       {/* ドロップダウンメニュー */}
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleMenuClose}>
-        <MenuItem onClick={openEditModal}>編集</MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>削除</MenuItem>
+        <MenuItem onClick={openEditModal} disabled={!isAdmin}>編集</MenuItem>
+        <MenuItem onClick={handleDelete} disabled={!isAdmin} sx={{ color: !isAdmin ? undefined : 'error.main' }}>削除</MenuItem>
       </Menu>
 
       {/* モーダル（従業員追加・編集） */}

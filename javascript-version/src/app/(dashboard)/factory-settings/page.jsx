@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import useAuthMe from '@core/hooks/useAuthMe'
 
 // MUI Components
 import Box from '@mui/material/Box'
@@ -86,19 +87,20 @@ async function api(path, { method = 'GET', body, headers } = {}) {
 return res.json()
 }
 
-function RoleItem({ role, onUpdate, onDelete }) {
+function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 	const [editing, setEditing] = useState(false)
 	const [nameDraft, setNameDraft] = useState(role.name)
 
-	const isAdmin = role.type === ADMIN
+	const isAdminType = role.type === ADMIN
 
 	const handleToggleType = () => {
-		const nextType = isAdmin ? MEMBER : ADMIN
-
+		if (!canEdit) return
+		const nextType = isAdminType ? MEMBER : ADMIN
 		onUpdate({ ...role, type: nextType })
 	}
 
 	const startEdit = () => {
+		if (!canEdit) return
 		setNameDraft(role.name)
 		setEditing(true)
 	}
@@ -110,7 +112,6 @@ function RoleItem({ role, onUpdate, onDelete }) {
 
 	const saveEdit = () => {
 		const trimmed = nameDraft.trim()
-
 		if (!trimmed) return cancelEdit()
 		if (trimmed === role.name) return cancelEdit()
 		onUpdate({ ...role, name: trimmed })
@@ -118,25 +119,13 @@ function RoleItem({ role, onUpdate, onDelete }) {
 	}
 
 	return (
-		<Box
-			sx={{
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'space-between',
-				bgcolor: 'action.hover',
-				borderRadius: 1,
-				p: 1.5,
-			}}
-		>
+		<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'action.hover', borderRadius: 1, p: 1.5 }}>
 			<Stack direction="row" spacing={1.5} alignItems="center">
 				<Avatar variant="rounded" sx={{ bgcolor: 'background.paper', color: 'text.secondary', boxShadow: 0 }}>
 					<ShieldOutlinedIcon fontSize="small" />
 				</Avatar>
-
 				{!editing ? (
-					<Typography className="text-gray-800" fontWeight={600}>
-						{role.name}
-					</Typography>
+					<Typography className="text-gray-800" fontWeight={600}>{role.name}</Typography>
 				) : (
 					<TextField
 						size="small"
@@ -158,22 +147,27 @@ function RoleItem({ role, onUpdate, onDelete }) {
 						onClick={handleToggleType}
 						size="small"
 						variant="outlined"
-						color={isAdmin ? 'primary' : 'inherit'}
-						startIcon={isAdmin ? <AdminPanelSettingsOutlinedIcon /> : <PersonOutlineOutlinedIcon />}
+						color={isAdminType ? 'primary' : 'inherit'}
+						startIcon={isAdminType ? <AdminPanelSettingsOutlinedIcon /> : <PersonOutlineOutlinedIcon />}
 						sx={{ minWidth: 120 }}
+						disabled={!canEdit}
 					>
-						{isAdmin ? ADMIN : MEMBER}
+						{isAdminType ? ADMIN : MEMBER}
 					</Button>
 				)}
 
 				{!editing ? (
 					<Stack direction="row" spacing={0.5}>
-						<IconButton size="small" color="default" onClick={startEdit}>
-							<EditOutlinedIcon fontSize="small" />
-						</IconButton>
-						<IconButton size="small" color="error" onClick={onDelete}>
-							<DeleteOutlineOutlinedIcon fontSize="small" />
-						</IconButton>
+						{canEdit && (
+							<IconButton size="small" color="default" onClick={startEdit}>
+								<EditOutlinedIcon fontSize="small" />
+							</IconButton>
+						)}
+						{canEdit && (
+							<IconButton size="small" color="error" onClick={onDelete}>
+								<DeleteOutlineOutlinedIcon fontSize="small" />
+							</IconButton>
+						)}
 					</Stack>
 				) : (
 					<Stack direction="row" spacing={0.5}>
@@ -190,11 +184,12 @@ function RoleItem({ role, onUpdate, onDelete }) {
 	)
 }
 
-function LineItem({ line, onRename, onDelete }) {
+function LineItem({ line, onRename, onDelete, canEdit }) {
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState(line.name)
 
 	const startEdit = () => {
+		if (!canEdit) return
 		setDraft(line.name)
 		setEditing(true)
 	}
@@ -206,7 +201,6 @@ function LineItem({ line, onRename, onDelete }) {
 
 	const saveEdit = () => {
 		const trimmed = draft.trim()
-
 		if (!trimmed) return cancelEdit()
 		if (trimmed === line.name) return cancelEdit()
 		onRename(trimmed)
@@ -214,16 +208,7 @@ function LineItem({ line, onRename, onDelete }) {
 	}
 
 	return (
-		<Box
-			sx={{
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'space-between',
-				bgcolor: 'action.hover',
-				borderRadius: 1,
-				p: 1.5,
-			}}
-		>
+		<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'action.hover', borderRadius: 1, p: 1.5 }}>
 			<Stack direction="row" spacing={1.5} alignItems="center">
 				<Avatar variant="rounded" sx={{ bgcolor: 'background.paper', color: 'text.secondary', boxShadow: 0 }}>
 					<PrecisionManufacturingOutlinedIcon fontSize="small" />
@@ -247,12 +232,16 @@ function LineItem({ line, onRename, onDelete }) {
 
 			{!editing ? (
 				<Stack direction="row" spacing={0.5}>
-					<IconButton size="small" color="default" onClick={startEdit}>
-						<EditOutlinedIcon fontSize="small" />
-					</IconButton>
-					<IconButton size="small" color="error" onClick={onDelete}>
-						<DeleteOutlineOutlinedIcon fontSize="small" />
-					</IconButton>
+					{canEdit && (
+						<IconButton size="small" color="default" onClick={startEdit}>
+							<EditOutlinedIcon fontSize="small" />
+						</IconButton>
+					)}
+					{canEdit && (
+						<IconButton size="small" color="error" onClick={onDelete}>
+							<DeleteOutlineOutlinedIcon fontSize="small" />
+						</IconButton>
+					)}
 				</Stack>
 			) : (
 				<Stack direction="row" spacing={0.5}>
@@ -270,6 +259,7 @@ function LineItem({ line, onRename, onDelete }) {
 
 export default function FactorySettingsPage() {
 	// --- ステート ---
+	const { isAdmin } = useAuthMe()
 	const [roles, setRoles] = useState([])
 	const [newRoleName, setNewRoleName] = useState('')
 	const [newRoleType, setNewRoleType] = useState(MEMBER)
@@ -323,6 +313,10 @@ export default function FactorySettingsPage() {
 
 	// --- 役割 CRUD ---
 	const addRole = async () => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		const name = newRoleName.trim()
 
 		if (!name) return
@@ -350,6 +344,10 @@ return
 	}
 
 	const updateRole = async updated => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		const original = roles.find(r => r.id === updated.id)
 
 		if (!original) return
@@ -373,6 +371,10 @@ return
 	}
 
 	const deleteRole = async id => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		try {
 			await api(`/api/roles/${id}`, { method: 'DELETE' })
 			setRoles(prev => prev.filter(r => r.id !== id))
@@ -385,6 +387,10 @@ return
 
 	// --- ライン CRUD ---
 	const addLine = async () => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		const name = newLineName.trim()
 
 		if (!name) return
@@ -408,6 +414,10 @@ return
 	}
 
 	const renameLine = async (id, newName) => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		if (!newName) return
 
 		if (lineNames.has(newName)) {
@@ -429,6 +439,10 @@ return
 	}
 
 	const deleteLine = async id => {
+		if (!isAdmin) {
+			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
+			return
+		}
 		try {
 			await api(`/api/lines/${id}`, { method: 'DELETE' })
 			setLines(prev => prev.filter(l => l.id !== id))
@@ -461,6 +475,7 @@ return
 										role={role}
 										onUpdate={updateRole}
 										onDelete={() => deleteRole(role.id)}
+										canEdit={isAdmin}
 									/>
 								))}
 							</Stack>
@@ -482,6 +497,7 @@ return
 														if (e.key === 'Enter') addRole()
 													}}
 													sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 240 } }}
+													disabled={!isAdmin}
 												/>
 												<Button
 													variant="outlined"
@@ -489,10 +505,11 @@ return
 													startIcon={newRoleType === ADMIN ? <AdminPanelSettingsOutlinedIcon /> : <PersonOutlineOutlinedIcon />}
 													onClick={() => setNewRoleType(prev => (prev === ADMIN ? MEMBER : ADMIN))}
 													sx={{ minWidth: { xs: '100%', sm: 140 }, flexShrink: 0, whiteSpace: 'nowrap' }}
+													disabled={!isAdmin}
 												>
 													{newRoleType}
 												</Button>
-												<Button variant="contained" onClick={addRole} sx={{ minWidth: { xs: '100%', sm: 96 }, flexShrink: 0, whiteSpace: 'nowrap' }}>
+												<Button variant="contained" onClick={addRole} sx={{ minWidth: { xs: '100%', sm: 96 }, flexShrink: 0, whiteSpace: 'nowrap' }} disabled={!isAdmin}>
 													追加
 												</Button>
 											</Stack>
@@ -520,6 +537,7 @@ return
 										line={line}
 										onRename={newName => renameLine(line.id, newName)}
 										onDelete={() => deleteLine(line.id)}
+										canEdit={isAdmin}
 									/>
 								))}
 							</Stack>
@@ -541,8 +559,9 @@ return
 														if (e.key === 'Enter') addLine()
 													}}
 													sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 240 } }}
+													disabled={!isAdmin}
 												/>
-												<Button variant="contained" onClick={addLine} sx={{ minWidth: { xs: '100%', sm: 96 }, flexShrink: 0, whiteSpace: 'nowrap' }}>
+												<Button variant="contained" onClick={addLine} sx={{ minWidth: { xs: '100%', sm: 96 }, flexShrink: 0, whiteSpace: 'nowrap' }} disabled={!isAdmin}>
 													追加
 												</Button>
 											</Stack>
@@ -550,6 +569,12 @@ return
 					</Card>
 				</Grid>
 			</Grid>
+
+			{!isAdmin && (
+				<Box sx={{ mt: 3 }}>
+					<Alert severity="info" variant="outlined">現在は閲覧専用です。編集するには管理者権限でサインインしてください。</Alert>
+				</Box>
+			)}
 
 				<Snackbar open={snack.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
 					<Alert onClose={closeSnack} severity={snack.severity} sx={{ width: '100%' }}>
