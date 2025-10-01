@@ -131,14 +131,17 @@
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <pre><code class="language-json">{
-    "machine_name": "自動表層バネどめ機",
-    "started_at": "2025-07-15T08:00:00Z",   // 今日の起動日時（ISO8601形式）
-    "today_uptime_hms": "08:26:00",         // 起動時間から何時間たったか
-    "today_production_count": 1520,         // 今日の生産数
-    "last_inspection_date": "2024-06-15",   // 最終点検日
-    "next_inspection_date": "2024-09-15",   // 次回点検日
-    "inspection_interval_days":10           //点検間隔（日数）
+<!-- 機械の基本情報・稼働データ取得APIの成功レスポンス例 -->
+<pre><code class="language-json">{
+    "machine_id": 1,                          // 機械ID
+    "machine_name": "半自動表層バネどめ機",     // 機械名称
+    "started_at": "2025-10-01T10:04:56Z",     // 今日の起動日時（ISO8601形式）
+    "today_uptime_seconds": 13714,            // 今日の稼働秒数（起動からの経過秒数）
+    "today_uptime_hms": "03:48:34",           // 今日の稼働時間（hh:mm:ss形式）
+    "today_production_count": 4,              // 今日の累計生産数
+    "last_inspection_date": "2025-10-01",     // 最終点検日
+    "next_inspection_date": "2025-10-11",     // 次回点検日
+    "inspection_interval_days": 10            // 点検間隔（日数）
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <pre><code class="language-json">{
