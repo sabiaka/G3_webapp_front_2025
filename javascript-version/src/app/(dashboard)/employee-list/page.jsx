@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -23,22 +23,21 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import AddIcon from '@mui/icons-material/Add'
 import useAuthMe from '@core/hooks/useAuthMe'
 
-const initialEmployees = [
-  { id: '12345', name: '山田 太郎', department: '組立', role: 'リーダー', status: '在籍中', notes: 'フォークリフト免許保持', iconColor: '#a3a8e6' },
-  { id: '12346', name: '佐藤 花子', department: '塗装', role: 'スタッフ', status: '在籍中', notes: '色彩検定2級', iconColor: '#e6a3c8' },
-  { id: '12347', name: '鈴木 一郎', department: '検査', role: '主任', status: '在籍中', notes: '-', iconColor: '#a3e6c8' },
-  { id: '10001', name: '高橋 次郎', department: '管理', role: '部長', status: '在籍中', notes: '-', iconColor: '#e6dca3' },
-  { id: '12348', name: '田中 三郎', department: '組立', role: 'スタッフ', status: '退職済', notes: '2024/03/31付', iconColor: '#b0b0b0' },
-  { id: '12349', name: '渡辺 直美', department: '検査', role: 'スタッフ', status: '在籍中', notes: '新人研修中', iconColor: '#e6a3a3' },
-]
+// API連携ユーティリティ
+const getToken = () =>
+  (typeof window !== 'undefined' && (window.localStorage.getItem('access_token') || window.sessionStorage.getItem('access_token'))) || ''
 
-const departmentOptions = [
-  { value: 'all', label: 'すべて' },
-  { value: '組立', label: '組立' },
-  { value: '塗装', label: '塗装' },
-  { value: '検査', label: '検査' },
-  { value: '管理', label: '管理' },
-]
+const getAuthHeaders = () => {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const ensureHash = hex => {
+  if (!hex) return '#999999'
+  return hex.startsWith('#') ? hex : `#${hex}`
+}
+
+const stripHash = hex => (hex || '').replace(/^#/, '')
 
 const statusOptions = [
   { value: 'all', label: 'すべて' },
@@ -102,7 +101,9 @@ const EmployeeCard = ({ employee, onMenuClick, canEdit }) => {
 }
 
 const EmployeeList = () => {
-  const [employees, setEmployees] = useState(initialEmployees)
+  const [employees, setEmployees] = useState([])
+  const [employeesLoading, setEmployeesLoading] = useState(false)
+  const [employeesError, setEmployeesError] = useState(null)
   const [search, setSearch] = useState('')
   const [department, setDepartment] = useState('all')
   const [status, setStatus] = useState('all')
@@ -110,6 +111,8 @@ const EmployeeList = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const { isAdmin } = useAuthMe()
+  const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+  const debounceTimer = useRef(null)
 
   // Register と同様のフォーム構成
   const [form, setForm] = useState({
@@ -133,16 +136,11 @@ const EmployeeList = () => {
   const [lines, setLines] = useState([])
   const [loadingRoles, setLoadingRoles] = useState(true)
   const [loadingLines, setLoadingLines] = useState(true)
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null) // numeric employee_id for PUT/DELETE
 
   // フィルタリング
-  const filtered = employees.filter(emp => {
-    const nameMatch = emp.name.toLowerCase().includes(search.toLowerCase())
-    const depMatch = department === 'all' || emp.department === department
-    const statusMatch = status === 'all' || emp.status === status
-
-
-    return nameMatch && depMatch && statusMatch
-  })
+  // サーバー側でフィルタ済みを取得するため、そのまま表示
+  const filtered = employees
 
   // Register 同等: 表示名/アバターテキスト
   const getDisplayName = (ln, fn) => {
@@ -184,6 +182,7 @@ const EmployeeList = () => {
       iconColor: '#FF8800'
     }))
     setIsPasswordShown(false)
+    setEditingEmployeeId(null)
     setModalOpen(true)
   }
 
@@ -211,6 +210,7 @@ const EmployeeList = () => {
         iconColor: selectedEmployee.iconColor || '#FF8800'
       })
       setIsPasswordShown(false)
+      setEditingEmployeeId(selectedEmployee.employeeId ?? null)
       setModalOpen(true)
       handleMenuClose()
     }
@@ -233,42 +233,68 @@ const EmployeeList = () => {
   const handleColorPick = color => setForm(prev => ({ ...prev, iconColor: color }))
 
   // 保存
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isAdmin) return
-    // Register と揃えた最小バリデーション
+    // 最小バリデーション
     const requiredOk = form.employeeUserId && form.lastName && form.firstName
     const rolesOk = roles.length > 0 ? (form.roleId !== '' && form.roleId !== null && form.roleId !== undefined) : true
     if (!requiredOk || !rolesOk) return
 
-    // 表示用名称を解決
-    const roleName = roles.find(r => r?.role_id === form.roleId)?.role_name || (selectedEmployee?.role || '')
-    const lineName = form.lineId === '' ? (selectedEmployee?.department || '') : (lines.find(l => l?.line_id === form.lineId)?.line_name || '')
-
     const displayName = getDisplayName(form.lastName, form.firstName)
-    const updated = {
-      id: form.employeeUserId,
-      name: displayName,
-      department: lineName || '',
-      role: roleName || '',
-      status: form.status || '在籍中',
-      notes: form.specialNotes || '',
-      iconColor: form.iconColor || '#FF8800'
+    const payload = {
+      employee_name: displayName,
+      employee_user_id: form.employeeUserId,
+      password: form.password ? form.password : (editingEmployeeId ? null : ''),
+      role_id: form.roleId,
+      // line_id は未選択時は送らない
+      ...(form.lineId === '' ? {} : { line_id: form.lineId }),
+      color_code: stripHash(form.iconColor || '#FF8800'),
+      special_notes: form.specialNotes || '',
+      // 在籍状況
+      ...(typeof form.status === 'string' ? { is_active: form.status === '在籍中' } : {})
     }
 
-    if (employees.some(e => e.id === updated.id)) {
-      setEmployees(emps => emps.map(e => e.id === updated.id ? { ...e, ...updated } : e))
-    } else {
-      setEmployees(emps => [...emps, updated])
+    try {
+      const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() }
+      if (editingEmployeeId) {
+        // 更新（PUT）
+        const res = await fetch(`${apiBase}/api/employees/${editingEmployeeId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error(`PUT /employees/${editingEmployeeId} ${res.status}`)
+      } else {
+        // 追加（POST）: password 必須
+        if (!form.password) throw new Error('パスワードを入力してください')
+        const res = await fetch(`${apiBase}/api/employees`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error(`POST /employees ${res.status}`)
+      }
+      // 再取得
+      await fetchEmployees()
+      setModalOpen(false)
+    } catch (e) {
+      // TODO: エラーハンドリング（スナックバー等）
+      console.error(e)
     }
-
-    setModalOpen(false)
   }
 
   // 削除
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!isAdmin) return
-    if (selectedEmployee) {
-      setEmployees(emps => emps.filter(e => e.id !== selectedEmployee.id))
+    if (!selectedEmployee?.employeeId) return
+    try {
+      const headers = { ...getAuthHeaders() }
+      const res = await fetch(`${apiBase}/api/employees/${selectedEmployee.employeeId}`, { method: 'DELETE', headers })
+      if (!res.ok && res.status !== 204) throw new Error(`DELETE /employees/${selectedEmployee.employeeId} ${res.status}`)
+      await fetchEmployees()
+    } catch (e) {
+      console.error(e)
+    } finally {
       handleMenuClose()
     }
   }
@@ -280,16 +306,16 @@ const EmployeeList = () => {
   // マスタ取得（ロール／ライン）
   useEffect(() => {
     const ac = new AbortController()
-    const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+    const headers = { ...getAuthHeaders() }
 
       // Roles
       ; (async () => {
         try {
           setLoadingRoles(true)
-          const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal })
+          const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal, headers })
           if (res.ok) {
             const data = await res.json()
-            const list = Array.isArray(data) ? data : []
+            const list = Array.isArray(data) ? data : (Array.isArray(data?.roles) ? data.roles : [])
             setRoles(list)
             // 既存選択を優先し、なければ「一般」→先頭→空
             setForm(prev => {
@@ -312,10 +338,10 @@ const EmployeeList = () => {
       ; (async () => {
         try {
           setLoadingLines(true)
-          const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal })
+          const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal, headers })
           if (res.ok) {
             const data = await res.json()
-            const list = Array.isArray(data) ? data : []
+            const list = Array.isArray(data) ? data : (Array.isArray(data?.lines) ? data.lines : [])
             setLines(list)
             // 既存選択がリストにない場合は空
             setForm(prev => {
@@ -335,6 +361,67 @@ const EmployeeList = () => {
 
     return () => ac.abort()
   }, [])
+
+  // 部署（ライン）フィルタの選択肢
+  const departmentOptions = useMemo(() => {
+    const opts = [{ value: 'all', label: 'すべて' }]
+    lines.forEach(l => {
+      if (l?.line_name) opts.push({ value: l.line_name, label: l.line_name })
+    })
+    return opts
+  }, [lines])
+
+  // APIレスポンスをUI表示用に整形
+  const mapEmployee = apiItem => ({
+    employeeId: apiItem?.employee_id,
+    id: apiItem?.employee_user_id, // 表示用ID
+    employeeUserId: apiItem?.employee_user_id,
+    name: apiItem?.employee_name,
+    department: apiItem?.line_name || '',
+    role: apiItem?.role_name || '',
+    status: apiItem?.is_active ? '在籍中' : '退職済',
+    notes: apiItem?.special_notes || '',
+    iconColor: ensureHash(apiItem?.color_code)
+  })
+
+  // 従業員取得（検索・フィルタ対応）
+  const fetchEmployees = async () => {
+    const headers = { ...getAuthHeaders() }
+    const sp = new URLSearchParams()
+    if (search?.trim()) sp.set('name_like', search.trim())
+    if (department !== 'all') sp.set('line_name', department)
+    if (status !== 'all') sp.set('is_active', String(status === '在籍中'))
+    const url = `${apiBase}/api/employees${sp.toString() ? `?${sp.toString()}` : ''}`
+    try {
+      setEmployeesLoading(true)
+      setEmployeesError(null)
+      const res = await fetch(url, { headers })
+      if (!res.ok) throw new Error(`GET /employees ${res.status}`)
+      const data = await res.json()
+      const list = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.employees) ? data.employees : [])
+      setEmployees(list.map(mapEmployee))
+    } catch (e) {
+      console.error(e)
+      setEmployeesError(e)
+      setEmployees([])
+    } finally {
+      setEmployeesLoading(false)
+    }
+  }
+
+  // フィルタ変更時に再取得（検索はデバウンス）
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => {
+      fetchEmployees()
+    }, 350)
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, department, status])
 
   return (
     <>
@@ -395,8 +482,12 @@ const EmployeeList = () => {
         {filtered.length === 0 ? (
           <Grid item xs={12}>
             <Card sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
-              <Typography variant='h6' color='text.secondary' sx={{ mb: 1 }}>該当する従業員が見つかりませんでした。</Typography>
-              <Typography variant='body2' color='text.disabled'>検索条件を変更して、もう一度お試しください。</Typography>
+              <Typography variant='h6' color='text.secondary' sx={{ mb: 1 }}>
+                {employeesLoading ? '読み込み中…' : '該当する従業員が見つかりませんでした。'}
+              </Typography>
+              <Typography variant='body2' color='text.disabled'>
+                {employeesError ? 'データの取得に失敗しました。時間をおいて再度お試しください。' : '検索条件を変更して、もう一度お試しください。'}
+              </Typography>
             </Card>
           </Grid>
         ) : (
