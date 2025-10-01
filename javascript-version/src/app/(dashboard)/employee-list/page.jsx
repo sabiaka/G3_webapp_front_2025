@@ -23,6 +23,14 @@ const statusOptions = [
   { value: '退職済', label: '退職済' }
 ]
 
+// 氏名を「姓 名」に整形（スペース区切り）
+const getDisplayName = (ln, fn) => {
+  const l = String(ln || '').trim()
+  const f = String(fn || '').trim()
+  if (!l && !f) return ''
+  return f ? `${l} ${f}` : l
+}
+
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([])
   const [employeesLoading, setEmployeesLoading] = useState(false)
