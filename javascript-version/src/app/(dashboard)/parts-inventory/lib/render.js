@@ -3,10 +3,12 @@ import { s } from './utils';
 // Renders tab headers
 export function renderRackTabs(racks, currentRackId) {
   const rackTabsEl = document.getElementById('rack-tabs');
+
   if (!rackTabsEl) return;
   rackTabsEl.innerHTML = '';
   racks.forEach(rack => {
     const a = document.createElement('a');
+
     a.href = '#';
     a.dataset.rackId = rack.id;
     a.className = `rack-tab-item group whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${rack.id === currentRackId ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
@@ -25,6 +27,7 @@ export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMo
   const rackDisplayArea = document.getElementById('rack-display-area');
   const rackNameEl = document.getElementById('rack-name');
   const bulkQrBtn = document.getElementById('bulk-qr-btn');
+
   if (!rackDisplayArea || !rackNameEl || !bulkQrBtn) return;
 
   rackDisplayArea.innerHTML = '';
@@ -34,51 +37,63 @@ export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMo
     rackNameEl.textContent = 'ラックがありません';
     rackDisplayArea.innerHTML = '<p class="text-center text-gray-500 p-10">右下のボタンから新しいラックを作成してください。</p>';
     bulkQrBtn.classList.add('hidden');
-    return;
+    
+return;
   }
 
   bulkQrBtn.classList.remove('hidden');
   rackNameEl.textContent = currentRack.name;
 
   const layoutContainer = document.createElement('div');
+
   layoutContainer.className = 'grid bg-white';
   layoutContainer.style.gridTemplateColumns = 'auto 1fr';
   layoutContainer.style.gridTemplateRows = 'auto 1fr';
 
   const corner = document.createElement('div');
+
   corner.className = 'w-12 h-8 sticky left-0 top-0 z-20 bg-white';
   layoutContainer.appendChild(corner);
 
   const colHeadersContainer = document.createElement('div');
+
   colHeadersContainer.className = 'grid sticky top-0 z-10 bg-white';
   colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 9rem)`;
   colHeadersContainer.style.gap = '1rem';
   colHeadersContainer.style.paddingLeft = '1rem';
+
   for (let c = 1; c <= currentRack.cols; c++) {
     const header = document.createElement('div');
+
     header.className = 'h-8 flex items-end justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
     header.textContent = c;
     if (selectedSlotId && selectedSlotId.split('-')[1] == c) header.classList.add('header-highlight');
     colHeadersContainer.appendChild(header);
   }
+
   layoutContainer.appendChild(colHeadersContainer);
 
   const rowHeadersContainer = document.createElement('div');
+
   rowHeadersContainer.className = 'grid sticky left-0 bg-white z-10';
   rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 9rem)`;
   rowHeadersContainer.style.gap = '1rem';
   rowHeadersContainer.style.paddingTop = '1rem';
+
   for (let r = 1; r <= currentRack.rows; r++) {
     const rowChar = String.fromCharCode(64 + r);
     const header = document.createElement('div');
+
     header.className = 'w-12 flex items-center justify-center font-bold text-gray-500 rounded-md transition-colors duration-200';
     header.textContent = rowChar;
     if (selectedSlotId && selectedSlotId.split('-')[0] === rowChar) header.classList.add('header-highlight');
     rowHeadersContainer.appendChild(header);
   }
+
   layoutContainer.appendChild(rowHeadersContainer);
 
   const rackContainer = document.createElement('div');
+
   rackContainer.id = 'mesh-rack';
   rackContainer.className = 'grid gap-4 bg-gray-200 p-4 rounded-xl shadow-inner';
   rackContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 9rem)`;
@@ -86,14 +101,17 @@ export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMo
 
   for (let r = 1; r <= currentRack.rows; r++) {
     const rowChar = String.fromCharCode(64 + r);
+
     for (let c = 1; c <= currentRack.cols; c++) {
       const slotId = `${rowChar}-${c}`;
       const part = currentRack.slots[slotId];
       const slot = document.createElement('div');
+
       slot.id = `slot-${slotId}`;
       slot.dataset.slotId = slotId;
       slot.className = 'rack-slot aspect-square bg-gray-300/50 rounded-lg flex flex-col justify-between p-2 cursor-pointer transition-all duration-300 hover:bg-gray-300';
       let content = `<div class="text-sm font-bold text-gray-500">${slotId}</div>`;
+
       if (part) {
         content += `
           <div class="text-center overflow-hidden min-w-0">
@@ -105,16 +123,19 @@ export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMo
       } else if (isMoveMode) {
         slot.classList.add('move-mode-empty');
       }
+
       slot.innerHTML = content;
       rackContainer.appendChild(slot);
     }
   }
+
   layoutContainer.appendChild(rackContainer);
   rackDisplayArea.appendChild(layoutContainer);
 
   if (selectedSlotId) {
     document.getElementById(`slot-${selectedSlotId}`)?.classList.add('selected-slot');
   }
+
   if (isMoveMode && moveOriginSlotId) {
     document.getElementById(`slot-${moveOriginSlotId}`)?.classList.add('move-mode-origin');
   }
@@ -123,13 +144,15 @@ export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMo
 // Details panel
 export function renderDetails(racks, currentRackId, slotId) {
   const detailsPanel = document.getElementById('details-panel');
+
   if (!detailsPanel) return;
   const currentRack = racks.find(r => r.id === currentRackId);
   let content = '';
 
   if (!currentRack) {
     detailsPanel.innerHTML = '<div class="text-center text-gray-500 py-10"><ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon><p class="mt-2">ラックを選択してください</p></div>';
-    return;
+    
+return;
   }
 
   const part = slotId ? currentRack.slots[slotId] : null;
@@ -172,5 +195,6 @@ export function renderDetails(racks, currentRackId, slotId) {
         <p class="mt-2">ラックの場所を選択して詳細を表示</p>
       </div>`;
   }
+
   detailsPanel.innerHTML = content;
 }

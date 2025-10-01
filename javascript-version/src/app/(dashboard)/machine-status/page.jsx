@@ -60,41 +60,57 @@ const MachineStatus = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
   const showSnack = (message, severity = 'success') => setSnackbar({ open: true, message, severity })
   const closeSnack = () => setSnackbar(s => ({ ...s, open: false }))
+
+
   // フィルタ適用
   const filteredLogs = useMemo(() => {
     return processedLogs.filter((log) => {
       const typeMatch = logType === 'すべて' || log.type === logType
       const dateMatch = !logDate || log.date === logDate
-      return typeMatch && dateMatch
+
+      
+return typeMatch && dateMatch
     })
   }, [processedLogs, logType, logDate])
 
   // ログリストの初期高さを固定して、以降はスクロールに切り替え（縦に伸びない）
   const logListRef = useRef(null)
   const [logListMaxHeight, setLogListMaxHeight] = useState(null)
+
   useEffect(() => {
     if (!logListRef.current || logListMaxHeight != null) return
+
+
     // 次フレームで計測して初期高さをロック
     const rAF = requestAnimationFrame(() => {
       const h = logListRef.current?.getBoundingClientRect().height
+
       if (h && h > 0) setLogListMaxHeight(h)
     })
-    return () => cancelAnimationFrame(rAF)
+
+    
+return () => cancelAnimationFrame(rAF)
   }, [logListMaxHeight])
 
   // 左カラム(Card)の高さを監視して右カラムに反映
   const leftCardRef = useRef(null)
   const [leftCardHeight, setLeftCardHeight] = useState(null)
+
   useEffect(() => {
     if (!leftCardRef.current || typeof ResizeObserver === 'undefined') return
+
     const ro = new ResizeObserver(entries => {
       const entry = entries[0]
+
       if (!entry) return
       const h = entry.contentRect.height
+
       if (h && h > 0) setLeftCardHeight(h)
     })
+
     ro.observe(leftCardRef.current)
-    return () => ro.disconnect()
+    
+return () => ro.disconnect()
   }, [])
 
 
@@ -112,7 +128,8 @@ const MachineStatus = () => {
     if (hasStopped) return { label: '停止中', color: 'default' }
     if (hasWarn) return { label: '警告', color: 'warning' }
     if (hasUnknown) return { label: '不明', color: 'default' }
-    return { label: '正常に稼働中', color: 'success' }
+    
+return { label: '正常に稼働中', color: 'success' }
   }, [unitStatuses, globalStatusLabel])
 
   return (
@@ -263,23 +280,31 @@ const MachineStatus = () => {
           setCompletingInspection(true)
           const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
           const token = (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+
           const res = await fetch(`${base}/api/machines/${encodeURIComponent(machineId)}/complete-inspection`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           })
+
           if (!res.ok) {
             const err = await res.json().catch(() => ({}))
+
             throw new Error(err?.error || `Failed: ${res.status}`)
           }
+
           const data = await res.json()
+
           if (data?.last_inspection_date) {
             setLastInspectionDate(new Date(data.last_inspection_date))
           } else {
             setLastInspectionDate(new Date())
           }
+
           if (Number.isFinite(Number(data?.inspection_interval_days))) {
             setInspectionIntervalDays(Number(data.inspection_interval_days))
           }
+
+
           // 成功時: 進捗クリア
           try { if (typeof window !== 'undefined') localStorage.removeItem('machine-status:inspection-progress') } catch {}
           showSnack('点検を記録しました', 'success')
@@ -305,23 +330,30 @@ const MachineStatus = () => {
           setSavingInterval(true)
           const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
           const token = (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+
           const res = await fetch(`${base}/api/machines/${encodeURIComponent(machineId)}/inspection-interval`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             body: JSON.stringify({ interval_days: Number(newDays) })
           })
+
           if (!res.ok) {
             const err = await res.json().catch(() => ({}))
+
             throw new Error(err?.error || `Failed: ${res.status}`)
           }
+
           const data = await res.json()
+
           if (Number.isFinite(Number(data?.inspection_interval_days))) {
             setInspectionIntervalDays(Number(data.inspection_interval_days))
           }
+
           if (data?.next_inspection_date) {
             // setLastInspectionDate は不要。次回点検日は派生で再計算されるが、APIの値を優先したい場合は last を逆算ではなく直接 next を表示に使う設計に変更が必要。
             // ここでは UI 仕様に合わせて interval 更新だけで派生計算を継続。
           }
+
           showSnack('点検間隔を変更しました', 'success')
           setOpenInterval(false)
         } catch (e) {

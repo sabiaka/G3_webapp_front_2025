@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
+
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
@@ -23,6 +24,7 @@ export default function ModalBridge() {
 
     const handleClose = useCallback(() => {
         setOpen(false)
+
         // also clear content for safety
         setTitle('')
         setHtml('')
@@ -40,11 +42,15 @@ export default function ModalBridge() {
             setOnOpen(() => onOpen)
             setOpen(true)
         }
+
         window.__pi_closeModal = handleClose
+
         // signal readiness
         window.__pi_modal_ready = true
         try { window.dispatchEvent(new CustomEvent('pi:modal-ready')) } catch { }
-        return () => {
+
+        
+return () => {
             if (window.__pi_openModal === undefined) return
             delete window.__pi_modal_ready
             delete window.__pi_openModal
@@ -57,7 +63,9 @@ export default function ModalBridge() {
         if (open && typeof onOpen === 'function') {
             // next tick to ensure content in DOM
             const id = requestAnimationFrame(() => onOpen())
-            return () => cancelAnimationFrame(id)
+
+            
+return () => cancelAnimationFrame(id)
         }
     }, [open, onOpen])
 

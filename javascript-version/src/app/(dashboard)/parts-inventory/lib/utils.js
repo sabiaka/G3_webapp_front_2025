@@ -4,29 +4,36 @@
 export function s(v, fallback = '') {
   if (v === null || v === undefined) return fallback;
   if (v === 'null' || v === 'undefined') return fallback;
-  return String(v);
+  
+return String(v);
 }
 
 // Extract numeric rack id from element/id like "rack-1"
 export function getRackNumericId(rackLike) {
   if (!rackLike) return null;
   const id = parseInt(String(rackLike.id ?? rackLike).replace(/[^0-9]/g, ''), 10);
-  return Number.isFinite(id) ? id : null;
+
+  
+return Number.isFinite(id) ? id : null;
 }
 
 // Last rack selection storage helpers, keyed by apiBase
 export function createLastRackStorage(apiBase) {
   const key = `pi:lastRackId:${apiBase || 'same-origin'}`;
+
   const setLastRackId = id => {
     try {
       if (id) localStorage.setItem(key, id);
       else localStorage.removeItem(key);
     } catch {}
   };
+
   const getLastRackId = () => {
     try { return localStorage.getItem(key); } catch { return null; }
   };
-  return { setLastRackId, getLastRackId };
+
+  
+return { setLastRackId, getLastRackId };
 }
 
 // Transform backend API data shape to internal app data shape
@@ -46,10 +53,12 @@ export function transformApiDataToAppData(apiData) {
             color: slot.part.color_code
           };
         }
+
         if (!rack.rows || !rack.cols) {
           const [rowChar, colNumStr] = slot.slot_id.split('-');
           const rowNum = rowChar.charCodeAt(0) - 64;
           const colNum = parseInt(colNumStr);
+
           if (rowNum > maxRow) maxRow = rowNum;
           if (colNum > maxCol) maxCol = colNum;
         }

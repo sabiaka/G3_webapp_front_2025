@@ -21,6 +21,7 @@ export function initPartsInventoryApp() {
         try { window.__piAppTeardown(); } catch (e) { console.debug('previous teardown failed', e); }
         window.__piAppTeardown = undefined;
     }
+
     // =============================
     // 画面ロジック概要
     // - レイアウトをサイドバーからタブ形式に変更
@@ -99,11 +100,13 @@ export function initPartsInventoryApp() {
     // ラック一覧 + 各ラック詳細(スロット)を取得
     async function loadRacksFromApi() {
         const list = await api.listRacks();
+
         const racksWithDetails = await Promise.all(
             list.map(async rack => {
                 try {
                     const detail = await api.getRack(rack.rack_id);
                     const slotsObj = detail.slots || {};
+
                     const slotsArr = Object.entries(slotsObj).map(([slotId, part]) => ({
                         slot_id: slotId,
                         part: part
@@ -115,7 +118,9 @@ export function initPartsInventoryApp() {
                             }
                             : null
                     }));
-                    return {
+
+                    
+return {
                         rack_id: detail.rack_id,
                         rack_name: detail.rack_name,
                         rows: detail.rows,
@@ -124,7 +129,8 @@ export function initPartsInventoryApp() {
                     };
                 } catch (e) {
                     console.error('ラック詳細取得に失敗:', rack.rack_id, e);
-                    return {
+                    
+return {
                         rack_id: rack.rack_id,
                         rack_name: rack.rack_name,
                         rows: rack.rows,
@@ -134,19 +140,25 @@ export function initPartsInventoryApp() {
                 }
             })
         );
-        return racksWithDetails;
+
+        
+return racksWithDetails;
     }
 
     // 現在のラックをサーバーから再取得してローカル状態を同期
     async function refreshCurrentRackFromApi() {
         const currentRack = racks.find(r => r.id === currentRackId);
+
         if (!currentRack) return null;
         const rackNumericId = getRackNumericId(currentRack);
+
         if (!Number.isFinite(rackNumericId)) return null;
+
         try {
             const detail = await api.getRack(rackNumericId);
             const slotsObj = detail?.slots || {};
             const newSlots = {};
+
             Object.entries(slotsObj).forEach(([slotId, part]) => {
                 newSlots[slotId] = part
                     ? {
@@ -162,10 +174,12 @@ export function initPartsInventoryApp() {
             currentRack.slots = newSlots; // 置き換えで同期
             // メッシュも即時更新（詳細は呼び出し元でupdateDetailsを使う）
             renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMode, moveOriginSlotId);
-            return currentRack;
+            
+return currentRack;
         } catch (e) {
             console.warn('ラック再取得に失敗しました', e);
-            return null;
+            
+return null;
         }
     }
 
@@ -173,11 +187,13 @@ export function initPartsInventoryApp() {
     async function ensurePartInSlot(slotId) {
         let currentRack = racks.find(r => r.id === currentRackId);
         let part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
+
         if (part) return { currentRack, part };
         await refreshCurrentRackFromApi();
         currentRack = racks.find(r => r.id === currentRackId);
         part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
-        return { currentRack, part };
+        
+return { currentRack, part };
     }
 
     // ===== アプリ全体の状態 =====
@@ -186,8 +202,10 @@ export function initPartsInventoryApp() {
     let selectedSlotId = null;
     let isMoveMode = false;
     let moveOriginSlotId = null;
+
     // 移動 API の二重送信防止フラグ
     let isPostingMove = false;
+
     // モーダルを閉じた直後のゴーストクリック抑制用タイムスタンプ
     let clickGuardUntil = 0;
 
@@ -210,6 +228,7 @@ export function initPartsInventoryApp() {
         if (isMoveMode || moveOriginSlotId) {
             isMoveMode = false;
             moveOriginSlotId = null;
+
             // ハイライトなどを即時反映
             renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMode, moveOriginSlotId);
         }
@@ -220,6 +239,7 @@ export function initPartsInventoryApp() {
     const rackTabsEl = document.getElementById('rack-tabs');
     const detailsPanel = document.getElementById('details-panel');
     const searchInput = document.getElementById('search-parts');
+
     // MUI Dialog bridge is provided by React component ModalBridge
     const bulkQrBtn = document.getElementById('bulk-qr-btn');
     const fabMain = document.getElementById('fab-main');
@@ -263,6 +283,7 @@ export function initPartsInventoryApp() {
         const btn = document.getElementById('fab-main');
         const icon = document.getElementById('fab-icon');
         const items = document.querySelectorAll('.fab-item');
+
         if (!btn || !icon) return false;
 
         // 初期状態ではメニュー項目を隠す
@@ -275,10 +296,13 @@ export function initPartsInventoryApp() {
         if (typeof window !== 'undefined' && window.__piOnFabMainClick && window.__piFabMainEl) {
             try { window.__piFabMainEl.removeEventListener('click', window.__piOnFabMainClick); } catch {}
         }
+
         const onClick = () => {
             const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
             btn.setAttribute('aria-expanded', (!isExpanded).toString());
             icon.classList.toggle('rotate-45');
+
             if (!isExpanded) {
                 items.forEach((item, index) => {
                     item.style.transitionDelay = `${index * 40}ms`;
@@ -290,13 +314,18 @@ export function initPartsInventoryApp() {
                 });
             }
         };
+
         btn.addEventListener('click', onClick);
+
         if (typeof window !== 'undefined') {
             window.__piOnFabMainClick = onClick;
             window.__piFabMainEl = btn;
         }
-        return true;
+
+        
+return true;
     };
+
     if (!bindFabHandlers()) {
         // 初期化タイミングのズレに備えて1フレーム後に再試行
         setTimeout(bindFabHandlers, 0);
@@ -310,45 +339,57 @@ export function initPartsInventoryApp() {
         showStorePartModal(newPart => {
             showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', async () => {
                 const currentRack = racks.find(r => r.id === currentRackId);
+
                 if (!currentRack) {
                     console.error('対象のラックが見つかりません。');
                     closeModal();
-                    return;
+                    
+return;
                 }
 
                 let emptySlot = null;
+
                 for (let r = 1; r <= currentRack.rows; r++) {
                     const rowChar = String.fromCharCode(64 + r);
+
                     for (let c = 1; c <= currentRack.cols; c++) {
                         const slotId = `${rowChar}-${c}`;
+
                         if (!currentRack.slots[slotId]) {
                             emptySlot = slotId;
                             break;
                         }
                     }
+
                     if (emptySlot) break;
                 }
 
                 if (!emptySlot) {
                     closeModal();
                     console.error('現在のラックに空きがありません。');
-                    return;
+                    
+return;
                 }
 
                 const rackNumericId = getRackNumericId(currentRack);
+
                 if (!Number.isFinite(rackNumericId)) {
                     alert('ラックIDの解決に失敗しました');
-                    return;
+                    
+return;
                 }
+
                 const body = {
                     part_name: newPart.partName,
                     part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
                     quantity: newPart.quantity,
                     color_code: (newPart.color || '').toString().replace(/^#/, '') || null
                 };
+
                 try {
                     const res = await api.createSlot(rackNumericId, emptySlot, body);
                     const saved = (res && res.slot) ? res.slot : body;
+
                     currentRack.slots[emptySlot] = mapApiSlotToAppPart(saved);
                     await refreshCurrentRackFromApi();
                     closeModal();
@@ -365,30 +406,42 @@ export function initPartsInventoryApp() {
     document.getElementById('qr-stock-out-btn')?.addEventListener('click', () => {
         showQrScannerModal('QR出庫', '出庫する棚QRコードを読み取ってください', async () => {
             const currentRack = racks.find(r => r.id === currentRackId);
+
             if (!currentRack) {
                 console.error('対象のラックが見つかりません。');
                 closeModal();
-                return;
+                
+return;
             }
+
             let targetSlot = null;
+
             outer: for (let r = 1; r <= currentRack.rows; r++) {
                 const rowChar = String.fromCharCode(64 + r);
+
                 for (let c = 1; c <= currentRack.cols; c++) {
                     const slotId = `${rowChar}-${c}`;
+
                     if (currentRack.slots[slotId]) {
                         targetSlot = slotId;
                         break outer;
                     }
                 }
             }
+
             closeModal();
+
             if (!targetSlot) {
                 alert('このラックに出庫可能な部品が見つかりません。');
-                return;
+                
+return;
             }
+
             updateDetails(targetSlot);
+
             (async () => {
                 const { currentRack, part } = await ensurePartInSlot(targetSlot);
+
                 if (!currentRack || !part) return;
                 showUsePartModal(getCtx(), targetSlot, currentRack, part);
             })();
@@ -398,6 +451,7 @@ export function initPartsInventoryApp() {
     // 一括QR生成
     bulkQrBtn?.addEventListener('click', () => {
         const currentRack = racks.find(r => r.id === currentRackId);
+
         if (currentRack) showBulkShelfQrModal(currentRack);
     });
 
@@ -406,6 +460,7 @@ export function initPartsInventoryApp() {
         e.preventDefault();
         const tab = e.target.closest('.rack-tab-item');
         const deleteBtn = e.target.closest('[data-action="delete-rack"]');
+
         if (deleteBtn) {
             showDeleteRackModal(getCtx(), deleteBtn.dataset.rackId, deleteBtn.dataset.rackName);
         } else if (tab) {
@@ -421,40 +476,56 @@ export function initPartsInventoryApp() {
     detailsPanel?.addEventListener('click', e => {
         if (Date.now() < clickGuardUntil) {
             e.preventDefault();
-            return;
+            
+return;
         }
+
         const button = e.target.closest('button');
+
         if (!button) return;
         const { action, slotId } = button.dataset;
         const currentRack = racks.find(r => r.id === currentRackId);
+
         if (!currentRack) return;
+
         switch (action) {
             case 'use':
                 exitMoveMode();
+
                 (async () => {
                     await refreshCurrentRackFromApi();
                     const { currentRack, part } = await ensurePartInSlot(slotId);
-                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); return; }
+
+                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); 
+
+return; }
+
                     showUsePartModal(getCtx(), slotId, currentRack, part);
                 })();
+
                 break;
             case 'store':
                 exitMoveMode();
                 showStorePartModal(async newPart => {
                     const rackNumericId = getRackNumericId(currentRack);
+
                     if (!Number.isFinite(rackNumericId)) {
                         alert('ラックIDの解決に失敗しました');
-                        return;
+                        
+return;
                     }
+
                     const body = {
                         part_name: newPart.partName,
                         part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
                         quantity: newPart.quantity,
                         color_code: (newPart.color || '').toString().replace(/^#/, '') || null
                     };
+
                     try {
                         const res = await api.createSlot(rackNumericId, slotId, body);
                         const saved = (res && res.slot) ? res.slot : body;
+
                         currentRack.slots[slotId] = mapApiSlotToAppPart(saved);
                         await refreshCurrentRackFromApi();
                         closeModal();
@@ -469,39 +540,56 @@ export function initPartsInventoryApp() {
                 isMoveMode = true;
                 moveOriginSlotId = slotId;
                 detailsPanel.innerHTML = `<div class="fade-in text-center py-10"><ion-icon name="move-outline" class="text-5xl text-indigo-500 mx-auto"></ion-icon><p class="mt-2 font-bold">移動先の空き場所を選択してください</p><p class="text-sm text-gray-500">(移動元: ${slotId})</p><button id="cancel-move-btn" class="mt-4 text-sm text-red-600">移動をキャンセル</button></div>`;
+
                 document.getElementById('cancel-move-btn').onclick = () => {
                     isMoveMode = false;
                     moveOriginSlotId = null;
                     updateDetails(slotId);
                 };
+
                 renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMode, moveOriginSlotId);
                 break;
             case 'show-shelf-qr':
                 exitMoveMode();
+
                 (async () => {
                     await refreshCurrentRackFromApi();
                     const currentRack2 = racks.find(r => r.id === currentRackId);
+
                     if (!currentRack2) return;
                     showShelfQrModal(currentRack2, slotId);
                 })();
+
                 break;
             case 'edit':
                 exitMoveMode();
+
                 (async () => {
                     await refreshCurrentRackFromApi();
                     const { currentRack, part } = await ensurePartInSlot(slotId);
-                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); return; }
+
+                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); 
+
+return; }
+
                     showEditPartModal(getCtx(), slotId, currentRack, part);
                 })();
+
                 break;
             case 'delete':
                 exitMoveMode();
+
                 (async () => {
                     await refreshCurrentRackFromApi();
                     const { currentRack, part } = await ensurePartInSlot(slotId);
-                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); return; }
+
+                    if (!currentRack || !part) { alert('対象の箱が見つかりませんでした。画面を最新状態に更新します。'); updateDetails(slotId); 
+
+return; }
+
                     showDeletePartModal(getCtx(), slotId, currentRack, part);
                 })();
+
                 break;
         }
     });
@@ -511,37 +599,49 @@ export function initPartsInventoryApp() {
     if (typeof window !== 'undefined' && window.__piOnBodyClick) {
         try { document.body.removeEventListener('click', window.__piOnBodyClick); } catch {}
     }
+
     const __onBodyClick = e => {
         if (Date.now() < clickGuardUntil) {
             e.preventDefault();
-            return;
+            
+return;
         }
+
         const rackDisplayArea = document.getElementById('rack-display-area');
+
         if (rackDisplayArea && rackDisplayArea.contains(e.target)) {
             const slotEl = e.target.closest('.rack-slot');
+
             if (!slotEl) return;
             const clickedSlotId = slotEl.dataset.slotId;
             const currentRack = racks.find(r => r.id === currentRackId);
+
             if (!currentRack) return;
 
             if (isMoveMode) {
                 if (!currentRack.slots[clickedSlotId] && clickedSlotId !== moveOriginSlotId) {
                     const rackNumericId = getRackNumericId(currentRack);
+
                     if (!Number.isFinite(rackNumericId)) {
                         alert('ラックIDの解決に失敗しました');
-                        return;
+                        
+return;
                     }
+
                     if (isPostingMove) {
                         // すでに送信中なら無視（ダブルクリック・二重リスナ対策）
                         return;
                     }
+
                     (async () => {
                         try {
                             isPostingMove = true;
                             await api.moveSlot(rackNumericId, moveOriginSlotId, rackNumericId, clickedSlotId);
+
                             // サーバーが204や空レスを返してもここまで来たら成功として扱い、ローカル状態を更新
                             currentRack.slots[clickedSlotId] = currentRack.slots[moveOriginSlotId];
                             currentRack.slots[moveOriginSlotId] = null;
+
                             // 念のためサーバーの最新状態で同期
                             await refreshCurrentRackFromApi();
                             isMoveMode = false;
@@ -565,9 +665,12 @@ export function initPartsInventoryApp() {
             }
         }
     };
+
     if (typeof window !== 'undefined') {
         window.__piOnBodyClick = __onBodyClick;
         document.body.addEventListener('click', window.__piOnBodyClick);
+
+
         // クリックに先行するpointerdown/mousedownをキャプチャ段階で抑止（より確実）
         const guarder = ev => {
             if (Date.now() < clickGuardUntil) {
@@ -575,6 +678,8 @@ export function initPartsInventoryApp() {
                 ev.preventDefault();
             }
         };
+
+
         // 保存してteardownで解除
         window.__piPointerGuard = guarder;
         document.addEventListener('pointerdown', guarder, true);
@@ -588,16 +693,19 @@ export function initPartsInventoryApp() {
                 try { document.body.removeEventListener('click', window.__piOnBodyClick); } catch {}
                 window.__piOnBodyClick = undefined;
             }
+
             if (window.__piOnFabMainClick && window.__piFabMainEl) {
                 try { window.__piFabMainEl.removeEventListener('click', window.__piOnFabMainClick); } catch {}
                 window.__piOnFabMainClick = undefined;
                 window.__piFabMainEl = undefined;
             }
+
             if (window.__piPointerGuard) {
                 try {
                     document.removeEventListener('pointerdown', window.__piPointerGuard, true);
                     document.removeEventListener('mousedown', window.__piPointerGuard, true);
                 } catch {}
+
                 window.__piPointerGuard = undefined;
             }
         };
@@ -606,14 +714,18 @@ export function initPartsInventoryApp() {
     // 部品検索
     searchInput?.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
+
         document.querySelectorAll('.rack-slot').forEach(slot => {
             slot.classList.remove('highlight-slot');
             const currentRack = racks.find(r => r.id === currentRackId);
+
             if (!currentRack || searchTerm.length < 2) return;
             const part = currentRack.slots[slot.dataset.slotId];
+
             if (part) {
                 const nameLc = ((part.partName || '') + '').toLowerCase();
                 const modelLc = ((part.partModelNumber || '') + '').toLowerCase();
+
                 if (nameLc.includes(searchTerm) || modelLc.includes(searchTerm)) {
                 slot.classList.add('highlight-slot');
                 }
@@ -627,12 +739,17 @@ export function initPartsInventoryApp() {
     // 初期データロード
     (async function init() {
         const rackNameEl2 = document.getElementById('rack-name');
+
         if (rackNameEl2) rackNameEl2.textContent = '読み込み中...';
+
         try {
             const apiData = await loadRacksFromApi();
+
             racks = transformApiDataToAppData(apiData);
+
             // 保存されているラックIDが存在すれば復元、なければ先頭ラック
             const savedId = getLastRackId();
+
             currentRackId = (savedId && racks.some(r => r.id === savedId))
                 ? savedId
                 : (racks.length > 0 ? racks[0].id : null);
@@ -640,10 +757,12 @@ export function initPartsInventoryApp() {
             console.error('APIからのデータ取得に失敗したため、モックデータを使用します。', e);
             racks = transformApiDataToAppData(mockApiData);
             const savedId = getLastRackId();
+
             currentRackId = (savedId && racks.some(r => r.id === savedId))
                 ? savedId
                 : (racks.length > 0 ? racks[0].id : null);
         }
+
         setLastRackId(currentRackId);
         renderApp();
     })();

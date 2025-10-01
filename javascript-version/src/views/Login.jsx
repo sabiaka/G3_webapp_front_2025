@@ -56,6 +56,7 @@ const Login = ({ mode }) => {
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
       const res = await fetch(`${apiBase}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,16 +66,21 @@ const Login = ({ mode }) => {
       if (res.ok) {
         const data = await res.json()
         const storage = rememberMe ? window.localStorage : window.sessionStorage
+
         if (data?.access_token) storage.setItem('access_token', data.access_token)
         if (data?.user) storage.setItem('user', JSON.stringify(data.user))
   const next = searchParams?.get('next')
+
   router.push(next || '/')
       } else if (res.status === 401) {
         let msg = 'ユーザーIDまたはパスワードが正しくありません'
+
         try {
           const err = await res.json()
+
           if (err?.error) msg = err.error
         } catch {}
+
         setError(msg)
       } else {
         setError(`ログインに失敗しました (HTTP ${res.status})`)

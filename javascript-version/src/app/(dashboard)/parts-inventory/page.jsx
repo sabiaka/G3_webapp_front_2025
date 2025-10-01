@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect } from 'react';
+
 import Script from 'next/script';
+
 import { initPartsInventoryApp } from './partsInventoryApp';
 import ModalBridge from './ModalBridge';
 
@@ -13,6 +15,7 @@ const Page = () => {
             window.API_BASE = apiBase;
             initPartsInventoryApp();
         };
+
         if (typeof window !== 'undefined' && window.__pi_modal_ready) {
             start();
         } else {
@@ -20,15 +23,21 @@ const Page = () => {
                 window.removeEventListener('pi:modal-ready', onReady);
                 start();
             };
+
             window.addEventListener('pi:modal-ready', onReady);
-            return () => {
+
+            
+return () => {
                 window.removeEventListener('pi:modal-ready', onReady);
+
                 if (typeof window !== 'undefined' && window.__piAppTeardown) {
                     try { window.__piAppTeardown(); } catch { }
                 }
             };
         }
-        return () => {
+
+        
+return () => {
             if (typeof window !== 'undefined' && window.__piAppTeardown) {
                 try { window.__piAppTeardown(); } catch { }
             }

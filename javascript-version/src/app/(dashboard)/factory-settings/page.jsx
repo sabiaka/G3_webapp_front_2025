@@ -35,6 +35,7 @@ const MEMBER = '一般従業員'
 // API ヘルパー
 function getToken() {
 	if (typeof window === 'undefined') return null
+
 	try {
 		return (
 			window.localStorage.getItem('access_token') ||
@@ -49,6 +50,7 @@ function getToken() {
 async function api(path, { method = 'GET', body, headers } = {}) {
 	const token = getToken()
 	const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
 	const res = await fetch(`${base}${path}`, {
 		method,
 		headers: {
@@ -61,6 +63,7 @@ async function api(path, { method = 'GET', body, headers } = {}) {
 
 	if (!res.ok) {
 		let payload = null
+
 		try {
 			payload = await res.json()
 		} catch {
@@ -70,14 +73,17 @@ async function api(path, { method = 'GET', body, headers } = {}) {
 				payload = null
 			}
 		}
+
 		const err = new Error('Request failed')
+
 		err.status = res.status
 		err.payload = payload
 		throw err
 	}
 
 	if (res.status === 204) return null
-	return res.json()
+	
+return res.json()
 }
 
 function RoleItem({ role, onUpdate, onDelete }) {
@@ -88,6 +94,7 @@ function RoleItem({ role, onUpdate, onDelete }) {
 
 	const handleToggleType = () => {
 		const nextType = isAdmin ? MEMBER : ADMIN
+
 		onUpdate({ ...role, type: nextType })
 	}
 
@@ -103,6 +110,7 @@ function RoleItem({ role, onUpdate, onDelete }) {
 
 	const saveEdit = () => {
 		const trimmed = nameDraft.trim()
+
 		if (!trimmed) return cancelEdit()
 		if (trimmed === role.name) return cancelEdit()
 		onUpdate({ ...role, name: trimmed })
@@ -190,12 +198,15 @@ function LineItem({ line, onRename, onDelete }) {
 		setDraft(line.name)
 		setEditing(true)
 	}
+
 	const cancelEdit = () => {
 		setEditing(false)
 		setDraft(line.name)
 	}
+
 	const saveEdit = () => {
 		const trimmed = draft.trim()
+
 		if (!trimmed) return cancelEdit()
 		if (trimmed === line.name) return cancelEdit()
 		onRename(trimmed)
@@ -277,10 +288,14 @@ export default function FactorySettingsPage() {
 
 	// --- 初期ロード ---
 	useEffect(() => {
-		;(async () => {
+		;
+
+(async () => {
 			setRolesLoading(true)
+
 			try {
 				const data = await api('/api/roles')
+
 				setRoles(
 					(Array.isArray(data) ? data : []).map(r => ({ id: r.role_id, name: r.role_name, type: r.is_admin ? ADMIN : MEMBER }))
 				)
@@ -293,8 +308,10 @@ export default function FactorySettingsPage() {
 
 		;(async () => {
 			setLinesLoading(true)
+
 			try {
 				const data = await api('/api/lines')
+
 				setLines((Array.isArray(data) ? data : []).map(l => ({ id: l.line_id, name: l.line_name })))
 			} catch (e) {
 				openSnack(`ライン一覧の取得に失敗しました (${e.status || ''})`, 'error')
@@ -307,16 +324,21 @@ export default function FactorySettingsPage() {
 	// --- 役割 CRUD ---
 	const addRole = async () => {
 		const name = newRoleName.trim()
+
 		if (!name) return
+
 		if (roleNames.has(name)) {
 			openSnack('同じロール名が既に存在します', 'warning')
-			return
+			
+return
 		}
+
 		try {
 			const created = await api('/api/roles', {
 				method: 'POST',
 				body: { role_name: name, is_admin: newRoleType === ADMIN },
 			})
+
 			setRoles(prev => [...prev, { id: created.role_id, name: created.role_name, type: created.is_admin ? ADMIN : MEMBER }])
 			setNewRoleName('')
 			setNewRoleType(MEMBER)
@@ -329,14 +351,18 @@ export default function FactorySettingsPage() {
 
 	const updateRole = async updated => {
 		const original = roles.find(r => r.id === updated.id)
+
 		if (!original) return
 		const body = {}
+
 		if (updated.name !== original.name) body.role_name = updated.name
 		if (updated.type !== original.type) body.is_admin = updated.type === ADMIN
 		if (Object.keys(body).length === 0) return
+
 		try {
 			const res = await api(`/api/roles/${updated.id}`, { method: 'PUT', body })
 			const mapped = { id: res.role_id, name: res.role_name, type: res.is_admin ? ADMIN : MEMBER }
+
 			setRoles(prev => prev.map(r => (r.id === mapped.id ? mapped : r)))
 			openSnack('ロールを更新しました', 'success')
 		} catch (e) {
@@ -360,13 +386,18 @@ export default function FactorySettingsPage() {
 	// --- ライン CRUD ---
 	const addLine = async () => {
 		const name = newLineName.trim()
+
 		if (!name) return
+
 		if (lineNames.has(name)) {
 			openSnack('同じライン名が既に存在します', 'warning')
-			return
+			
+return
 		}
+
 		try {
 			const created = await api('/api/lines', { method: 'POST', body: { line_name: name } })
+
 			setLines(prev => [...prev, { id: created.line_id, name: created.line_name }])
 			setNewLineName('')
 			openSnack('ラインを追加しました', 'success')
@@ -378,12 +409,16 @@ export default function FactorySettingsPage() {
 
 	const renameLine = async (id, newName) => {
 		if (!newName) return
+
 		if (lineNames.has(newName)) {
 			openSnack('同じライン名が既に存在します', 'warning')
-			return
+			
+return
 		}
+
 		try {
 			const res = await api(`/api/lines/${id}`, { method: 'PUT', body: { line_name: newName } })
+
 			setLines(prev => prev.map(l => (l.id === id ? { id: res.line_id, name: res.line_name } : l)))
 			openSnack('ライン名を更新しました', 'success')
 		} catch (e) {

@@ -23,18 +23,22 @@ export function useMachineLogs(machineId) {
 
     useEffect(() => {
         const controller = new AbortController()
+
         const fetchLogs = async () => {
             try {
                 setLoading(true)
                 setFetchError('')
                 const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
                 const token =
                     (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
 
                 const qs = new URLSearchParams()
+
                 qs.set('page', '1')
                 qs.set('limit', '200')
                 const url = `${base}/api/machines/${encodeURIComponent(machineId)}/logs?${qs.toString()}`
+
                 const res = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -43,13 +47,16 @@ export function useMachineLogs(machineId) {
                     },
                     signal: controller.signal,
                 })
+
                 if (!res.ok) throw new Error(`Failed to fetch logs: ${res.status}`)
                 const data = await res.json()
                 const logs = Array.isArray(data?.logs) ? data.logs : []
+
                 setApiLogs(logs)
                 setIsFallbackData(false)
             } catch (err) {
                 setFetchError('ログの取得に失敗しました。サンプルデータで表示しています。')
+
                 const fallback = errorLogSample.map((s, idx) => ({
                     log_id: 1000 + idx,
                     unit_id: null,
@@ -58,14 +65,17 @@ export function useMachineLogs(machineId) {
                     title: `${s.code}: ${s.title}`,
                     message: s.desc || '',
                 }))
+
                 setApiLogs(fallback)
                 setIsFallbackData(true)
             } finally {
                 setLoading(false)
             }
         }
+
         fetchLogs()
-        return () => controller.abort()
+        
+return () => controller.abort()
     }, [machineId])
 
     const processedLogs = useMemo(() => {
@@ -75,18 +85,23 @@ export function useMachineLogs(machineId) {
                 const y = d.getFullYear()
                 const m = String(d.getMonth() + 1).padStart(2, '0')
                 const da = String(d.getDate()).padStart(2, '0')
-                return `${y}-${m}-${da}`
+
+                
+return `${y}-${m}-${da}`
             } catch {
                 return ''
             }
         }
+
         const toTime = (iso) => {
             try {
                 const d = new Date(iso)
                 const hh = String(d.getHours()).padStart(2, '0')
                 const mm = String(d.getMinutes()).padStart(2, '0')
                 const ss = String(d.getSeconds()).padStart(2, '0')
-                return `${hh}:${mm}:${ss}`
+
+                
+return `${hh}:${mm}:${ss}`
             } catch {
                 return ''
             }
@@ -97,7 +112,9 @@ export function useMachineLogs(machineId) {
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .map((l) => {
                 const code = (l.title || '').split(':')[0] || ''
-                return {
+
+                
+return {
                     type: mapTypeJp(l.log_type),
                     code,
                     title: (l.title || '').split(':').slice(1).join(':').trim() || l.title || '',
@@ -124,12 +141,17 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
         if (fetchError && (!apiLogs || apiLogs.length === 0)) {
             setUnitStatuses({ Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' })
             setGlobalStatusLabel('不明')
-            return
+            
+return
         }
+
         const extractCode = (title) => {
             const m = (title || '').match(/([A-Z]-\d{3})/)
-            return m?.[1] || ''
+
+            
+return m?.[1] || ''
         }
+
         const codeToStatus = {
             'E-001': '正常稼働',
             'E-002': '残弾なし',
@@ -142,37 +164,48 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
             'I-002': '正常稼働',
             'I-003': '停止中',
         }
+
         const determineStatusFromLog = (l) => {
             if (!l) return '正常稼働'
             const code = extractCode(l.title)
+
             if (code && codeToStatus[code]) return codeToStatus[code]
             if (l.log_type === 'error') return 'エラー'
             if (l.log_type === 'warning') return '残弾わずか'
-            return '正常稼働'
+            
+return '正常稼働'
         }
 
         const latestByUnit = { 1: null, 2: null, 3: null, 4: null }
+
         apiLogs.forEach((l) => {
             if (l.unit_id == null) return
             if (!(l.unit_id in latestByUnit)) return
+
             if (!latestByUnit[l.unit_id] || new Date(l.timestamp) > new Date(latestByUnit[l.unit_id].timestamp)) {
                 latestByUnit[l.unit_id] = l
             }
         })
         let latestI002Ts = null
+
         apiLogs.forEach((l) => {
             const c = extractCode(l.title)
+
             if (c === 'I-002') {
                 const ts = new Date(l.timestamp)
+
                 if (!latestI002Ts || ts > latestI002Ts) latestI002Ts = ts
             }
         })
         let latestGlobalShutdownTs = null
+
         apiLogs.forEach((l) => {
             if (l.unit_id != null) return
             const c = extractCode(l.title)
+
             if (c === 'I-003') {
                 const ts = new Date(l.timestamp)
+
                 if (!latestGlobalShutdownTs || ts > latestGlobalShutdownTs) latestGlobalShutdownTs = ts
             }
         })
@@ -180,11 +213,15 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
         const calcWithResetRule = (unitIdx) => {
             const latest = latestByUnit[unitIdx]
             let status = determineStatusFromLog(latest)
+
             if (latest && latestI002Ts && (status === '残弾なし' || status === '残弾わずか')) {
                 const unitTs = new Date(latest.timestamp)
+
                 if (latestI002Ts > unitTs) status = '正常稼働'
             }
-            return status
+
+            
+return status
         }
 
         let next = {
@@ -198,10 +235,12 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
             const overrideIfBeforeShutdown = (unitIdx, key) => {
                 const latest = latestByUnit[unitIdx]
                 const unitTs = latest ? new Date(latest.timestamp) : null
+
                 if (!unitTs || unitTs <= latestGlobalShutdownTs) {
                     next[key] = '停止中'
                 }
             }
+
             overrideIfBeforeShutdown(1, 'Unit1')
             overrideIfBeforeShutdown(2, 'Unit2')
             overrideIfBeforeShutdown(3, 'Unit3')
@@ -210,26 +249,34 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
 
         const vals = Object.values(next)
         const allEmpty = vals.every((v) => !v)
+
         if (allEmpty) {
             next = { Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' }
         }
+
         setUnitStatuses(next)
 
         let latestGlobal = null
+
         apiLogs.forEach((l) => {
             if (l.unit_id != null) return
+
             if (!latestGlobal || new Date(l.timestamp) > new Date(latestGlobal.timestamp)) {
                 latestGlobal = l
             }
         })
 
         let globalLabel = '正常稼働'
+
         if (latestGlobal) {
             let gs = determineStatusFromLog(latestGlobal)
+
             if (latestI002Ts && (gs === '残弾なし' || gs === '残弾わずか')) {
                 const gts = new Date(latestGlobal.timestamp)
+
                 if (latestI002Ts > gts) gs = '正常稼働'
             }
+
             if (gs === 'エラー' || gs === '残弾なし') globalLabel = 'エラー'
             else if (gs === '残弾わずか') globalLabel = '警告'
             else if (gs === '不明') globalLabel = '不明'
@@ -238,6 +285,7 @@ export function useUnitAndGlobalStatus(apiLogs, fetchError) {
         } else if (fetchError && (!apiLogs || apiLogs.length === 0)) {
             globalLabel = '不明'
         }
+
         setGlobalStatusLabel(globalLabel)
     }, [apiLogs, fetchError])
 

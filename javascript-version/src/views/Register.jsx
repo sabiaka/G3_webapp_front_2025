@@ -41,6 +41,7 @@ const Register = ({ mode }) => {
   const [colorCode, setColorCode] = useState('FF8800')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
   // masters
   const [roles, setRoles] = useState([])
   const [lines, setLines] = useState([])
@@ -58,9 +59,11 @@ const Register = ({ mode }) => {
 
   const isValid = () => {
     if (!employeeUserId || !lastName || !firstName || !password) return false
+
     // 役割が取得できている場合は選択必須
     if (roles.length > 0 && (selectedRoleId === '' || selectedRoleId === null || selectedRoleId === undefined)) return false
-    return true
+    
+return true
   }
 
   const handleSubmit = async e => {
@@ -68,8 +71,10 @@ const Register = ({ mode }) => {
     if (!isValid()) return
     setError('')
     setLoading(true)
+
     try {
       const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
       const res = await fetch(`${apiBase}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,6 +94,7 @@ const Register = ({ mode }) => {
       } else if (res.status === 400 || res.status === 409) {
         try {
           const err = await res.json()
+
           setError(err?.error || `登録に失敗しました (HTTP ${res.status})`)
         } catch {
           setError(`登録に失敗しました (HTTP ${res.status})`)
@@ -106,6 +112,7 @@ const Register = ({ mode }) => {
   // マスタ取得（ロール／ライン）
   useEffect(() => {
     const ac = new AbortController()
+
     const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
     // Roles
@@ -113,15 +120,20 @@ const Register = ({ mode }) => {
       try {
         setLoadingRoles(true)
         const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal })
+
         if (res.ok) {
           const data = await res.json()
           const list = Array.isArray(data) ? data : []
+
           setRoles(list)
+
           // 既存選択を優先し、なければ「一般」→先頭→空（IDで管理）
           setSelectedRoleId(prev => {
             if ((prev || prev === 0) && list.some(r => r?.role_id === prev)) return prev
             const general = list.find(r => r?.role_name === '一般')?.role_id
-            return general ?? list[0]?.role_id ?? ''
+
+            
+return general ?? list[0]?.role_id ?? ''
           })
         } else {
           setRoles([])
@@ -138,10 +150,13 @@ const Register = ({ mode }) => {
       try {
         setLoadingLines(true)
         const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal })
+
         if (res.ok) {
           const data = await res.json()
           const list = Array.isArray(data) ? data : []
+
           setLines(list)
+
           // ラインは未選択を許容。既存選択がリストにない場合は空のまま。
           setSelectedLineId(prev => ((prev || prev === 0) && list.some(l => l?.line_id === prev) ? prev : ''))
         } else {
@@ -164,23 +179,30 @@ const Register = ({ mode }) => {
   const getAvatarText = (ln, fn) => {
     // 姓を優先、空なら名、それも空なら『氏名』
     const base = String(ln || fn || '氏名').trim()
+
     if (!base) return '氏名'
-    return base.slice(0, 3)
+    
+return base.slice(0, 3)
   }
 
   const getAvatarFontSize = text => {
     const len = String(text || '').length
+
+
     // 文字数に応じてフォントサイズを調整（80px円内）
     if (len <= 1) return 36
     if (len === 2) return 30
-    return 24
+    
+return 24
   }
 
   const getDisplayName = (ln, fn) => {
     const l = String(ln || '').trim()
     const f = String(fn || '').trim()
+
     if (!l && !f) return '氏名'
-    return f ? `${l} ${f}` : l
+    
+return f ? `${l} ${f}` : l
   }
 
   return (
@@ -214,7 +236,9 @@ const Register = ({ mode }) => {
                         {paletteColors.map(color => {
                           const hex = color.replace('#', '').toUpperCase()
                           const isActive = (`#${colorCode}`).toUpperCase() === color.toUpperCase()
-                          return (
+
+                          
+return (
                             <Grid item xs={2} key={color}>
                               <div
                                 onClick={() => !loading && setColorCode(hex)}
@@ -305,6 +329,7 @@ const Register = ({ mode }) => {
                         value={selectedRoleId === '' ? '' : selectedRoleId}
                         onChange={e => {
                           const v = e.target.value
+
                           setSelectedRoleId(v === '' ? '' : (typeof v === 'number' ? v : Number(v)))
                         }}
                         disabled={loading || loadingRoles || roles.length === 0}
@@ -331,6 +356,7 @@ const Register = ({ mode }) => {
                         value={selectedLineId === '' ? '' : selectedLineId}
                         onChange={e => {
                           const v = e.target.value
+
                           setSelectedLineId(v === '' ? '' : (typeof v === 'number' ? v : Number(v)))
                         }}
                         disabled={loading || loadingLines}

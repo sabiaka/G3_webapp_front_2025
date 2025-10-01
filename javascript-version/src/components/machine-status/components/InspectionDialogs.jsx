@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
@@ -17,6 +18,7 @@ import { formatYmdSlash } from '../utils/date'
 
 export function InspectionDialog({ open, onClose, onComplete }) {
     const STORAGE_KEY = 'machine-status:inspection-progress'
+
     const inspectionItems = useMemo(() => [
         { id: 'chk1', label: '安全カバーに異常なし' },
         { id: 'chk2', label: '非常停止ボタンの動作確認' },
@@ -26,23 +28,29 @@ export function InspectionDialog({ open, onClose, onComplete }) {
     ], [])
 
     const [checkedMap, setCheckedMap] = useState({})
+
     useEffect(() => {
         if (open) {
             // 開いたときにローカルストレージから復元（なければ初期化）
             let stored = {}
+
             try {
                 const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
+
                 if (raw) stored = JSON.parse(raw) || {}
             } catch (e) {
                 stored = {}
             }
+
             const init = {}
+
             inspectionItems.forEach((it) => { init[it.id] = Boolean(stored[it.id]) })
             setCheckedMap(init)
         }
     }, [open, inspectionItems])
 
     const allChecked = inspectionItems.length > 0 && inspectionItems.every((it) => checkedMap[it.id])
+
     const persist = (map) => {
         try {
             if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
@@ -53,11 +61,15 @@ export function InspectionDialog({ open, onClose, onComplete }) {
 
     const toggleCheck = (id) => setCheckedMap((prev) => {
         const next = { ...prev, [id]: !prev[id] }
+
         persist(next)
-        return next
+        
+return next
     })
+
     const checkAll = () => {
         const m = {}
+
         inspectionItems.forEach((it) => { m[it.id] = true })
         setCheckedMap(m)
         persist(m)
@@ -65,8 +77,10 @@ export function InspectionDialog({ open, onClose, onComplete }) {
 
     const resetProgress = () => {
         const m = {}
+
         inspectionItems.forEach((it) => { m[it.id] = false })
         setCheckedMap(m)
+
         try {
             if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEY)
         } catch (e) {
@@ -122,6 +136,7 @@ export function IntervalDialog({ open, onClose, value, onChange, nextInspectionD
                     value={value}
                     onChange={(e) => {
                         const v = Math.max(1, Number(e.target.value || 1))
+
                         onChange(v)
                     }}
                     inputProps={{ min: 1 }}

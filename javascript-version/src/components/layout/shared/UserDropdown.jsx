@@ -38,30 +38,39 @@ const BadgeContentSpan = styled('span')({
 // 4) 空なら『氏名』
 const getAvatarText = name => {
   const raw = typeof name === 'string' ? name.trim() : ''
+
   if (!raw) return '氏名'
 
   // 分割候補: 半角/全角スペース, 中点
   const token = raw.split(/[\t\s\u3000・]+/)[0]
+
   if (token && token.length < raw.length) return token.slice(0, 3)
 
   // 連続する漢字ブロックを抽出 (CJK統合漢字+拡張A)
   const m = raw.match(/^[\u4E00-\u9FFF\u3400-\u4DBF]{1,3}/)
+
   if (m) return m[0]
 
   // 非漢字のみ: 先頭語から最大3文字
   const firstWord = raw.split(/[\s\u3000]+/)[0]
-  return firstWord.slice(0, 3) || '氏名'
+
+  
+return firstWord.slice(0, 3) || '氏名'
 }
 
 // 名前から安定したカラー(HSL)を生成
 const stringToHslColor = (str, s = 65, l = 48) => {
   let hash = 0
+
   for (let i = 0; i < (str || '').length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i)
     hash |= 0
   }
+
   const hue = Math.abs(hash) % 360
-  return `hsl(${hue} ${s}% ${l}%)`
+
+  
+return `hsl(${hue} ${s}% ${l}%)`
 }
 
 // ユーザーにカラーコード属性があればそれを優先
@@ -73,24 +82,33 @@ const getUserColor = user => {
     user?.profile_color ||
     user?.bg_color ||
     user?.color
+
   if (typeof c === 'string' && c.trim()) {
     // 先頭に#がないhexも許容
     const v = c.trim()
+
     if (/^#?[0-9a-fA-F]{6}$/.test(v)) return v.startsWith('#') ? v : `#${v}`
-    return v // hsl(...) / rgb(...), CSSカラー名など
+    
+return v // hsl(...) / rgb(...), CSSカラー名など
   }
+
+
   // 名前から生成
   const name = user?.employee_name || user?.name || user?.username || 'guest'
-  return stringToHslColor(name)
+
+  
+return stringToHslColor(name)
 }
 
 // Register の 80px 用 36/30/24 を 38px 用にスケール
 // 文字数に応じてフォントサイズを調整（38px円内）
 const getAvatarFontSize = text => {
   const len = String(text || '').length
+
   if (len <= 1) return 17
   if (len === 2) return 14
-  return 12
+  
+return 12
 }
 
 const UserDropdown = () => {
@@ -109,7 +127,8 @@ const UserDropdown = () => {
   const getStoredToken = () => {
     try {
       if (typeof window === 'undefined') return null
-      return (
+      
+return (
         window.localStorage.getItem('access_token') ||
         window.sessionStorage.getItem('access_token')
       )
@@ -132,15 +151,20 @@ const UserDropdown = () => {
   // Fetch current user on mount
   useEffect(() => {
     let isMounted = true
+
     const fetchMe = async () => {
       setLoading(true)
       const token = getStoredToken()
+
       if (!token) {
         setLoading(false)
-        return
+        
+return
       }
+
       try {
         const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
         const res = await fetch(`${apiBase}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
           credentials: 'include'
@@ -148,9 +172,11 @@ const UserDropdown = () => {
 
         if (res.ok) {
           const data = await res.json()
+
           if (isMounted) setUser(data)
         } else if (res.status === 401) {
           clearStoredAuth()
+
           // ここでは即リダイレクトはしない。メニューからログイン導線に誘導する想定
         }
       } catch (e) {
@@ -161,7 +187,9 @@ const UserDropdown = () => {
     }
 
     fetchMe()
-    return () => {
+
+    
+return () => {
       isMounted = false
     }
   }, [])
@@ -188,6 +216,7 @@ const UserDropdown = () => {
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
       await fetch(`${apiBase}/api/auth/logout`, { method: 'POST', credentials: 'include' })
     } catch (e) {
       // ignore network errors; proceed to clear client state
@@ -212,7 +241,9 @@ const UserDropdown = () => {
           const text = getAvatarText(displayName)
           const bg = getUserColor(user)
           const fontSize = getAvatarFontSize(text)
-          return (
+
+          
+return (
             <Avatar
               ref={anchorRef}
               alt={displayName || '氏名'}
@@ -249,7 +280,9 @@ const UserDropdown = () => {
                       const text = getAvatarText(displayName)
                       const bg = getUserColor(user)
                       const fontSize = getAvatarFontSize(text)
-                      return (
+
+                      
+return (
                         <Avatar alt={displayName || '氏名'} sx={{ bgcolor: bg, color: 'white', fontSize, fontWeight: 700 }}>
                           {text}
                         </Avatar>
