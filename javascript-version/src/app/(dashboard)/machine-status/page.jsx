@@ -53,6 +53,8 @@ const MachineStatus = () => {
   // ダイアログ管理
   const [openInspection, setOpenInspection] = useState(false)
   const [openInterval, setOpenInterval] = useState(false)
+  const [savingInterval, setSavingInterval] = useState(false)
+  const [completingInspection, setCompletingInspection] = useState(false)
 
   // スナックバー
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
@@ -256,23 +258,78 @@ const MachineStatus = () => {
     <InspectionDialog
       open={openInspection}
       onClose={() => setOpenInspection(false)}
-      onComplete={() => {
-        setLastInspectionDate(new Date())
-        showSnack('点検を記録しました（ダミー）', 'success')
-        setOpenInspection(false)
+      onComplete={async () => {
+        try {
+          setCompletingInspection(true)
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+          const token = (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+          const res = await fetch(`${base}/api/machines/${encodeURIComponent(machineId)}/complete-inspection`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error(err?.error || `Failed: ${res.status}`)
+          }
+          const data = await res.json()
+          if (data?.last_inspection_date) {
+            setLastInspectionDate(new Date(data.last_inspection_date))
+          } else {
+            setLastInspectionDate(new Date())
+          }
+          if (Number.isFinite(Number(data?.inspection_interval_days))) {
+            setInspectionIntervalDays(Number(data.inspection_interval_days))
+          }
+          // 成功時: 進捗クリア
+          try { if (typeof window !== 'undefined') localStorage.removeItem('machine-status:inspection-progress') } catch {}
+          showSnack('点検を記録しました', 'success')
+          setOpenInspection(false)
+        } catch (e) {
+          showSnack(`点検の記録に失敗しました: ${e?.message || e}`, 'error')
+        } finally {
+          setCompletingInspection(false)
+        }
       }}
     />
 
     {/* 点検期間変更ダイアログ */}
     <IntervalDialog
       open={openInterval}
-      onClose={() => {
-        showSnack('点検間隔を変更しました（ダミー）', 'success')
-        setOpenInterval(false)
-      }}
+      onClose={() => setOpenInterval(false)}
       value={inspectionIntervalDays}
       onChange={(v) => setInspectionIntervalDays(v)}
       nextInspectionDate={nextInspectionDate}
+      saving={savingInterval}
+      onSave={async (newDays) => {
+        try {
+          setSavingInterval(true)
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+          const token = (typeof window !== 'undefined' && (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))) || ''
+          const res = await fetch(`${base}/api/machines/${encodeURIComponent(machineId)}/inspection-interval`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ interval_days: Number(newDays) })
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error(err?.error || `Failed: ${res.status}`)
+          }
+          const data = await res.json()
+          if (Number.isFinite(Number(data?.inspection_interval_days))) {
+            setInspectionIntervalDays(Number(data.inspection_interval_days))
+          }
+          if (data?.next_inspection_date) {
+            // setLastInspectionDate は不要。次回点検日は派生で再計算されるが、APIの値を優先したい場合は last を逆算ではなく直接 next を表示に使う設計に変更が必要。
+            // ここでは UI 仕様に合わせて interval 更新だけで派生計算を継続。
+          }
+          showSnack('点検間隔を変更しました', 'success')
+          setOpenInterval(false)
+        } catch (e) {
+          showSnack(`点検間隔の変更に失敗しました: ${e?.message || e}`, 'error')
+        } finally {
+          setSavingInterval(false)
+        }
+      }}
     />
 
     <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
