@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -57,8 +57,8 @@ function getInitials(name) {
 const EmployeeCard = ({ employee, onMenuClick }) => {
   const isRetired = employee.status === '退職済'
 
-  
-return (
+
+  return (
     <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: isRetired ? 0.6 : 1, position: 'relative' }}>
       <IconButton
         size='small'
@@ -106,7 +106,29 @@ const EmployeeList = () => {
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', id: '', department: '', role: '', status: '在籍中', notes: '', iconColor: '#6366f1' })
+
+  // Register と同様のフォーム構成
+  const [form, setForm] = useState({
+    employeeUserId: '',
+    lastName: '',
+    firstName: '',
+    password: '',
+    roleId: '', // number | ''
+    lineId: '', // number | ''
+    status: '在籍中',
+    specialNotes: '',
+    iconColor: '#FF8800'
+  })
+
+  // Password 表示切替
+  const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const handleClickShowPassword = () => setIsPasswordShown(s => !s)
+
+  // マスタ（役割／ライン）
+  const [roles, setRoles] = useState([])
+  const [lines, setLines] = useState([])
+  const [loadingRoles, setLoadingRoles] = useState(true)
+  const [loadingLines, setLoadingLines] = useState(true)
 
   // フィルタリング
   const filtered = employees.filter(emp => {
@@ -114,9 +136,23 @@ const EmployeeList = () => {
     const depMatch = department === 'all' || emp.department === department
     const statusMatch = status === 'all' || emp.status === status
 
-    
-return nameMatch && depMatch && statusMatch
+
+    return nameMatch && depMatch && statusMatch
   })
+
+  // Register 同等: 表示名/アバターテキスト
+  const getDisplayName = (ln, fn) => {
+    const l = String(ln || '').trim()
+    const f = String(fn || '').trim()
+    if (!l && !f) return '氏名'
+    return f ? `${l} ${f}` : l
+  }
+
+  const getAvatarText = (ln, fn) => {
+    const base = String(ln || fn || '氏名').trim()
+    if (!base) return '氏名'
+    return base.slice(0, 3)
+  }
 
   // メニュー
   const handleMenuClick = (e, employee) => {
@@ -131,13 +167,44 @@ return nameMatch && depMatch && statusMatch
 
   // モーダル
   const openAddModal = () => {
-    setForm({ name: '', id: '', department: '', role: '', status: '在籍中', notes: '', iconColor: '#6366f1' })
+    setForm(prev => ({
+      employeeUserId: '',
+      lastName: '',
+      firstName: '',
+      password: '',
+      roleId: roles.length > 0 ? (roles.find(r => r?.role_name === '一般')?.role_id ?? roles[0]?.role_id ?? '') : '',
+      lineId: '',
+      status: '在籍中',
+      specialNotes: '',
+      iconColor: '#FF8800'
+    }))
+    setIsPasswordShown(false)
     setModalOpen(true)
   }
 
   const openEditModal = () => {
     if (selectedEmployee) {
-      setForm(selectedEmployee)
+      // 氏名を姓/名に分割（最初のスペースで分割）
+      const name = String(selectedEmployee.name || '').trim()
+      const [ln, ...rest] = name.split(/\s+/)
+      const fn = rest.join(' ')
+
+      // 役割ID/ラインID を名称から推測
+      const roleId = roles.find(r => r?.role_name === selectedEmployee.role)?.role_id ?? ''
+      const lineId = lines.find(l => l?.line_name === selectedEmployee.department)?.line_id ?? ''
+
+      setForm({
+        employeeUserId: selectedEmployee.id || '',
+        lastName: ln || '',
+        firstName: fn || '',
+        password: '', // 既存編集では未入力
+        roleId: roleId === 0 ? 0 : roleId || '',
+        lineId: lineId === 0 ? 0 : lineId || '',
+        status: selectedEmployee.status || '在籍中',
+        specialNotes: selectedEmployee.notes || '',
+        iconColor: selectedEmployee.iconColor || '#FF8800'
+      })
+      setIsPasswordShown(false)
       setModalOpen(true)
       handleMenuClose()
     }
@@ -148,23 +215,46 @@ return nameMatch && depMatch && statusMatch
   // フォーム
   const handleFormChange = e => {
     const { name, value } = e.target
-
-    setForm(prev => ({ ...prev, [name]: value }))
+    // 数値IDは number へ（空は ''）
+    if (name === 'roleId' || name === 'lineId') {
+      const v = value === '' ? '' : (typeof value === 'number' ? value : Number(value))
+      setForm(prev => ({ ...prev, [name]: v }))
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleColorPick = color => setForm(prev => ({ ...prev, iconColor: color }))
 
   // 保存
   const handleSave = () => {
-    if (form.name && form.id) {
-      if (employees.some(e => e.id === form.id)) {
-        setEmployees(emps => emps.map(e => e.id === form.id ? { ...form } : e))
-      } else {
-        setEmployees(emps => [...emps, { ...form }])
-      }
+    // Register と揃えた最小バリデーション
+    const requiredOk = form.employeeUserId && form.lastName && form.firstName
+    const rolesOk = roles.length > 0 ? (form.roleId !== '' && form.roleId !== null && form.roleId !== undefined) : true
+    if (!requiredOk || !rolesOk) return
 
-      setModalOpen(false)
+    // 表示用名称を解決
+    const roleName = roles.find(r => r?.role_id === form.roleId)?.role_name || (selectedEmployee?.role || '')
+    const lineName = form.lineId === '' ? (selectedEmployee?.department || '') : (lines.find(l => l?.line_id === form.lineId)?.line_name || '')
+
+    const displayName = getDisplayName(form.lastName, form.firstName)
+    const updated = {
+      id: form.employeeUserId,
+      name: displayName,
+      department: lineName || '',
+      role: roleName || '',
+      status: form.status || '在籍中',
+      notes: form.specialNotes || '',
+      iconColor: form.iconColor || '#FF8800'
     }
+
+    if (employees.some(e => e.id === updated.id)) {
+      setEmployees(emps => emps.map(e => e.id === updated.id ? { ...e, ...updated } : e))
+    } else {
+      setEmployees(emps => [...emps, updated])
+    }
+
+    setModalOpen(false)
   }
 
   // 削除
@@ -176,7 +266,67 @@ return nameMatch && depMatch && statusMatch
   }
 
   // カラーパレット
-  const palette = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e']
+  const basePalette = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e']
+  const palette = Array.from(new Set([...basePalette, '#FF8800']))
+
+  // マスタ取得（ロール／ライン）
+  useEffect(() => {
+    const ac = new AbortController()
+    const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
+      // Roles
+      ; (async () => {
+        try {
+          setLoadingRoles(true)
+          const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal })
+          if (res.ok) {
+            const data = await res.json()
+            const list = Array.isArray(data) ? data : []
+            setRoles(list)
+            // 既存選択を優先し、なければ「一般」→先頭→空
+            setForm(prev => {
+              const keep = prev.roleId
+              if ((keep || keep === 0) && list.some(r => r?.role_id === keep)) return prev
+              const general = list.find(r => r?.role_name === '一般')?.role_id
+              return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
+            })
+          } else {
+            setRoles([])
+          }
+        } catch (e) {
+          setRoles([])
+        } finally {
+          setLoadingRoles(false)
+        }
+      })()
+
+      // Lines
+      ; (async () => {
+        try {
+          setLoadingLines(true)
+          const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal })
+          if (res.ok) {
+            const data = await res.json()
+            const list = Array.isArray(data) ? data : []
+            setLines(list)
+            // 既存選択がリストにない場合は空
+            setForm(prev => {
+              const keep = prev.lineId
+              if ((keep || keep === 0) && list.some(l => l?.line_id === keep)) return prev
+              return { ...prev, lineId: '' }
+            })
+          } else {
+            setLines([])
+          }
+        } catch (e) {
+          setLines([])
+        } finally {
+          setLoadingLines(false)
+        }
+      })()
+
+    return () => ac.abort()
+  }, [])
 
   return (
     <>
@@ -263,7 +413,7 @@ return nameMatch && depMatch && statusMatch
 
       {/* モーダル（従業員追加・編集） */}
       <Dialog open={modalOpen} onClose={closeModal} maxWidth='md' fullWidth>
-        <DialogTitle>{form.id && employees.some(e => e.id === form.id) ? '従業員編集' : '従業員追加'}</DialogTitle>
+        <DialogTitle>{form.employeeUserId && employees.some(e => e.id === form.employeeUserId) ? '従業員編集' : '従業員追加'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} md={4}>
@@ -279,10 +429,10 @@ return nameMatch && depMatch && statusMatch
                     color: '#fff' // ここで文字色を白に指定
                   }}
                 >
-                  {getInitials(form.name || '氏名')}
+                  {getAvatarText(form.lastName, form.firstName)}
                 </Avatar>
-                <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{form.name || '氏名'}</Typography>
-                <Typography variant='body2' color='text.secondary'>{form.id || 'ID'}</Typography>
+                <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>{getDisplayName(form.lastName, form.firstName)}</Typography>
+                <Typography variant='body2' color='text.secondary'>{form.employeeUserId || 'ID'}</Typography>
                 <div style={{ marginTop: 24, width: '100%' }}>
                   <Typography variant='body2' sx={{ mb: 1 }}>色を選択</Typography>
                   <Grid container spacing={1}>
@@ -290,7 +440,7 @@ return nameMatch && depMatch && statusMatch
                       <Grid item xs={2} key={color}>
                         <div
                           onClick={() => handleColorPick(color)}
-                          style={{ background: color, width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', border: form.iconColor === color ? '2px solid #6366f1' : '2px solid #fff' }}
+                          style={{ background: color, width: 24, height: 24, borderRadius: '50%', cursor: 'pointer', border: form.iconColor === color ? '2px solid #6366f1' : '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.08)' }}
                         />
                       </Grid>
                     ))}
@@ -301,26 +451,141 @@ return nameMatch && depMatch && statusMatch
             <Grid item xs={12} md={8}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <TextField label='名前 (フルネーム)' name='name' value={form.name} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+                  <TextField
+                    autoFocus
+                    fullWidth
+                    label='ユーザーID'
+                    placeholder='hana.kato'
+                    name='employeeUserId'
+                    value={form.employeeUserId}
+                    onChange={handleFormChange}
+                    sx={{ mb: 2 }}
+                  />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField label='役職' name='role' value={form.role} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label='姓'
+                    placeholder='加藤'
+                    name='lastName'
+                    value={form.lastName}
+                    onChange={handleFormChange}
+                    sx={{ mb: 2 }}
+                  />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField label='ID' name='id' value={form.id} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label='名'
+                    placeholder='花'
+                    name='firstName'
+                    value={form.firstName}
+                    onChange={handleFormChange}
+                    sx={{ mb: 2 }}
+                  />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField label='担当ライン' name='department' value={form.department} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label='パスワード'
+                    type={isPasswordShown ? 'text' : 'password'}
+                    name='password'
+                    value={form.password}
+                    onChange={handleFormChange}
+                    sx={{ mb: 2 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton
+                            size='small'
+                            edge='end'
+                            onClick={handleClickShowPassword}
+                            onMouseDown={e => e.preventDefault()}
+                          >
+                            <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Select label='在籍状況' name='status' value={form.status} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    select
+                    label='役割'
+                    name='roleId'
+                    value={form.roleId === '' ? '' : form.roleId}
+                    onChange={handleFormChange}
+                    disabled={loadingRoles || roles.length === 0}
+                    SelectProps={{ MenuProps: { disablePortal: true } }}
+                    sx={{ mb: 2 }}
+                  >
+                    {loadingRoles ? (
+                      <MenuItem value='' disabled>読み込み中…</MenuItem>
+                    ) : (
+                      roles.map(role => (
+                        <MenuItem key={role?.role_id ?? role?.role_name} value={role?.role_id}>
+                          {role?.role_name}{role?.is_admin ? '（管理者）' : ''}
+                        </MenuItem>
+                      ))
+                    )}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    select
+                    label='担当ライン'
+                    name='lineId'
+                    value={form.lineId === '' ? '' : form.lineId}
+                    onChange={handleFormChange}
+                    disabled={loadingLines}
+                    SelectProps={{ MenuProps: { disablePortal: true } }}
+                    helperText={(!loadingLines && lines.length === 0) ? 'ラインが未登録です。管理画面から追加してください。' : '　'}
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value=''>未選択</MenuItem>
+                    {loadingLines ? (
+                      <MenuItem value='' disabled>読み込み中…</MenuItem>
+                    ) : (
+                      lines.map(line => (
+                        <MenuItem key={line?.line_id ?? line?.line_name} value={line?.line_id}>
+                          {line?.line_name}
+                        </MenuItem>
+                      ))
+                    )}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    select
+                    label='在籍状況'
+                    name='status'
+                    value={form.status}
+                    onChange={handleFormChange}
+                    SelectProps={{ MenuProps: { disablePortal: true } }}
+                    helperText='　'
+                    sx={{ mb: 2 }}
+                  >
                     {statusOptions.filter(opt => opt.value !== 'all').map(opt => (
                       <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                     ))}
-                  </Select>
+                  </TextField>
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField label='特記事項' name='notes' value={form.notes} onChange={handleFormChange} fullWidth size='small' multiline rows={2} sx={{ mb: 2 }} />
+                  <TextField
+                    fullWidth
+                    label='特記事項'
+                    placeholder='夜勤中心 など'
+                    name='specialNotes'
+                    value={form.specialNotes}
+                    onChange={handleFormChange}
+                    multiline
+                    minRows={2}
+                    sx={{ mb: 2 }}
+                  />
                 </Grid>
               </Grid>
             </Grid>

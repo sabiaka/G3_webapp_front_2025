@@ -214,7 +214,7 @@ return f ? `${l} ${f}` : l
           </Link>
           <Typography variant='h4' align='center'>ここから冒険が始まります 🚀</Typography>
           <div className='flex flex-col gap-5'>
-            <Typography className='mbs-1' align='center'>アプリ管理をもっと簡単で楽しく！</Typography>
+            <Typography className='mbs-1' align='center'>工場管理をもっと簡単で楽しく！</Typography>
 
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
               {error ? <Alert severity='error'>{error}</Alert> : null}
