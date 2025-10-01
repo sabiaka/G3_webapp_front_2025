@@ -16,12 +16,12 @@ import Button from '@mui/material/Button'
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
 
-import { UnitStatusLamps } from '@components/machine-status/components/UnitStatusLamps'
-import { ErrorLogList } from '@components/machine-status/components/ErrorLogList'
-import { InspectionDialog, IntervalDialog } from '@components/machine-status/components/InspectionDialogs'
-import { useMachineInfo } from '@components/machine-status/hooks/useMachineInfo'
-import { useMachineLogs } from '@components/machine-status/hooks/useMachineLogs'
-import { formatYmdSlash, secondsToHMS } from '@components/machine-status/utils/date'
+import { UnitStatusLamps } from './components/UnitStatusLamps'
+import { ErrorLogList } from './components/ErrorLogList'
+import { InspectionDialog, IntervalDialog } from './components/InspectionDialogs'
+import { useMachineInfo } from './hooks/useMachineInfo'
+import { useMachineLogs } from './hooks/useMachineLogs'
+import { formatYmdSlash, secondsToHMS } from './utils/date'
 
 const machineInfo = { image: '/images/projectpic/image.png' }
 
