@@ -77,32 +77,41 @@ export function useMachineInfo(machineId) {
 
                 const parsedStart = tryParseStartedAt(data?.started_at)
                 const apiSec = Number.isFinite(Number(data?.today_uptime_seconds)) ? Number(data.today_uptime_seconds) : null
-                if (parsedStart) {
-                    const now = Date.now()
-                    const secFromStart = Math.max(0, Math.floor((now - parsedStart.getTime()) / 1000))
+                const now = Date.now()
+                const startMs = parsedStart?.getTime?.()
+                // Use 'start' mode only when started_at is not in the future (allow tiny skew up to 5s)
+                if (parsedStart && startMs <= now + 5000) {
+                    const secFromStart = Math.max(0, Math.floor((now - startMs) / 1000))
                     const initial = apiSec != null ? Math.max(secFromStart, apiSec) : secFromStart
                     setUptimeSeconds(initial)
                     uptimeAnchorRef.current = { mode: 'start', startedAt: parsedStart, baseSeconds: initial, baseTs: now }
                 } else if (apiSec != null) {
                     setUptimeSeconds(apiSec)
-                    uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: apiSec, baseTs: Date.now() }
+                    uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: apiSec, baseTs: now }
                 } else if (data?.today_uptime_hms) {
                     const m = String(data.today_uptime_hms).match(/^(\d{1,2}):(\d{2}):(\d{2})$/)
                     if (m) {
                         const hh = Number(m[1]), mm = Number(m[2]), ss = Number(m[3])
                         const sec = hh * 3600 + mm * 60 + ss
                         setUptimeSeconds(sec)
-                        uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: sec, baseTs: Date.now() }
+                        uptimeAnchorRef.current = { mode: 'base', startedAt: null, baseSeconds: sec, baseTs: now }
                     }
                 }
             } catch (e) {
-                setMachineDataError('機械情報の取得に失敗しました。ダミー情報を表示しています。')
+                const msg = String(e?.message || '')
+                if (e?.name === 'AbortError' || msg.toLowerCase().includes('abort')) {
+                    // ignore abort in dev/strict mode
+                } else {
+                    setMachineDataError('機械情報の取得に失敗しました。ダミー情報を表示しています。')
+                }
             } finally {
                 setMachineDataLoading(false)
             }
         }
         fetchMachine()
-        return () => controller.abort()
+        return () => {
+            controller.abort()
+        }
     }, [machineId])
 
     useEffect(() => {
@@ -125,7 +134,9 @@ export function useMachineInfo(machineId) {
             }
         }
         const id = setInterval(tick, 1000)
-        return () => clearInterval(id)
+        return () => {
+            clearInterval(id)
+        }
     }, [])
 
     return {
