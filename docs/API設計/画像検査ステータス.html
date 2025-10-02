@@ -72,12 +72,121 @@
 
         <div class="space-y-12">
 
-            <!-- 0. DB設計 -->
-            <section id="db-design">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">0. DB設計</h2>
+            <section id="camera-config" class="mb-12">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">カメラ構成と命名規則</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4">このページの集計・一覧は <code>inspection_results</code> テーブルを元にしています。基本の定義は以下です。</p>
-                    <pre><code class="language-sql">CREATE TABLE inspection_results (
+                    <p class="mb-6 text-slate-600">
+                        検査システムは複数のカメラで構成されます。各カメラには、その物理的な位置と役割を示す一意のIDが割り当てられます。カメラIDは通常、<code>{層}-{役割}-{番号}</code> という形式で命名されます。
+                    </p>
+                    <div class="flex justify-center items-center p-4 border border-slate-200 rounded-lg bg-slate-50">
+                        <svg viewBox="0 0 600 350" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-lg">
+                            <style>
+                                .title { font-size: 28px; font-weight: bold; font-family: 'Noto Sans JP', sans-serif; fill: #334155; }
+                                .label { font-size: 18px; font-family: 'Inter', sans-serif; fill: #1e293b; }
+                                .camera-body { fill: #f1f5f9; stroke: #475569; stroke-width: 4; }
+                                .camera-lens { fill: #94a3b8; stroke: #475569; stroke-width: 3; }
+                                .mattress { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 2; }
+                                .line { stroke: #64748b; stroke-width: 2; }
+                            </style>
+                            <text x="300" y="40" text-anchor="middle" class="title">A層検査カメラ</text>
+                            
+                            <!-- Mattress -->
+                            <path d="M 100 270 L 150 240 L 450 240 L 500 270 L 450 300 L 150 300 Z" class="mattress" />
+                            <text x="300" y="280" text-anchor="middle" class="label" style="font-size: 22px;">マットレス</text>
+
+                            <!-- Center Camera: A-main01 -->
+                            <g transform="translate(275, 100)">
+                                <rect x="0" y="0" width="50" height="70" rx="5" class="camera-body" />
+                                <path d="M 10 70 L 40 70 L 45 85 L 5 85 Z" class="camera-lens" />
+                                <line x1="25" y1="0" x2="25" y2="-20" class="line" />
+                                <!-- <line x1="25" y2="-20" x2="150" y2="-20" class="line" /> -->
+                                <text x="-15" y="-30" class="label">A-main01</text>
+                            </g>
+
+                            <!-- Left Camera: A-stitch01 -->
+                            <g transform="translate(120, 150) rotate(-30)">
+                                <rect x="0" y="0" width="40" height="60" rx="5" class="camera-body" />
+                                <path d="M 5 60 L 35 60 L 40 75 L 0 75 Z" class="camera-lens" />
+                                <line x1="20" y1="0" x2="20" y2="-20" class="line" />
+                                <!-- <line x1="20" y2="-20" x2="120" y2="-20" class="line" /> -->
+                                <text x="-100" y="20" class="label" transform="rotate(30)">A-stitch01</text>
+                            </g>
+
+                            <!-- Right Camera: A-stitch02 -->
+                            <g transform="translate(480, 150) rotate(30)">
+                                <rect x="-40" y="0" width="40" height="60" rx="5" class="camera-body" />
+                                <path d="M -35 60 L -5 60 L 0 75 L -40 75 Z" class="camera-lens" />
+                                <line x1="-20" y1="0" x2="-20" y2="-20" class="line" />
+                                <text x="100" y="20" class="label" text-anchor="end" transform="rotate(-30)">A-stitch02</text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- バネどめ検査カメラ構成図 -->
+                    <div class="mt-8 flex justify-center items-center p-4 border border-slate-200 rounded-lg bg-slate-50">
+                        <svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-3xl">
+                            <g transform="translate(50, 0)">
+                                <style>
+                                    .title { font-size: 28px; font-weight: bold; font-family: 'Noto Sans JP', sans-serif; fill: #3730a3; }
+                                    .label { font-size: 16px; font-family: 'Inter', sans-serif; fill: #312e81; }
+                                    .camera-box { fill: #e0e7ff; stroke: #4338ca; stroke-width: 6; rx: 20; }
+                                    .camera-label { font-size: 24px; font-weight: bold; fill: #4338ca; text-anchor: middle; dominant-baseline: central; }
+                                    .center-box { fill: #e0e7ff; stroke: #4338ca; stroke-width: 6; rx: 20; }
+                                    .center-label { font-size: 26px; font-weight: bold; fill: #4338ca; text-anchor: middle; dominant-baseline: central; }
+                                    .line { stroke: #4f46e5; stroke-width: 2; }
+                                </style>
+                                <text x="300" y="40" text-anchor="middle" class="title">バネどめ検査カメラ</text>
+                                
+                                <!-- Center Box -->
+                                <rect x="120" y="180" width="360" height="150" class="center-box"/>
+                                <text x="300" y="255" class="center-label">押し上げ部</text>
+
+                                <!-- Camera 1 (Left) -->
+                                <g>
+                                    <rect x="40" y="160" width="70" height="190" class="camera-box"/>
+                                    <text x="75" y="255" class="camera-label">1</text>
+                                    <!-- <line x1="40" y1="255" x2="-20" y2="255" class="line" /> -->
+                                    <text x="115" y="380" text-anchor="end" class="label">B-spring01</text>
+                                </g>
+
+                                <!-- Camera 2 (Top-Left) -->
+                                <g>
+                                    <rect x="140" y="90" width="150" height="70" class="camera-box"/>
+                                    <text x="215" y="125" class="camera-label">2</text>
+                                    <line x1="215" y1="90" x2="215" y2="70" class="line" />
+                                    <line x1="215" y1="70" x2="120" y2="70" class="line" />
+                                    <text x="110" y="70" text-anchor="end" class="label">B-spring02</text>
+                                </g>
+
+                                <!-- Camera 3 (Top-Right) -->
+                                <g>
+                                    <rect x="310" y="90" width="150" height="70" class="camera-box"/>
+                                    <text x="385" y="125" class="camera-label">3</text>
+                                    <line x1="385" y1="90" x2="385" y2="70" class="line" />
+                                    <line x1="385" y1="70" x2="480" y2="70" class="line" />
+                                    <text x="490" y="70" class="label">B-spring03</text>
+                                </g>
+
+                                <!-- Camera 4 (Right) -->
+                                <g>
+                                    <rect x="490" y="160" width="70" height="190" class="camera-box"/>
+                                    <text x="525" y="255" class="camera-label">4</text>
+                                    <!-- <line x1="560" y1="255" x2="620" y2="255" class="line" /> -->
+                                    <text x="480" y="380" class="label">B-spring04</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1. データベーススキーマ -->
+            <section id="db-schema">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">データベーススキーマ (inspection_results)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4 text-slate-600">検査結果を保存するテーブルの基本的な設計です。PostgreSQLを想定しています。</p>
+                    <div class="code-block-wrapper">
+<pre><code class="language-sql">CREATE TABLE inspection_results (
     inspection_id SERIAL PRIMARY KEY,                                   -- 自動採番
     inspection_camera_id VARCHAR(50) NOT NULL,                          -- カメラ名
     inspection_product_id VARCHAR(50) NOT NULL,                         -- 製品名
@@ -93,13 +202,14 @@
 -- CREATE INDEX idx_inspection_result ON inspection_results (inspection_result);
 -- CREATE INDEX idx_inspection_product_id ON inspection_results (inspection_product_id);
 </code></pre>
+                    </div>
                     <p class="mt-2 text-sm text-slate-600">集計API（summary）では日付や結果別のGROUP BYを行います。負荷が高い場合は日次集計テーブルの導入も検討してください。</p>
                 </div>
             </section>
 
-            <!-- 1. 検査サマリー取得 -->
+            <!-- 2. 検査サマリー取得 -->
             <section id="get-summary">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 検査サマリー取得</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 検査サマリー取得</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
@@ -120,8 +230,8 @@
                         <tbody>
                             <tr>
                                 <td class="border-b p-2 font-mono">type</td>
-                                <td class="border-b p-2">検査の種類を指定する。（`spring`: バネ留め, `alayer`: A層）</td>
-                                <td class="border-b p-2 font-mono">?type=spring</td>
+                                <td class="border-b p-2">実はカメラ名に基づいて検索するだけのやつ(部分検索で指定のカメラをフィルタ)</td>
+                                <td class="border-b p-2 font-mono">?type=A-</td>
                             </tr>
                             <tr>
                                 <td class="border-b p-2 font-mono">date</td>
@@ -146,9 +256,9 @@
                 </div>
             </section>
 
-            <!-- 2. 検査ログ取得 -->
+            <!-- 3. 検査ログ取得 -->
             <section id="get-logs">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 検査ログ取得</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査ログ取得</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
@@ -169,8 +279,8 @@
                         <tbody>
                             <tr>
                                 <td class="border-b p-2 font-mono">type</td>
-                                <td class="border-b p-2">検査の種類。（`spring` or `alayer`）</td>
-                                <td class="border-b p-2 font-mono">?type=spring</td>
+                                <td class="border-b p-2">実はカメラ名に基づいて検索するだけのやつ(部分検索で指定のカメラをフィルタ)</td>
+                                <td class="border-b p-2 font-mono">?type=A-</td>
                             </tr>
                             <tr>
                                 <td class="border-b p-2 font-mono">date</td>
@@ -227,9 +337,9 @@
                 </div>
             </section>
 
-            <!-- 3. リアルタイム検査結果 -->
+            <!-- 4. リアルタイム検査結果 -->
             <section id="realtime">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. リアルタイム検査結果 (WebSocket)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. リアルタイム検査結果 (WebSocket)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge websocket">WebSocket</span>
