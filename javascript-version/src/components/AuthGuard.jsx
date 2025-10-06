@@ -30,6 +30,15 @@ export default function AuthGuard({ children }) {
             } catch {}
         }
 
+        const redirectToError = (params = {}) => {
+            const search = new URLSearchParams({
+                from: pathname || '/',
+                ...Object.fromEntries(Object.entries(params).filter(([_, v]) => v != null))
+            }).toString()
+
+            router.replace(`/error?${search}`)
+        }
+
         const checkAuth = async () => {
             try {
                 const token =
@@ -41,10 +50,21 @@ export default function AuthGuard({ children }) {
                 // Validate token via /api/auth/me
                 const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
-                const res = await fetch(`${apiBase}/api/auth/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    credentials: 'include'
-                })
+                // Add a timeout so we don't hang forever if DB/back-end is unresponsive
+                const controller = new AbortController()
+                const timeoutMs = 5000
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+                let res
+                try {
+                    res = await fetch(`${apiBase}/api/auth/me`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        credentials: 'include',
+                        signal: controller.signal
+                    })
+                } finally {
+                    clearTimeout(timeoutId)
+                }
 
                 if (res.ok) {
                     // Optionally refresh user info in storage for other consumers
@@ -64,12 +84,14 @@ export default function AuthGuard({ children }) {
                     clearAuth()
                     redirectToLogin()
                 } else {
-                    // Other errors: allow access to avoid trapping users due to transient backend issues
-                    if (isMounted) setAuthorized(true)
+                    // Other HTTP errors: redirect to error page with status info
+                    redirectToError({ code: String(res.status) })
                 }
             } catch (e) {
-                // Network error: allow access optimistically
-                if (isMounted) setAuthorized(true)
+                // Network/timeout error: redirect to error page
+                // Distinguish abort (timeout) if possible
+                const isAbort = (e && typeof e === 'object' && 'name' in e && e.name === 'AbortError')
+                redirectToError({ code: isAbort ? 'timeout' : 'network' })
             }
         }
 
