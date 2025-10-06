@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, Fragment } from 'react'
+import { useState } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -19,18 +19,12 @@ import Chip from '@mui/material/Chip'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Box from '@mui/material/Box'
-import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
-import IconButton from '@mui/material/IconButton'
-import Collapse from '@mui/material/Collapse'
-import Divider from '@mui/material/Divider'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
-// Local imports
+import { useLotsData } from './hooks/useLotsData'
+import SectionTab from './components/SectionTab'
+import DonutChart from './components/DonutChart'
 import CameraGrid from './components/CameraGrid'
 import SectionSummary from './components/SectionSummary'
-import ImageLightbox from './components/ImageLightbox'
-import { useLotsData } from './hooks/useLotsData'
 import { SECTION_CONFIG } from './utils/sectionConfig'
 
 // Custom styled components
@@ -53,58 +47,6 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }))
 
-const DonutChart = ({ percentage, size = 160 }) => {
-  const radius = (size - 20) / 2
-  const circumference = 2 * Math.PI * radius
-  const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
-
-  return (
-    <Box sx={{ position: 'relative', width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#e5e7eb"
-          strokeWidth="8"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#10b981"
-          strokeWidth="8"
-          strokeDasharray={strokeDasharray}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center',
-        }}
-      >
-        <Typography variant="h3" component="div" fontWeight="bold" color="primary">
-          {percentage}%
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          良品率
-        </Typography>
-      </Box>
-    </Box>
-  )
-}
-
-// セクション構成は utils/sectionConfig へ移動
-
 const ImageInspection = () => {
   const [activeTab, setActiveTab] = useState(0)
   const { lotsData, getSectionLots, getLotStatus, getSectionStats, getFailReasons, getLatestLot, getLotShotsByCamera } = useLotsData()
@@ -115,298 +57,64 @@ const ImageInspection = () => {
     setActiveTab(newValue)
   }
 
-  // セクション毎のメソッドは useLotsData に移行
-
-  const renderTabPanel = (value, index) => {
-    if (value !== index) return null
-    
-    if (index === 0) {
-      // 全体表示タブ
-      return (
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  リアルタイム監視: バネ留め検査（4カメラ）
-                </Typography>
-                {renderCameraGrid('バネ留め')}
-                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    最新のロット判定
-                  </Typography>
-                  {renderLatestLotSummary('バネ留め')}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  リアルタイム監視: A層検査（3カメラ）
-                </Typography>
-                {renderCameraGrid('A層')}
-                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    最新のロット判定
-                  </Typography>
-                  {renderLatestLotSummary('A層')}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )
-    } else if (index === 1) {
-      // バネ留め検査タブ
-      return renderSectionTab('バネ留め')
-    } else if (index === 2) {
-      // A層検査タブ
-      return renderSectionTab('A層')
-    }
-  }
-
-  const renderSectionTab = (section) => {
-    const stats = getSectionStats(section)
-    const failReasons = getFailReasons(section)
-    
-    return (
-      <>
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  リアルタイム監視: {section}検査（{SECTION_CONFIG[section].cameras.length}カメラ）
-                </Typography>
-                {renderCameraGrid(section)}
-                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    最新のロット判定
-                  </Typography>
-                  {renderLatestLotSummary(section)}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <CardContent sx={{ '& > * + *': { mt: 3 } }}>
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    本日のサマリー
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                    <DonutChart percentage={stats.passRate} />
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={4}>
-                      <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">ロット総数</Typography>
-                        <Typography variant="h4" fontWeight="bold">{stats.total}</Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">良品</Typography>
-                        <Typography variant="h4" fontWeight="bold" color="success.main">{stats.pass}</Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">不良品</Typography>
-                        <Typography variant="h4" fontWeight="bold" color="error.main">{stats.fail}</Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Box>
-                
-                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    不良原因
-                  </Typography>
-                  {failReasons.length === 0 ? (
-                    <Typography color="text.secondary">本日の不良品はありません。</Typography>
-                  ) : (
-                    <Box sx={{ '& > * + *': { mt: 2 } }}>
-                      {failReasons.map((reason, index) => (
-                        <Box key={index}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" fontWeight="medium">
-                              {reason.reason}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {reason.count}件
-                            </Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={reason.percentage}
-                            sx={{ height: 8, borderRadius: 4 }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-        
-        <Box sx={{ mt: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {section}検査 ロットログ
+  // 全体表示タブ
+  const renderOverviewTab = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
+        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              リアルタイム監視: バネ留め検査（4カメラ）
+            </Typography>
+            <CameraGrid cameraNames={SECTION_CONFIG['バネ留め'].cameras} statusByName={Object.fromEntries((getLatestLot('バネ留め')?.cameras || []).map(c => [c.name, c.status]))} />
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                最新のロット判定
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell width={56} />
-                      <TableCell>日時</TableCell>
-                      <TableCell>ロットID</TableCell>
-                      <TableCell align="center">総合結果</TableCell>
-                      <TableCell>各カメラ</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {getSectionLots(section).map((lot, index) => {
-                      const isOpen = !!openRows[lot.lotId]
-                      const toggle = () => setOpenRows(prev => ({ ...prev, [lot.lotId]: !isOpen }))
-                      const shotsByCam = getLotShotsByCamera(lot.lotId)
-                      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
-                      const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
-                      return (
-                        <Fragment key={lot.lotId}>
-                          <TableRow hover onClick={toggle} sx={{ cursor: 'pointer' }} aria-expanded={isOpen}>
-                            <TableCell width={56}>
-                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggle() }} aria-label="expand row">
-                                {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
-                              </IconButton>
-                            </TableCell>
-                            <TableCell>{lot.time}</TableCell>
-                            <TableCell sx={{ fontWeight: 'medium' }}>{lot.lotId}</TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={getLotStatus(lot)}
-                                color={getLotStatus(lot) === 'PASS' ? 'success' : 'error'}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {lot.cameras.map((c, i) => (
-                                  <Chip
-                                    key={i}
-                                    label={`${c.name}: ${c.status}${c.status !== 'OK' && c.details && c.details !== '-' ? `（${c.details}）` : ''}`}
-                                    size="small"
-                                    color={c.status === 'OK' ? 'success' : 'error'}
-                                    variant={c.status === 'OK' ? 'outlined' : 'filled'}
-                                  />
-                                ))}
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell colSpan={5} sx={{ p: 0, bgcolor: 'grey.50' }}>
-                              <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                                <Box sx={{ px: 3, py: 2 }}>
-                                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                    撮影・検査履歴
-                                  </Typography>
-                                  <Divider sx={{ mb: 2 }} />
-                                  <Table size="small" aria-label="lot shots table">
-                                    <TableHead>
-                                      <TableRow>
-                                        <TableCell>カメラ</TableCell>
-                                        <TableCell>結果</TableCell>
-                                        <TableCell>詳細</TableCell>
-                                        <TableCell align="right">画像</TableCell>
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {Object.entries(shotsByCam).flatMap(([camId, shots]) =>
-                                        shots.map((s, i) => (
-                                          <TableRow key={`${camId}-${i}`}>
-                                            <TableCell sx={{ fontWeight: 500 }}>{camId}</TableCell>
-                                            <TableCell>
-                                              <Chip label={s.status} size="small" color={s.status === 'PASS' ? 'success' : 'error'} />
-                                            </TableCell>
-                                            <TableCell>
-                                              {s.details || '-'}
-                                            </TableCell>
-                                            <TableCell align="right" sx={{ width: 220 }}>
-                                              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                                <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
-                                                  {s.image_path}
-                                                </Typography>
-                                                <Box
-                                                  sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900', cursor: 'pointer' }}
-                                                  onClick={() => {
-                                                    const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
-                                                    setLightbox({ open: true, src, alt: s.image_path || 'shot' })
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={s.image_path || FALLBACK_IMG}
-                                                    alt={s.image_path || 'shot'}
-                                                    onError={e => {
-                                                      if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
-                                                    }}
-                                                    style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 4 }}
-                                                  />
-                                                </Box>
-                                              </Box>
-                                            </TableCell>
-                                          </TableRow>
-                                        ))
-                                      )}
-                                    </TableBody>
-                                  </Table>
-                                </Box>
-                              </Collapse>
-                            </TableCell>
-                          </TableRow>
-                        </Fragment>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Box>
-        {/* Lightbox */}
-        <ImageLightbox open={lightbox.open} src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox({ open: false, src: '', alt: '' })} />
-      </>
-    )
-  }
+              <SectionSummary latestLot={getLatestLot('バネ留め')} lotStatus={getLatestLot('バネ留め') ? getLotStatus(getLatestLot('バネ留め')) : undefined} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
+        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              リアルタイム監視: A層検査（3カメラ）
+            </Typography>
+            <CameraGrid cameraNames={SECTION_CONFIG['A層'].cameras} statusByName={Object.fromEntries((getLatestLot('A層')?.cameras || []).map(c => [c.name, c.status]))} />
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                最新のロット判定
+              </Typography>
+              <SectionSummary latestLot={getLatestLot('A層')} lotStatus={getLatestLot('A層') ? getLotStatus(getLatestLot('A層')) : undefined} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  )
 
-  // 最新ロット概要
-  const renderLatestLotSummary = (section) => {
-    const latest = getLatestLot(section)
-    const lotStatus = latest ? getLotStatus(latest) : undefined
-    return <SectionSummary latestLot={latest} lotStatus={lotStatus} />
-  }
-
-  // カメラグリッド（最新ロットの各カメラ状態を表示）
-  const renderCameraGrid = (section) => {
-    const latest = getLatestLot(section)
-    const names = SECTION_CONFIG[section].cameras
-    const statusByName = Object.fromEntries((latest?.cameras || []).map(c => [c.name, c.status]))
-    return <CameraGrid cameraNames={names} statusByName={statusByName} />
-  }
+  // セクションタブ
+  const renderSectionTab = (section) => (
+    <SectionTab
+      section={section}
+      stats={getSectionStats(section)}
+      failReasons={getFailReasons(section)}
+      getSectionLots={getSectionLots}
+      getLotStatus={getLotStatus}
+      getLotShotsByCamera={getLotShotsByCamera}
+      openRows={openRows}
+      setOpenRows={setOpenRows}
+      lightbox={lightbox}
+      setLightbox={setLightbox}
+      getLatestLot={getLatestLot}
+    />
+  )
 
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
-        
         {/* タブナビゲーション */}
         <Grid item xs={12}>
           <StyledTabs value={activeTab} onChange={handleTabChange}>
@@ -415,12 +123,11 @@ const ImageInspection = () => {
             <StyledTab label="A層検査" />
           </StyledTabs>
         </Grid>
-        
         {/* タブコンテンツ */}
         <Grid item xs={12}>
-          {renderTabPanel(activeTab, 0)}
-          {renderTabPanel(activeTab, 1)}
-          {renderTabPanel(activeTab, 2)}
+          {activeTab === 0 && renderOverviewTab()}
+          {activeTab === 1 && renderSectionTab('バネ留め')}
+          {activeTab === 2 && renderSectionTab('A層')}
         </Grid>
       </Grid>
     </Box>
