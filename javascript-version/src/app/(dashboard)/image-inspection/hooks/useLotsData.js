@@ -43,9 +43,9 @@ export const useLotsData = () => {
             section: 'A層',
             lotId: 'AL-LOT-01249',
             cameras: [
-                { name: 'カメラ1', status: 'OK', details: '-' },
-                { name: 'カメラ2', status: 'OK', details: '-' },
-                { name: 'カメラ3', status: 'OK', details: '-' },
+                { name: 'A-main01', status: 'OK', details: '-' },
+                { name: 'A-stitch01', status: 'OK', details: '-' },
+                { name: 'A-stitch02', status: 'OK', details: '-' },
             ],
         },
         {

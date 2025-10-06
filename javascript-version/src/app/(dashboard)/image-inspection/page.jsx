@@ -116,8 +116,8 @@ const ImageInspection = () => {
       // 全体表示タブ
       return (
         <Grid container spacing={3}>
-          <Grid item xs={12} lg={6}>
-            <Card>
+          <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   リアルタイム監視: バネ留め検査（4カメラ）
@@ -133,8 +133,8 @@ const ImageInspection = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} lg={6}>
-            <Card>
+          <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   リアルタイム監視: A層検査（3カメラ）
@@ -167,8 +167,8 @@ const ImageInspection = () => {
     return (
       <>
         <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
-            <Card>
+          <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   リアルタイム監視: {section}検査（{SECTION_CONFIG[section].cameras.length}カメラ）
@@ -184,8 +184,8 @@ const ImageInspection = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} lg={4}>
-            <Card>
+          <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
               <CardContent sx={{ '& > * + *': { mt: 3 } }}>
                 <Box>
                   <Typography variant="h6" gutterBottom>
