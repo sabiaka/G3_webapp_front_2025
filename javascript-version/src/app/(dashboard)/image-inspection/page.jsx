@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -21,6 +21,11 @@ import Tab from '@mui/material/Tab'
 import Box from '@mui/material/Box'
 import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
+import IconButton from '@mui/material/IconButton'
+import Collapse from '@mui/material/Collapse'
+import Divider from '@mui/material/Divider'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 // Local imports
 import CameraGrid from './components/CameraGrid'
 import SectionSummary from './components/SectionSummary'
@@ -101,7 +106,8 @@ const DonutChart = ({ percentage, size = 160 }) => {
 
 const ImageInspection = () => {
   const [activeTab, setActiveTab] = useState(0)
-  const { lotsData, getSectionLots, getLotStatus, getSectionStats, getFailReasons, getLatestLot } = useLotsData()
+  const { lotsData, getSectionLots, getLotStatus, getSectionStats, getFailReasons, getLatestLot, getLotShotsByCamera } = useLotsData()
+  const [openRows, setOpenRows] = useState({})
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
@@ -255,10 +261,11 @@ const ImageInspection = () => {
               <Typography variant="h6" gutterBottom>
                 {section}検査 ロットログ
               </Typography>
-              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '40vh' }}>
+              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh' }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
+                      <TableCell width={56} />
                       <TableCell>日時</TableCell>
                       <TableCell>ロットID</TableCell>
                       <TableCell align="center">総合結果</TableCell>
@@ -266,33 +273,102 @@ const ImageInspection = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {getSectionLots(section).map((lot, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{lot.time}</TableCell>
-                        <TableCell sx={{ fontWeight: 'medium' }}>{lot.lotId}</TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={getLotStatus(lot)}
-                            color={getLotStatus(lot) === 'PASS' ? 'success' : 'error'}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {lot.cameras.map((c, i) => (
+                    {getSectionLots(section).map((lot, index) => {
+                      const isOpen = !!openRows[lot.lotId]
+                      const toggle = () => setOpenRows(prev => ({ ...prev, [lot.lotId]: !isOpen }))
+                      const shotsByCam = getLotShotsByCamera(lot.lotId)
+                      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+                      return (
+                        <Fragment key={lot.lotId}>
+                          <TableRow hover>
+                            <TableCell width={56}>
+                              <IconButton size="small" onClick={toggle} aria-label="expand row">
+                                {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+                              </IconButton>
+                            </TableCell>
+                            <TableCell>{lot.time}</TableCell>
+                            <TableCell sx={{ fontWeight: 'medium' }}>{lot.lotId}</TableCell>
+                            <TableCell align="center">
                               <Chip
-                                key={i}
-                                label={`${c.name}: ${c.status}${c.status !== 'OK' && c.details && c.details !== '-' ? `（${c.details}）` : ''}`}
+                                label={getLotStatus(lot)}
+                                color={getLotStatus(lot) === 'PASS' ? 'success' : 'error'}
                                 size="small"
-                                color={c.status === 'OK' ? 'success' : 'error'}
-                                variant={c.status === 'OK' ? 'outlined' : 'filled'}
+                                variant="outlined"
                               />
-                            ))}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {lot.cameras.map((c, i) => (
+                                  <Chip
+                                    key={i}
+                                    label={`${c.name}: ${c.status}${c.status !== 'OK' && c.details && c.details !== '-' ? `（${c.details}）` : ''}`}
+                                    size="small"
+                                    color={c.status === 'OK' ? 'success' : 'error'}
+                                    variant={c.status === 'OK' ? 'outlined' : 'filled'}
+                                  />
+                                ))}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={5} sx={{ p: 0, bgcolor: 'grey.50' }}>
+                              <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                                <Box sx={{ px: 3, py: 2 }}>
+                                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                                    撮影・検査履歴
+                                  </Typography>
+                                  <Divider sx={{ mb: 2 }} />
+                                  <Grid container spacing={2}>
+                                    {Object.entries(shotsByCam).map(([camId, shots]) => (
+                                      <Grid item xs={12} md={6} key={camId}>
+                                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                          {camId}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                                          {shots.map((s, i) => (
+                                            <Box key={i} sx={{ width: 160 }}>
+                                              <Box
+                                                sx={{
+                                                  position: 'relative',
+                                                  borderRadius: 1,
+                                                  overflow: 'hidden',
+                                                  aspectRatio: '16/9',
+                                                  bgcolor: 'grey.900',
+                                                }}
+                                              >
+                                                <img
+                                                  src={`${basePath}/images/pages/CameraNotFound.png`}
+                                                  alt={s.image_path || 'shot'}
+                                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                                <Chip
+                                                  label={s.status}
+                                                  size="small"
+                                                  color={s.status === 'PASS' ? 'success' : 'error'}
+                                                  sx={{ position: 'absolute', top: 6, right: 6 }}
+                                                />
+                                              </Box>
+                                              <Typography variant="caption" color="text.secondary" noWrap>
+                                                {s.image_path}
+                                              </Typography>
+                                              {s.details && (
+                                                <Typography variant="caption" color="error.main" display="block" noWrap>
+                                                  {s.details}
+                                                </Typography>
+                                              )}
+                                            </Box>
+                                          ))}
+                                        </Box>
+                                      </Grid>
+                                    ))}
+                                  </Grid>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </Fragment>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

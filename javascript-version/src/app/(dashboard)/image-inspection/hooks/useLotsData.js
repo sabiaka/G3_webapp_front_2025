@@ -175,6 +175,27 @@ export const useLotsData = () => {
 
     const getLatestLot = section => getSectionLots(section)[0] || null
 
+    // ---- 詳細表示向けヘルパ ----
+    const getLotShots = lotId => {
+        const lot = (apiPayload?.lots || []).find(l => l.lot_id === lotId)
+        return lot ? (lot.cameras || []).map(c => ({
+            camera_id: c.camera_id,
+            status: c.status, // PASS | FAIL（生のまま）
+            details: c.details,
+            image_path: c.image_path,
+        })) : []
+    }
+
+    const getLotShotsByCamera = lotId => {
+        const shots = getLotShots(lotId)
+        const grouped = shots.reduce((acc, s) => {
+            if (!acc[s.camera_id]) acc[s.camera_id] = []
+            acc[s.camera_id].push(s)
+            return acc
+        }, {})
+        return grouped
+    }
+
     return {
         // 既存UIが参照する互換データ
         lotsData: uiLots,
@@ -185,5 +206,7 @@ export const useLotsData = () => {
         getSectionStats,
         getFailReasons,
         getLatestLot,
+        getLotShots,
+        getLotShotsByCamera,
     }
 }
