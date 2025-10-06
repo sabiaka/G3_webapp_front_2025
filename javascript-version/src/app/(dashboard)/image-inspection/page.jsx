@@ -8,26 +8,23 @@ import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import Paper from '@mui/material/Paper'
-import Chip from '@mui/material/Chip'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
+
+// データ取得用カスタムフック
 import { useLotsData } from './hooks/useLotsData'
+
+// セクションごとのタブ・カメラグリッド・サマリー表示用コンポーネント
 import SectionTab from './components/SectionTab'
-import DonutChart from './components/DonutChart'
 import CameraGrid from './components/CameraGrid'
 import SectionSummary from './components/SectionSummary'
+
+// セクション設定（カメラ構成など）
 import { SECTION_CONFIG } from './utils/sectionConfig'
 
-// Custom styled components
+// タブのスタイル定義
 const StyledTab = styled(Tab)(({ theme }) => ({
   textTransform: 'none',
   fontWeight: 600,
@@ -40,6 +37,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
   },
 }))
 
+// タブ全体のスタイル定義
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
   '& .MuiTabs-indicator': {
@@ -47,47 +45,86 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }))
 
+// メインコンポーネント
 const ImageInspection = () => {
+  // 現在選択中のタブインデックス
   const [activeTab, setActiveTab] = useState(0)
-  const { lotsData, getSectionLots, getLotStatus, getSectionStats, getFailReasons, getLatestLot, getLotShotsByCamera } = useLotsData()
+
+  // 検査ロット関連のデータ取得・操作関数
+  const {
+    lotsData,
+    getSectionLots,
+    getLotStatus,
+    getSectionStats,
+    getFailReasons,
+    getLatestLot,
+    getLotShotsByCamera
+  } = useLotsData()
+
+  // セクションごとの展開行状態（詳細表示用）
   const [openRows, setOpenRows] = useState({})
+
+  // 画像拡大表示用ライトボックス状態
   const [lightbox, setLightbox] = useState({ open: false, src: '', alt: '' })
 
+  // タブ切り替え時の処理
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
   }
 
-  // 全体表示タブ
+  // 「全体表示」タブの内容
   const renderOverviewTab = () => (
     <Grid container spacing={3}>
+      {/* バネ留め検査のリアルタイム監視カード */}
       <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
         <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               リアルタイム監視: バネ留め検査（4カメラ）
             </Typography>
-            <CameraGrid cameraNames={SECTION_CONFIG['バネ留め'].cameras} statusByName={Object.fromEntries((getLatestLot('バネ留め')?.cameras || []).map(c => [c.name, c.status]))} />
+            {/* カメラごとの状態表示 */}
+            <CameraGrid
+              cameraNames={SECTION_CONFIG['バネ留め'].cameras}
+              statusByName={Object.fromEntries(
+                (getLatestLot('バネ留め')?.cameras || []).map(c => [c.name, c.status])
+              )}
+            />
+            {/* 最新ロット判定のサマリー表示 */}
             <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
               <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                 最新のロット判定
               </Typography>
-              <SectionSummary latestLot={getLatestLot('バネ留め')} lotStatus={getLatestLot('バネ留め') ? getLotStatus(getLatestLot('バネ留め')) : undefined} />
+              <SectionSummary
+                latestLot={getLatestLot('バネ留め')}
+                lotStatus={getLatestLot('バネ留め') ? getLotStatus(getLatestLot('バネ留め')) : undefined}
+              />
             </Box>
           </CardContent>
         </Card>
       </Grid>
+      {/* A層検査のリアルタイム監視カード */}
       <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
         <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               リアルタイム監視: A層検査（3カメラ）
             </Typography>
-            <CameraGrid cameraNames={SECTION_CONFIG['A層'].cameras} statusByName={Object.fromEntries((getLatestLot('A層')?.cameras || []).map(c => [c.name, c.status]))} />
+            {/* カメラごとの状態表示 */}
+            <CameraGrid
+              cameraNames={SECTION_CONFIG['A層'].cameras}
+              statusByName={Object.fromEntries(
+                (getLatestLot('A層')?.cameras || []).map(c => [c.name, c.status])
+              )}
+            />
+            {/* 最新ロット判定のサマリー表示 */}
             <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
               <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                 最新のロット判定
               </Typography>
-              <SectionSummary latestLot={getLatestLot('A層')} lotStatus={getLatestLot('A層') ? getLotStatus(getLatestLot('A層')) : undefined} />
+              <SectionSummary
+                latestLot={getLatestLot('A層')}
+                lotStatus={getLatestLot('A層') ? getLotStatus(getLatestLot('A層')) : undefined}
+              />
             </Box>
           </CardContent>
         </Card>
@@ -95,7 +132,7 @@ const ImageInspection = () => {
     </Grid>
   )
 
-  // セクションタブ
+  // 各セクションタブの内容（propsで必要な関数や状態を渡す）
   const renderSectionTab = (section) => (
     <SectionTab
       section={section}
@@ -112,6 +149,7 @@ const ImageInspection = () => {
     />
   )
 
+  // レンダリング
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
@@ -134,4 +172,5 @@ const ImageInspection = () => {
   )
 }
 
+// デフォルトエクスポート
 export default ImageInspection
