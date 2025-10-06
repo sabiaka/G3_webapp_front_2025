@@ -29,6 +29,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 // Local imports
 import CameraGrid from './components/CameraGrid'
 import SectionSummary from './components/SectionSummary'
+import ImageLightbox from './components/ImageLightbox'
 import { useLotsData } from './hooks/useLotsData'
 import { SECTION_CONFIG } from './utils/sectionConfig'
 
@@ -108,6 +109,7 @@ const ImageInspection = () => {
   const [activeTab, setActiveTab] = useState(0)
   const { lotsData, getSectionLots, getLotStatus, getSectionStats, getFailReasons, getLatestLot, getLotShotsByCamera } = useLotsData()
   const [openRows, setOpenRows] = useState({})
+  const [lightbox, setLightbox] = useState({ open: false, src: '', alt: '' })
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
@@ -278,11 +280,12 @@ const ImageInspection = () => {
                       const toggle = () => setOpenRows(prev => ({ ...prev, [lot.lotId]: !isOpen }))
                       const shotsByCam = getLotShotsByCamera(lot.lotId)
                       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+                      const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
                       return (
                         <Fragment key={lot.lotId}>
-                          <TableRow hover>
+                          <TableRow hover onClick={toggle} sx={{ cursor: 'pointer' }} aria-expanded={isOpen}>
                             <TableCell width={56}>
-                              <IconButton size="small" onClick={toggle} aria-label="expand row">
+                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggle() }} aria-label="expand row">
                                 {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
                               </IconButton>
                             </TableCell>
@@ -338,16 +341,25 @@ const ImageInspection = () => {
                                             <TableCell>
                                               {s.details || '-'}
                                             </TableCell>
-                                            <TableCell align="right" sx={{ width: 200 }}>
+                                            <TableCell align="right" sx={{ width: 220 }}>
                                               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
                                                 <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
                                                   {s.image_path}
                                                 </Typography>
-                                                <Box sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900' }}>
+                                                <Box
+                                                  sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900', cursor: 'pointer' }}
+                                                  onClick={() => {
+                                                    const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
+                                                    setLightbox({ open: true, src, alt: s.image_path || 'shot' })
+                                                  }}
+                                                >
                                                   <img
-                                                    src={`${basePath}/images/pages/CameraNotFound.png`}
+                                                    src={s.image_path || FALLBACK_IMG}
                                                     alt={s.image_path || 'shot'}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    onError={e => {
+                                                      if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
+                                                    }}
+                                                    style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 4 }}
                                                   />
                                                 </Box>
                                               </Box>
@@ -370,6 +382,8 @@ const ImageInspection = () => {
             </CardContent>
           </Card>
         </Box>
+        {/* Lightbox */}
+        <ImageLightbox open={lightbox.open} src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox({ open: false, src: '', alt: '' })} />
       </>
     )
   }
