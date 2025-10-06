@@ -261,7 +261,7 @@ const ImageInspection = () => {
               <Typography variant="h6" gutterBottom>
                 {section}検査 ロットログ
               </Typography>
-              <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh' }}>
+              <TableContainer component={Paper} variant="outlined">
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
@@ -318,50 +318,45 @@ const ImageInspection = () => {
                                     撮影・検査履歴
                                   </Typography>
                                   <Divider sx={{ mb: 2 }} />
-                                  <Grid container spacing={2}>
-                                    {Object.entries(shotsByCam).map(([camId, shots]) => (
-                                      <Grid item xs={12} md={6} key={camId}>
-                                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                                          {camId}
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                                          {shots.map((s, i) => (
-                                            <Box key={i} sx={{ width: 160 }}>
-                                              <Box
-                                                sx={{
-                                                  position: 'relative',
-                                                  borderRadius: 1,
-                                                  overflow: 'hidden',
-                                                  aspectRatio: '16/9',
-                                                  bgcolor: 'grey.900',
-                                                }}
-                                              >
-                                                <img
-                                                  src={`${basePath}/images/pages/CameraNotFound.png`}
-                                                  alt={s.image_path || 'shot'}
-                                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                                <Chip
-                                                  label={s.status}
-                                                  size="small"
-                                                  color={s.status === 'PASS' ? 'success' : 'error'}
-                                                  sx={{ position: 'absolute', top: 6, right: 6 }}
-                                                />
-                                              </Box>
-                                              <Typography variant="caption" color="text.secondary" noWrap>
-                                                {s.image_path}
-                                              </Typography>
-                                              {s.details && (
-                                                <Typography variant="caption" color="error.main" display="block" noWrap>
-                                                  {s.details}
+                                  <Table size="small" aria-label="lot shots table">
+                                    <TableHead>
+                                      <TableRow>
+                                        <TableCell>カメラ</TableCell>
+                                        <TableCell>結果</TableCell>
+                                        <TableCell>詳細</TableCell>
+                                        <TableCell align="right">画像</TableCell>
+                                      </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                      {Object.entries(shotsByCam).flatMap(([camId, shots]) =>
+                                        shots.map((s, i) => (
+                                          <TableRow key={`${camId}-${i}`}>
+                                            <TableCell sx={{ fontWeight: 500 }}>{camId}</TableCell>
+                                            <TableCell>
+                                              <Chip label={s.status} size="small" color={s.status === 'PASS' ? 'success' : 'error'} />
+                                            </TableCell>
+                                            <TableCell>
+                                              {s.details || '-'}
+                                            </TableCell>
+                                            <TableCell align="right" sx={{ width: 200 }}>
+                                              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
+                                                  {s.image_path}
                                                 </Typography>
-                                              )}
-                                            </Box>
-                                          ))}
-                                        </Box>
-                                      </Grid>
-                                    ))}
-                                  </Grid>
+                                                <Box sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900' }}>
+                                                  <img
+                                                    src={`${basePath}/images/pages/CameraNotFound.png`}
+                                                    alt={s.image_path || 'shot'}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                  />
+                                                </Box>
+                                              </Box>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))
+                                      )}
+                                    </TableBody>
+                                  </Table>
                                 </Box>
                               </Collapse>
                             </TableCell>
