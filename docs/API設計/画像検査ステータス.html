@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像検査API設計書</title>
+    <title>画像検査API設計書（なんとまた仕様変更）</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +58,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
-                    <h1 class="text-4xl font-bold text-slate-900">画像検査API 設計書</h1>
+                    <h1 class="text-4xl font-bold text-slate-900">画像検査API 設計書（Re:仕様変更）</h1>
                 </div>
                 <a href="../index.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
                     ← トップページに戻る
@@ -66,11 +66,25 @@
             </div>
             <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
                 <p class="font-bold">対象ページ: 画像検査ステータス</p>
-                <p class="text-sm mt-1">このドキュメントは、「画像検査ステータス」ページのフロントエンドとバックエンドを連携させるためのAPI仕様を定義します。</p>
+                <p class="text-sm mt-1">このドキュメントは、「画像検査ステータス」ページの最新フロント実装に合わせたAPI/DB設計を定義します。WebSocket は廃止し、<strong>軽量な GET ポーリング</strong>で変更検知→ フロントは必要なデータを GET で再取得する方式に変更しました。</p>
             </div>
         </header>
 
         <div class="space-y-12">
+
+            <!-- 0. 改訂概要 -->
+            <section id="changelog" class="mb-12">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">改訂概要</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md space-y-3 text-slate-700">
+                    <ul class="list-disc pl-6 space-y-1">
+                        <li>リアルタイム更新: WebSocket → <strong>軽量GETポーリング</strong>に変更（サーバは直近イベントID/名前を公開。フロントは数秒おきに比較し、変化時のみデータAPIを再取得）。</li>
+                        <li>DBスキーマ: 単一テーブルから <strong>ロット</strong>＋<strong>カメラショット</strong> の2層構造へ再設計。1ロット内の同一カメラの複数ショットを保存可能。</li>
+                        <li>API整備: クエリは <code>section</code> と <code>date</code> を基本に統一。<code>summary</code> と <code>lots</code> を中核に、任意で <code>lot-shots</code> や <code>dates</code> を追加。</li>
+                        <li>ステータス表記: サーバは <code>PASS/FAIL</code> を返却。フロントの UI 表示（OK/NG 等）はフロント側でマッピング。</li>
+                        <li>画像命名: <code>{lot_id}_{camera_id}-{seq}.jpg</code> を推奨（例: <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
+                    </ul>
+                </div>
+            </section>
 
             <section id="camera-config" class="mb-12">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">カメラ構成と命名規則</h2>
@@ -182,33 +196,52 @@
 
             <!-- 1. データベーススキーマ -->
             <section id="db-schema">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">データベーススキーマ (inspection_results)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. データベーススキーマ（刷新）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4 text-slate-600">検査結果を保存するテーブルの基本的な設計です。PostgreSQLを想定しています。</p>
+                    <p class="mb-4 text-slate-600">PostgreSQLを想定。1ロット内で同一カメラの複数ショットを保持し、ロット単位の集計を容易にします。</p>
                     <div class="code-block-wrapper">
-<pre><code class="language-sql">CREATE TABLE inspection_results (
-    inspection_id SERIAL PRIMARY KEY,                                   -- 自動採番
-    inspection_camera_id VARCHAR(50) NOT NULL,                          -- カメラ名
-    inspection_product_id VARCHAR(50) NOT NULL,                         -- 製品名
-    inspection_result VARCHAR(50) NULL,                                 -- 検査結果（PASS/FAIL等）
-    inspection_reason TEXT NULL,                                        -- 不良理由
-    inspection_image_path TEXT NOT NULL,                                -- 画像パス
-    inspection_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 撮影日時
-    inspection_inspected_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  -- 検査日時
+<pre><code class="language-sql">-- セクションの正規化（任意）
+CREATE TABLE inspection_sections (
+    section_id SERIAL PRIMARY KEY,                       -- セクションID（内部連番）
+    section_code VARCHAR(32) UNIQUE NOT NULL,            -- セクション内部コード（例: 'spring', 'alayer'）
+    section_name VARCHAR(64) NOT NULL                    -- セクション表示名（例: 'バネ留め', 'A層検査'）
 );
 
--- よく使うクエリのための補助インデックス例
--- CREATE INDEX idx_inspection_captured_time ON inspection_results (inspection_captured_time DESC);
--- CREATE INDEX idx_inspection_result ON inspection_results (inspection_result);
--- CREATE INDEX idx_inspection_product_id ON inspection_results (inspection_product_id);
+-- ロット（製品ID等に相当）
+CREATE TABLE inspection_lots (
+    id BIGSERIAL PRIMARY KEY,                                       -- ロット内部ID（連番）
+    lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
+    section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
+    captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
+    UNIQUE (lot_id)                                                 -- ロットIDは一意
+);
+
+-- カメラショット（1ロット内で複数可、同一camera_idで複数行OK）
+CREATE TABLE inspection_camera_shots (
+    id BIGSERIAL PRIMARY KEY,                                                   -- ショット内部ID（連番）
+    lot_id_ref BIGINT NOT NULL REFERENCES inspection_lots(id) ON DELETE CASCADE,-- ロット参照ID
+    camera_id VARCHAR(64) NOT NULL,                                             -- カメラID（例: 'B-spring01', 'A-main01'）
+    status VARCHAR(16) NOT NULL CHECK (status IN ('PASS','FAIL','MISSING')),    -- 判定ステータス
+    details TEXT NULL,                                                          -- 不良理由等（PASS時はNULL推奨）
+    image_path TEXT NULL,                                                       -- 画像パス（MISSING時はNULL可）
+    shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
+    captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
+);
+
+-- 高速化インデックス
+CREATE INDEX idx_lots_section_date ON inspection_lots (section_code, date(captured_at) DESC, captured_at DESC); -- セクション＋日付検索用
+CREATE INDEX idx_shots_lot ON inspection_camera_shots (lot_id_ref);                                             -- ロット単位検索用
+CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);                                           -- カメラ単位検索用
+
 </code></pre>
                     </div>
-                    <p class="mt-2 text-sm text-slate-600">集計API（summary）では日付や結果別のGROUP BYを行います。負荷が高い場合は日次集計テーブルの導入も検討してください。</p>
+                    <p class="mt-2 text-sm text-slate-600">備考: ロットの総合判定はビューやアプリ側で算出（<strong>同一camera_idで1つでもFAILがあればNG</strong> ルール）。必要ならマテリアライズドビューやトリガで日次集計を保持。</p>
                 </div>
             </section>
 
             <!-- 2. 検査サマリー取得 -->
-            <section id="get-summary">
+            <section id="api-summary">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 検査サマリー取得</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
@@ -216,56 +249,7 @@
                         <span class="font-mono text-lg font-semibold">/api/inspections/summary</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">指定した日付の検査サマリー（総数、良品/不良品数、不良原因）をまとめてGETするAPI。各検査タブの統計表示で使うよ！</p>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr>
-                                <th class="border-b-2 p-2">パラメータ</th>
-                                <th class="border-b-2 p-2">説明</th>
-                                <th class="border-b-2 p-2">例</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border-b p-2 font-mono">type</td>
-                                <td class="border-b p-2">実はカメラ名に基づいて検索するだけのやつ(部分検索で指定のカメラをフィルタ)</td>
-                                <td class="border-b p-2 font-mono">?type=A-</td>
-                            </tr>
-                            <tr>
-                                <td class="border-b p-2 font-mono">date</td>
-                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。指定しない場合は本日。</td>
-                                <td class="border-b p-2 font-mono">?date=2024-07-15</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <pre><code class="language-json">{
-    "total_count": 150,
-    "pass_count": 145,
-    "fail_count": 5,
-    "pass_rate": 96.7,
-    "fail_reasons": [
-        { "reason": "位置ずれ", "count": 3 },
-        { "reason": "傷あり", "count": 1 },
-        { "reason": "異物混入", "count": 1 }
-    ]
-}</code></pre>
-                </div>
-            </section>
-
-            <!-- 3. 検査ログ取得 -->
-            <section id="get-logs">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査ロット取得</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <span class="method-badge get">GET</span>
-                        <span class="font-mono text-lg font-semibold">/api/inspections/lots</span>
-                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
-                    </div>
-                    <p class="mb-4">ロット単位で検査結果を取得する。各ロットはセクション内の全カメラ結果を内包し、<strong>全カメラが PASS のときのみロットPASS</strong> とする。ページネーション対応。</p>
+                    <p class="mb-4">指定したセクション＋日付の検査サマリー（総数、良品/不良品数、不良原因）を取得します。ダッシュボードの統計表示で使用。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
                     <table class="w-full text-left border-collapse">
@@ -279,7 +263,58 @@
                         <tbody>
                             <tr>
                                 <td class="border-b p-2 font-mono">section</td>
-                                <td class="border-b p-2">検査セクション。例: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2">検査セクション（内部コード）。例: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2 font-mono">?section=alayer</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">date</td>
+                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。指定しない場合は本日。</td>
+                                <td class="border-b p-2 font-mono">?date=2024-07-15</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+  "section": "alayer",
+  "date": "2025-10-01",
+  "total_count": 150,
+  "pass_count": 145,
+  "fail_count": 5,
+  "pass_rate": 97,
+  "fail_reasons": [
+    { "reason": "位置ずれ", "count": 3 },
+    { "reason": "糸ほつれ", "count": 1 },
+    { "reason": "異物混入", "count": 1 }
+  ]
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 3. 検査ロット取得 -->
+            <section id="get-logs">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査ロット取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/lots</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                    </div>
+                    <p class="mb-4">ロット単位で検査結果を取得。各ロットはセクション内の全カメラ結果（同一カメラの複数ショットを含み得る）を内包し、<strong>同一camera_idで1つでもFAILがあればロットNG</strong> とします。ページネーション対応。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">section</td>
+                                <td class="border-b p-2">検査セクション（内部コード）。例: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
                                 <td class="border-b p-2 font-mono">?section=spring</td>
                             </tr>
                             <tr>
@@ -306,10 +341,10 @@
     "current_page": 1,
     "lots": [
         {
-            "lot_id": "MAT-10001",               // ロットID（製品ID等に相当）
-            "section": "バネ留め",              // セクション名
-            "captured_at": "2025-10-01T17:47:53.427Z", // 代表時刻（最初/最後のいずれかでOK）
-            "pass": false,                      // 全カメラ PASS のときのみ true
+            "lot_id": "MAT-10001",                      // ロットID（製品ID等に相当）
+            "section": "バネ留め",                       // セクション名
+            "captured_at": "2025-10-01T17:47:53.427Z",  // 代表時刻（最初/最後のいずれかでOK）
+            "pass": false,                              // 全カメラ PASS のときのみ true
             "cameras": [
                 { "camera_id": "B-spring01", "status": "FAIL", "details": "バネ取り付け角度規定外", "image_path": "M-10001-B01.jpg" },
                 { "camera_id": "B-spring02", "status": "FAIL", "details": "バネ取り付け角度規定外", "image_path": "M-10001-B02.jpg" },
@@ -318,10 +353,10 @@
             ]
         },
         {
-            "lot_id": "LOLL-10001",               // ロットID（製品ID等に相当）
-            "section": "A層検査",              // セクション名
-            "captured_at": "2025-10-01T17:47:53.427Z", // 代表時刻（最初/最後のいずれかでOK）
-            "pass": false,                      // 全カメラ PASS のときのみ true
+            "lot_id": "LOLL-10001",                      // ロットID（製品ID等に相当）
+            "section": "A層検査",                        // セクション名
+            "captured_at": "2025-10-01T17:47:53.427Z",  // 代表時刻（最初/最後のいずれかでOK）
+            "pass": false,                              // 全カメラ PASS のときのみ true
             "cameras": [
                 { "camera_id": "A-main01", "status": "FAIL", "details": "ヨゴレ", "image_path": "LOLL-10001_A-main01-01.jpg" },
                 { "camera_id": "A-main01", "status": "FAIL", "details": "ゴミ", "image_path": "LOLL-10001_A-main01-02.jpg" },
@@ -337,50 +372,121 @@
 }</code></pre>
 
                                         <div class="mt-4 text-sm text-slate-600 space-y-2">
-                                                <p>備考:</p>
-                                                <ul class="list-disc pl-6 space-y-1">
-                                                        <li>フロントは <code>camera_id</code> をそのまま表示する。別名（name）フィールドは不要。</li>
-                                                        <li>ステータスは <code>PASS/FAIL</code> をそのまま返却・表示する（<code>OK/NG</code> 等へのマッピングは行わない）。</li>
-                                                        <li>画像ファイル名は <strong>lot_id を基点</strong>に <code>{lot_id}-{CamSuffix}.jpg</code> で命名することを推奨（例: <code>M-10001-B01.jpg</code>）。<br>CamSuffix は <code>camera_id</code> の系統＋番号に対応（例: <code>B-spring01 → B01</code>）。命名規則は運用に合わせてサーバ側で一貫化する。</li>
-                                                        <li>各セクションの期待カメラ数（例: バネ留め=4, A層=3）を満たすように <code>cameras</code> を返す。欠損カメラは <code>status: "FAIL"</code> か <code>status: "MISSING"</code> とし、<code>details</code> に理由（未検出等）を入れる運用を推奨。</li>
-                                                        <li>既存の <code>/api/inspections</code>（生ログ）は保守/診断用途として残し、UI は原則このロットAPIを利用する。</li>
-                                                </ul>
+                                            <p>備考:</p>
+                                            <ul class="list-disc pl-6 space-y-1">
+                                                <li>フロントは <code>camera_id</code> をそのまま表示（別名は不要）。</li>
+                                                <li>ステータスは <code>PASS/FAIL</code> を返す。UI上の <code>OK/NG</code> などはフロント側で変換。</li>
+                                                <li>画像ファイル名は <strong>lot_id</strong> と <strong>camera_id</strong> を含め、通番を付与する形式を推奨: <code>{lot_id}_{camera_id}-{seq}.jpg</code>（例: <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
+                                                <li>各セクションの期待カメラ数（例: バネ留め=4, A層=3）を満たすように <code>cameras</code> を返す。欠損は <code>MISSING</code> か <code>FAIL</code> とし、<code>details</code> に理由（未検出等）を入れる。</li>
+                                                <li>生ログ用途の <code>/api/inspections</code> は保守/診断向けに残し、UI は原則このロットAPIを利用。</li>
+                                            </ul>
                                         </div>
                 </div>
             </section>
 
-            <!-- 4. リアルタイム検査結果 -->
-            <section id="realtime">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. リアルタイム検査結果 (WebSocket)</h2>
+            <!-- 3.1 ロット詳細（ショット一覧） -->
+            <section id="lot-shots">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3.1 ロット詳細（ショット一覧）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
-                        <span class="method-badge websocket">WebSocket</span>
-                        <span class="font-mono text-lg font-semibold">/ws/inspections</span>
-                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/lot-shots</span>
+                        <span class="bg-slate-500 text-white px-3 py-1 rounded-full text-sm font-bold">任意</span>
                     </div>
-                    <p class="mb-4">リアルタイムで検査結果をフロントに送りつけるためのWebSocket通信。これが一番イケてるやり方！接続したら、新しい検査結果がどんどんJSONで飛んでくるイメージ。
-                    </p>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">サーバーから送信されるメッセージ</h3>
-                    <p class="text-sm mb-2">検査が完了するたびに、この形式のデータが送られてくるよ。</p>
+                    <p class="mb-4">ロット内の全ショットを返却します（同一カメラ複数ショットあり）。詳細モーダル等で使用。</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">lot_id</td>
+                                <td class="border-b p-2">対象ロットID</td>
+                                <td class="border-b p-2 font-mono">?lot_id=MAT-10001</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス</h3>
                     <pre><code class="language-json">{
-    "type": "alayer", // "spring" or "alayer"
-    "inspection_id": 102,
-    "captured_time": "2024-07-15T10:20:05Z",
-    "product_id": "A-102-1250",
-    "status": "PASS",
-    "details": "-",
-    "image_path": "/images/inspections/alayer_20240715_102005.jpg"
+  "lot_id": "MAT-10001",
+  "shots": [
+    { "camera_id": "B-spring01", "status": "FAIL", "details": "角度規定外", "image_path": "MAT-10001_B-spring01-01.jpg" },
+    { "camera_id": "B-spring01", "status": "PASS", "details": null, "image_path": "MAT-10001_B-spring01-02.jpg" },
+    { "camera_id": "B-spring02", "status": "PASS", "details": null, "image_path": "MAT-10001_B-spring02-01.jpg" }
+  ]
 }</code></pre>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">補足</h3>
-                    <p>WebSocketが使えない環境の場合は、`GET /api/inspections/latest` (未実装)
-                        みたいなAPIを定期的に叩く（ポーリングする）方法でも代用できるけど、リアルタイム感はこっちが上！</p>
                 </div>
             </section>
-        </div>
 
+            <!-- 3.2 利用可能日付一覧 -->
+            <section id="available-dates">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3.2 利用可能日付一覧</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/dates</span>
+                        <span class="bg-slate-500 text-white px-3 py-1 rounded-full text-sm font-bold">任意</span>
+                    </div>
+                    <p class="mb-4">指定セクションのデータが存在する日付一覧（降順）を返します。</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">section</td>
+                                <td class="border-b p-2">検査セクション（内部コード）</td>
+                                <td class="border-b p-2 font-mono">?section=spring</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス</h3>
+                    <pre><code class="language-json">{
+  "section": "spring",
+  "dates": ["2025-10-02", "2025-10-01", "2025-09-30"]
+}</code></pre>
+                </div>
+            </section>
+                <!-- 4. 変更検知（シンプルGETポーリング） -->
+                <section id="realtime-polling">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 変更検知（シンプルGETポーリング）</h2>
+                    <div class="bg-white p-6 rounded-lg shadow-md space-y-6">
+                        <div>
+                            <div class="flex items-center space-x-4 mb-4">
+                                <span class="method-badge get">GET</span>
+                                <span class="font-mono text-lg font-semibold">/api/inspections/events/latest</span>
+                                <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                            </div>
+                            <p class="mb-4">直近の変更イベントの情報を返します。フロントは数秒おきにポーリングし、値が変化した時だけ <code>/summary</code> や <code>/lots</code> を再取得します。</p>
+                            <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス</h3>
+                            <pre><code class="language-json">{ "event": "lots.changed" }</code></pre>
+                        </div>
+
+
+
+                        <div>
+                            <h3 class="text-lg font-semibold">フロント側の利用例</h3>
+                            <ul class="list-disc pl-6 text-slate-700 text-sm space-y-2">
+                                <li>間隔: 2〜5秒程度（環境と要件に合わせる）</li>
+                                <li>検知: 直近取得した値と比較し、変更ありのみデータAPIを再取得</li>
+                                <li>負荷対策: 連続変化時はデバウンス/スロットリングを実施</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+        </div>
         <footer class="text-center text-slate-500 mt-12 py-4">
-            &copy; 2024 API Design by Gemini. All Rights Reserved.
+            &copy; 2025 API Design. All Rights Reserved.
         </footer>
     </div>
 
