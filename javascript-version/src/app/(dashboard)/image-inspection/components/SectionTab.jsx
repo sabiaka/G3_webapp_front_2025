@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -18,6 +18,9 @@ import Collapse from '@mui/material/Collapse'
 import Divider from '@mui/material/Divider'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
+import TextField from '@mui/material/TextField'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DonutChart from './DonutChart'
 import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
@@ -31,12 +34,31 @@ const SectionTab = ({
   getSectionLots,
   getLotStatus,
   getLotShotsByCamera,
+  getSectionStats,
+  getFailReasons,
   openRows,
   setOpenRows,
   lightbox,
   setLightbox,
-  getLatestLot
+  getLatestLot,
+  getAvailableDates
 }) => {
+  // 日付切替（セクション別に）
+  const availableDates = useMemo(() => getAvailableDates(section), [getAvailableDates, section])
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0)
+  const [manualDate, setManualDate] = useState('')
+  const selectedDate = manualDate || (availableDates[selectedDateIndex] || undefined)
+
+  const goPrevDate = () => {
+    setManualDate('')
+    setSelectedDateIndex(i => Math.min(i + 1, Math.max(availableDates.length - 1, 0)))
+  }
+  const goNextDate = () => {
+    setManualDate('')
+    setSelectedDateIndex(i => Math.max(i - 1, 0))
+  }
+  const canGoPrev = selectedDateIndex < (availableDates.length - 1)
+  const canGoNext = selectedDateIndex > 0
   // 最新ロット概要
   const renderLatestLotSummary = () => {
     const latest = getLatestLot(section)
@@ -76,28 +98,48 @@ const SectionTab = ({
             <CardContent sx={{ '& > * + *': { mt: 3 } }}>
               <Box>
                 <Typography variant="h6" gutterBottom>
-                  本日のサマリー
+                  サマリー（最新日）
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <DonutChart percentage={stats.passRate} />
+                  {(() => {
+                    const latest = getLatestLot(section)
+                    const latestDate = latest?.date
+                    const statsLatest = getSectionStats(section, latestDate)
+                    return <DonutChart percentage={statsLatest.passRate} />
+                  })()}
                 </Box>
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
                     <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">ロット総数</Typography>
-                      <Typography variant="h4" fontWeight="bold">{stats.total}</Typography>
+                      {(() => {
+                        const latest = getLatestLot(section)
+                        const latestDate = latest?.date
+                        const statsLatest = getSectionStats(section, latestDate)
+                        return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
+                      })()}
                     </Box>
                   </Grid>
                   <Grid item xs={4}>
                     <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">良品</Typography>
-                      <Typography variant="h4" fontWeight="bold" color="success.main">{stats.pass}</Typography>
+                      {(() => {
+                        const latest = getLatestLot(section)
+                        const latestDate = latest?.date
+                        const statsLatest = getSectionStats(section, latestDate)
+                        return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
+                      })()}
                     </Box>
                   </Grid>
                   <Grid item xs={4}>
                     <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">不良品</Typography>
-                      <Typography variant="h4" fontWeight="bold" color="error.main">{stats.fail}</Typography>
+                      {(() => {
+                        const latest = getLatestLot(section)
+                        const latestDate = latest?.date
+                        const statsLatest = getSectionStats(section, latestDate)
+                        return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
+                      })()}
                     </Box>
                   </Grid>
                 </Grid>
@@ -106,29 +148,34 @@ const SectionTab = ({
                 <Typography variant="h6" gutterBottom>
                   不良原因
                 </Typography>
-                {failReasons.length === 0 ? (
-                  <Typography color="text.secondary">本日の不良品はありません。</Typography>
-                ) : (
-                  <Box sx={{ '& > * + *': { mt: 2 } }}>
-                    {failReasons.map((reason, index) => (
-                      <Box key={index}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" fontWeight="medium">
-                            {reason.reason}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {reason.count}件
-                          </Typography>
+                {(() => {
+                  const latest = getLatestLot(section)
+                  const latestDate = latest?.date
+                  const fr = getFailReasons(section, latestDate)
+                  return fr.length === 0 ? (
+                    <Typography color="text.secondary">本日の不良品はありません。</Typography>
+                  ) : (
+                    <Box sx={{ '& > * + *': { mt: 2 } }}>
+                      {fr.map((reason, index) => (
+                        <Box key={index}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" fontWeight="medium">
+                              {reason.reason}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {reason.count}件
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={reason.percentage}
+                            sx={{ height: 8, borderRadius: 4 }}
+                          />
                         </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={reason.percentage}
-                          sx={{ height: 8, borderRadius: 4 }}
-                        />
-                      </Box>
-                    ))}
-                  </Box>
-                )}
+                      ))}
+                    </Box>
+                  )
+                })()}
               </Box>
             </CardContent>
           </Card>
@@ -138,8 +185,36 @@ const SectionTab = ({
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              {section}検査 ロットログ
+              {section}検査 ロットログ（{selectedDate || '全日'}）
             </Typography>
+            {/* 日付ナビゲーション */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              <IconButton size="small" onClick={goPrevDate} disabled={!canGoPrev} aria-label="prev date">
+                <ChevronLeftIcon />
+              </IconButton>
+              <TextField
+                type="date"
+                size="small"
+                value={selectedDate || ''}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setManualDate(v)
+                  const idx = availableDates.indexOf(v)
+                  if (idx >= 0) setSelectedDateIndex(idx)
+                }}
+                inputProps={{ max: availableDates[0] || undefined }}
+                sx={{ minWidth: 160 }}
+              />
+              <IconButton size="small" onClick={goNextDate} disabled={!canGoNext} aria-label="next date">
+                <ChevronRightIcon />
+              </IconButton>
+              <Box sx={{ flex: 1 }} />
+              {availableDates.length > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  {selectedDateIndex + 1}/{availableDates.length}
+                </Typography>
+              )}
+            </Box>
             <TableContainer component={Paper} variant="outlined">
               <Table stickyHeader>
                 <TableHead>
@@ -152,7 +227,7 @@ const SectionTab = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {getSectionLots(section).map((lot, index) => {
+                  {getSectionLots(section, selectedDate).map((lot, index) => {
                     const isOpen = !!openRows[lot.lotId]
                     const toggle = () => setOpenRows(prev => ({ ...prev, [lot.lotId]: !isOpen }))
                     const shotsByCam = getLotShotsByCamera(lot.lotId)
