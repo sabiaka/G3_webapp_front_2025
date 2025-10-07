@@ -256,7 +256,7 @@ const SectionTab = ({
                               {lot.cameras.map((c, i) => (
                                 <Chip
                                   key={i}
-                                  label={`${c.name}: ${c.status}${c.status !== 'OK' && c.details && c.details !== '-' ? `（${c.details}）` : ''}`}
+                                  label={`${c.name}: ${c.status}`}
                                   size="small"
                                   color={c.status === 'OK' ? 'success' : 'error'}
                                   variant={c.status === 'OK' ? 'outlined' : 'filled'}
