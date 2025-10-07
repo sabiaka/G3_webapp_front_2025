@@ -258,14 +258,14 @@
 
             <!-- 3. 検査ログ取得 -->
             <section id="get-logs">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査ログ取得</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査ロット取得</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
-                        <span class="font-mono text-lg font-semibold">/api/inspections</span>
+                        <span class="font-mono text-lg font-semibold">/api/inspections/lots</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">検査結果のログを一覧で取得する。ページネーション対応で、過去のログも遡れるようにしよ！</p>
+                    <p class="mb-4">ロット単位で検査結果を取得する。各ロットはセクション内の全カメラ結果を内包し、<strong>全カメラが PASS のときのみロットPASS</strong> とする。ページネーション対応。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
                     <table class="w-full text-left border-collapse">
@@ -278,14 +278,14 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="border-b p-2 font-mono">type</td>
-                                <td class="border-b p-2">実はカメラ名に基づいて検索するだけのやつ(部分検索で指定のカメラをフィルタ)</td>
-                                <td class="border-b p-2 font-mono">?type=A-</td>
+                                <td class="border-b p-2 font-mono">section</td>
+                                <td class="border-b p-2">検査セクション。例: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2 font-mono">?section=spring</td>
                             </tr>
                             <tr>
                                 <td class="border-b p-2 font-mono">date</td>
-                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。</td>
-                                <td class="border-b p-2 font-mono">?date=2024-07-15</td>
+                                <td class="border-b p-2">対象の日付 (YYYY-MM-DD形式)。指定しない場合は本日。</td>
+                                <td class="border-b p-2 font-mono">?date=2025-10-01</td>
                             </tr>
                             <tr>
                                 <td class="border-b p-2 font-mono">page</td>
@@ -300,43 +300,52 @@
                         </tbody>
                     </table>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <pre><code class="language-json">{
-    "total_pages": 3,
+                                        <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                                        <pre><code class="language-json">{
+    "total_pages": 1,
     "current_page": 1,
-    "logs": [
+    "lots": [
         {
-            "inspection_id": 101,
-            "camera_id": "A-main01",
-            "captured_at": "2025-09-12T05:09:04Z",
-            "inspected_at": "2025-09-12T05:15:20Z",
-            "product_id": "A-102-002",
-            "status": "PASS",
-            "details": "-",
-            "image_path": "/imageDB/A-102-002.jpg"
+            "lot_id": "MAT-10001",               // ロットID（製品ID等に相当）
+            "section": "バネ留め",              // セクション名
+            "captured_at": "2025-10-01T17:47:53.427Z", // 代表時刻（最初/最後のいずれかでOK）
+            "pass": false,                      // 全カメラ PASS のときのみ true
+            "cameras": [
+                { "camera_id": "B-spring01", "status": "FAIL", "details": "バネ取り付け角度規定外", "image_path": "M-10001-B01.jpg" },
+                { "camera_id": "B-spring02", "status": "FAIL", "details": "バネ取り付け角度規定外", "image_path": "M-10001-B02.jpg" },
+                { "camera_id": "B-spring03", "status": "PASS", "details": null, "image_path": "M-10001-B03.jpg" },
+                { "camera_id": "B-spring04", "status": "PASS", "details": null, "image_path": "M-10001-B04.jpg" }
+            ]
         },
         {
-            "inspection_id": 100,
-            "camera_id": "A-stitch01",
-            "captured_at": "2024-07-15T10:17:59Z",
-            "inspected_at": "2024-07-15T10:18:25Z",
-            "product_id": "A-102-001",
-            "status": "PASS",
-            "details": "-",
-            "image_path": "/imageDB/A-102-001.jpg"
-        },
-        {
-            "inspection_id": 99,
-            "camera_id": "B-spring03",
-            "captured_at": "2024-07-15T10:17:48Z",
-            "inspected_at": "2024-07-15T10:18:10Z",
-            "product_id": "A-102-000",
-            "status": "FAIL",
-            "details": "位置ずれ",
-            "image_path": "/imageDB/A-102-000.jpg"
+            "lot_id": "LOLL-10001",               // ロットID（製品ID等に相当）
+            "section": "A層検査",              // セクション名
+            "captured_at": "2025-10-01T17:47:53.427Z", // 代表時刻（最初/最後のいずれかでOK）
+            "pass": false,                      // 全カメラ PASS のときのみ true
+            "cameras": [
+                { "camera_id": "A-main01", "status": "FAIL", "details": "ヨゴレ", "image_path": "LOLL-10001_A-main01-01.jpg" },
+                { "camera_id": "A-main01", "status": "FAIL", "details": "ゴミ", "image_path": "LOLL-10001_A-main01-02.jpg" },
+                { "camera_id": "A-main01", "status": "PASS", "details": null, "image_path": "LOLL-10001_A-main01-03.jpg" },
+                { "camera_id": "A-main01", "status": "PASS", "details": null, "image_path": "LOLL-10001_A-main01-04.jpg" },
+                { "camera_id": "A-stitch01", "status": "PASS", "details": null, "image_path": "LOLL-10001_A-stitch01-01.jpg" },
+                { "camera_id": "A-stitch01", "status": "FAIL", "details": "ホツレ", "image_path": "LOLL-10001_A-stitch01-02.jpg" },
+                { "camera_id": "A-stitch02", "status": "PASS", "details": null, "image_path": "LOLL-10001_A-stitch02-03.jpg" },
+                { "camera_id": "A-stitch02", "status": "PASS", "details": null, "image_path": "LOLL-10001_A-stitch02-04.jpg" }
+            ]
         }
     ]
 }</code></pre>
+
+                                        <div class="mt-4 text-sm text-slate-600 space-y-2">
+                                                <p>備考:</p>
+                                                <ul class="list-disc pl-6 space-y-1">
+                                                        <li>フロントは <code>camera_id</code> をそのまま表示する。別名（name）フィールドは不要。</li>
+                                                        <li>ステータスは <code>PASS/FAIL</code> をそのまま返却・表示する（<code>OK/NG</code> 等へのマッピングは行わない）。</li>
+                                                        <li>画像ファイル名は <strong>lot_id を基点</strong>に <code>{lot_id}-{CamSuffix}.jpg</code> で命名することを推奨（例: <code>M-10001-B01.jpg</code>）。<br>CamSuffix は <code>camera_id</code> の系統＋番号に対応（例: <code>B-spring01 → B01</code>）。命名規則は運用に合わせてサーバ側で一貫化する。</li>
+                                                        <li>各セクションの期待カメラ数（例: バネ留め=4, A層=3）を満たすように <code>cameras</code> を返す。欠損カメラは <code>status: "FAIL"</code> か <code>status: "MISSING"</code> とし、<code>details</code> に理由（未検出等）を入れる運用を推奨。</li>
+                                                        <li>既存の <code>/api/inspections</code>（生ログ）は保守/診断用途として残し、UI は原則このロットAPIを利用する。</li>
+                                                </ul>
+                                        </div>
                 </div>
             </section>
 
