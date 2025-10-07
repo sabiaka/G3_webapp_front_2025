@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { keyframes } from '@mui/system'
 import Box from '@mui/material/Box'
 
 /**
@@ -124,6 +125,17 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
 
   if (!open) return null
 
+  // アニメーション（うにょん拡大 + 背景フェード）
+  const fadeIn = keyframes`
+    0% { opacity: 0 }
+    100% { opacity: 1 }
+  `
+  const popIn = keyframes`
+    0% { transform: scale(0.85); opacity: 0.6 }
+    60% { transform: scale(1.03); opacity: 1 }
+    100% { transform: scale(1) }
+  `
+
   return (
     <Box
       ref={containerRef}
@@ -143,7 +155,9 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
         alignItems: 'center',
         justifyContent: 'center',
         cursor: dragging ? 'grabbing' : (scale > 1 ? 'grab' : 'zoom-in'),
-        transition: 'background-color 150ms ease',
+        // 背景フェード
+        opacity: 0,
+        animation: `${fadeIn} 180ms ease-out forwards`,
         userSelect: 'none',
       }}
       aria-modal
@@ -158,6 +172,10 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
           borderRadius: 2,
           boxShadow: 24,
           bgcolor: 'black',
+          // うにょん（ポップイン）
+          transform: 'scale(1)',
+          animation: `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both`,
+          willChange: 'transform',
         }}
       >
         <Box
