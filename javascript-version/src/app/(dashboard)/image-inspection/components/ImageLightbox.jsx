@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+
 import { keyframes } from '@mui/system'
 import Box from '@mui/material/Box'
 
@@ -36,8 +37,10 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
       if (!open) return
       if (e.key === 'Escape') onClose?.()
     }
+
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    
+return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
   const handleWheel = e => {
@@ -66,18 +69,22 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
     const dx = e.clientX - dragState.current.startX
     const dy = e.clientY - dragState.current.startY
     const next = { x: dragState.current.originX + dx, y: dragState.current.originY + dy }
+
     if (Math.abs(dx) + Math.abs(dy) > 3) suppressClickRef.current = true
     const cont = containerRef.current?.getBoundingClientRect()
     const nat = imgNatural
+
     if (cont && nat.w && nat.h) {
       const fitScale = Math.min(cont.width / nat.w, cont.height / nat.h) || 1
       const dispW = nat.w * fitScale * scale
       const dispH = nat.h * fitScale * scale
       const maxX = Math.max(0, (dispW - cont.width) / 2)
       const maxY = Math.max(0, (dispH - cont.height) / 2)
+
       next.x = clamp(next.x, -maxX, maxX)
       next.y = clamp(next.y, -maxY, maxY)
     }
+
     if (!moveRaf.current) {
       moveRaf.current = requestAnimationFrame(() => {
         setOffset(next)
@@ -89,6 +96,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
   const handleMouseUp = () => {
     dragState.current.dragging = false
     setDragging(false)
+
     if (moveRaf.current) {
       cancelAnimationFrame(moveRaf.current)
       moveRaf.current = 0
@@ -98,13 +106,17 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
   const toggleZoom = e => {
     if (e.target === containerRef.current) {
       onClose?.()
-      return
+      
+return
     }
+
     if (suppressClickRef.current) {
       // ドラッグ直後のクリック抑制
       suppressClickRef.current = false
-      return
+      
+return
     }
+
     setScale(prev => (prev > 1 ? 1 : 2))
     setOffset({ x: 0, y: 0 })
   }
@@ -112,6 +124,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
   const onImgLoad = () => {
     if (!imgRef.current) return
     const img = imgRef.current
+
     setImgNatural({ w: img.naturalWidth, h: img.naturalHeight })
   }
 
@@ -130,6 +143,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
     0% { opacity: 0 }
     100% { opacity: 1 }
   `
+
   const popIn = keyframes`
     0% { transform: scale(0.85); opacity: 0.6 }
     60% { transform: scale(1.03); opacity: 1 }
@@ -155,6 +169,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
         alignItems: 'center',
         justifyContent: 'center',
         cursor: dragging ? 'grabbing' : (scale > 1 ? 'grab' : 'zoom-in'),
+
         // 背景フェード
         opacity: 0,
         animation: `${fadeIn} 180ms ease-out forwards`,
@@ -172,6 +187,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
           borderRadius: 2,
           boxShadow: 24,
           bgcolor: 'black',
+
           // うにょん（ポップイン）
           transform: 'scale(1)',
           animation: `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both`,

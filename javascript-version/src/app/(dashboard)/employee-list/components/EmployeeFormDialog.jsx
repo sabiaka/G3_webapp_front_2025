@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from 'react'
+
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
@@ -39,20 +40,26 @@ const EmployeeFormDialog = ({
   const getDisplayName = (ln, fn) => {
     const l = String(ln || '').trim()
     const f = String(fn || '').trim()
+
     if (!l && !f) return '氏名'
-    return f ? `${l} ${f}` : l
+    
+return f ? `${l} ${f}` : l
   }
 
   const getAvatarText = (ln, fn) => {
     const base = String(ln || fn || '氏名').trim()
+
     if (!base) return '氏名'
-    return base.slice(0, 3)
+    
+return base.slice(0, 3)
   }
 
   const handleFormChange = e => {
     const { name, value } = e.target
+
     if (name === 'roleId' || name === 'lineId') {
       const v = value === '' ? '' : (typeof value === 'number' ? value : Number(value))
+
       setForm(prev => ({ ...prev, [name]: v }))
     } else {
       setForm(prev => ({ ...prev, [name]: value }))

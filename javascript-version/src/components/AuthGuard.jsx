@@ -56,6 +56,7 @@ export default function AuthGuard({ children }) {
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
                 let res
+
                 try {
                     res = await fetch(`${apiBase}/api/auth/me`, {
                         headers: { Authorization: `Bearer ${token}` },
@@ -91,6 +92,7 @@ export default function AuthGuard({ children }) {
                 // Network/timeout error: redirect to error page
                 // Distinguish abort (timeout) if possible
                 const isAbort = (e && typeof e === 'object' && 'name' in e && e.name === 'AbortError')
+
                 redirectToError({ code: isAbort ? 'timeout' : 'network' })
             }
         }

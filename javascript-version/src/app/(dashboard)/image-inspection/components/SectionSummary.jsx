@@ -5,13 +5,16 @@ import Typography from '@mui/material/Typography'
 const SectionSummary = ({ latestLot, lotStatus }) => {
     if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
     const failedCams = latestLot.cameras.filter(c => c.status !== 'OK')
-    return (
+
+    
+return (
         <Box
             sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: 2,
+
                 // 親は折り返さず左右を1行に固定。右側内部のチップのみ折り返す
                 flexWrap: 'nowrap',
             }}
