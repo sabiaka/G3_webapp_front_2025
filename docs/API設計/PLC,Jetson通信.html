@@ -202,7 +202,7 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 
             <!-- 3. PLC情報送信 -->
                 <section id="post-plc-data">
-                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (機械 → サーバー)</h2>
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (PLC通信JETSON → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -278,7 +278,7 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 
             <!-- 6. 新しい画像検査データ送信API -->
             <section id="post-inspection-data-new">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. 検査データ一括登録 (Jetson → サーバー)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 検査データ一括登録 (Jetson → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -406,7 +406,7 @@ print("レスポンス:", response.json())
                 </div>
             </section>
 
-            <!-- 5. 画像のアクセス方法 -->
+            <!-- 7. 画像のアクセス方法 -->
                 <section id="get-image-direct">
                     <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">7. 画像のアクセス方法 (超シンプル版)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -418,7 +418,7 @@ print("レスポンス:", response.json())
                         Node.jsのExpressとかで<code>public</code>フォルダを公開設定にしとけば、URLを直で叩くだけで画像が見れちゃう。マジ卍で楽ちん！
                     </p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
-                    <pre><code class="language-plaintext">http://10.100.54.170:/imageDB/A-102-002.jpg</code></pre>
+                    <pre><code class="language-plaintext">http://your-server.com/imageDB/A-102-002.jpg</code></pre>
                 </div>
             </section>
         </div>
