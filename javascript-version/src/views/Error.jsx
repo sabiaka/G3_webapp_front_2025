@@ -30,6 +30,7 @@ export default function ErrorView({ mode, code: rawCode, from: rawFrom }) {
 
   const isHttpStatus = /^\d{3}$/.test(code)
   const title = isHttpStatus ? `エラー ${code}` : (titleMap[code] || titleMap.unknown)
+
   const description = isHttpStatus
     ? 'バックエンドがエラーを返しました。時間をおいて再度お試しください。'
     : (descriptionMap[code] || descriptionMap.unknown)

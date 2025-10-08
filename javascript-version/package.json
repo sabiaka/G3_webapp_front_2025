@@ -4,8 +4,8 @@
   "license": "Commercial",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
-    "dev:win": "set NODE_OPTIONS=--no-deprecation && next dev",
+  "dev": "cross-env NODE_OPTIONS=--no-deprecation NEXT_TELEMETRY_DISABLED=1 next dev",
+  "dev:win": "set NODE_OPTIONS=--no-deprecation && set NEXT_TELEMETRY_DISABLED=1 && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

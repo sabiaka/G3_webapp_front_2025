@@ -188,14 +188,17 @@ export const useLotsData = () => {
     const normalizeSection = section => {
         // 末尾の「検査」を取り除く（例: "A層検査" => "A層"）
         if (!section) return section
-        return section.replace(/検査$/, '')
+        
+return section.replace(/検査$/, '')
     }
 
     const toHHMMSS = iso => {
         try {
             const d = new Date(iso)
             const pad = n => String(n).padStart(2, '0')
-            return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+
+            
+return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
         } catch {
             return ''
         }
@@ -205,7 +208,9 @@ export const useLotsData = () => {
         try {
             const d = new Date(iso)
             const pad = n => String(n).padStart(2, '0')
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+            
+return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
         } catch {
             return ''
         }
@@ -216,8 +221,10 @@ export const useLotsData = () => {
     // 同一 camera_id が複数ある場合はワースト優先（FAILが1つでもあればNG）
     const aggregateCameras = cameras => {
         const byId = new Map()
+
         for (const c of cameras || []) {
             const prev = byId.get(c.camera_id)
+
             if (!prev) {
                 byId.set(c.camera_id, {
                     name: c.camera_id,
@@ -229,6 +236,7 @@ export const useLotsData = () => {
                 // 既存がOKで新しいのがNGならNGへ、detailsもFAIL側を保持
                 const nextIsFail = c.status === 'FAIL'
                 const prevIsFail = prev.status !== 'OK'
+
                 if (nextIsFail && !prevIsFail) {
                     prev.status = 'NG'
                     prev.details = c.details ?? prev.details
@@ -236,7 +244,9 @@ export const useLotsData = () => {
                 }
             }
         }
-        return Array.from(byId.values())
+
+        
+return Array.from(byId.values())
     }
 
     const adaptLotToUi = lot => ({
@@ -246,12 +256,15 @@ export const useLotsData = () => {
         section: normalizeSection(lot.section),
         lotId: lot.lot_id,
         cameras: aggregateCameras(lot.cameras),
+
         // 参考: 総合判定は既存関数 getLotStatus で算出
     })
 
     // セクションごとに時刻降順で整形したUI向けロット配列
     const uiLots = useMemo(() => {
         const lots = (apiPayload?.lots || []).map(adaptLotToUi)
+
+
         // captured_at 降順
         return lots.sort((a, b) => b.timestamp - a.timestamp)
     }, [apiPayload])
@@ -259,8 +272,11 @@ export const useLotsData = () => {
     const getSectionLots = (section, date) => {
         const normalized = normalizeSection(section)
         const filtered = uiLots.filter(l => l.section === normalized)
-        return date ? filtered.filter(l => l.date === date) : filtered
+
+        
+return date ? filtered.filter(l => l.date === date) : filtered
     }
+
     const getLotStatus = lot => (lot.cameras.every(c => c.status === 'OK') ? 'PASS' : 'FAIL')
 
     const getSectionStats = (section, date) => {
@@ -269,18 +285,25 @@ export const useLotsData = () => {
         const pass = lots.filter(l => getLotStatus(l) === 'PASS').length
         const fail = total - pass
         const passRate = total > 0 ? Math.round((pass / total) * 100) : 100
-        return { total, pass, fail, passRate }
+
+        
+return { total, pass, fail, passRate }
     }
 
     const getFailReasons = (section, date) => {
         const lots = getSectionLots(section, date)
         const failedCameras = lots.flatMap(l => l.cameras.filter(c => c.status !== 'OK' && c.details && c.details !== '-'))
+
         if (failedCameras.length === 0) return []
+
         const counts = failedCameras.reduce((acc, c) => {
             acc[c.details] = (acc[c.details] || 0) + 1
-            return acc
+            
+return acc
         }, {})
-        return Object.entries(counts)
+
+        
+return Object.entries(counts)
             .map(([reason, count]) => ({ reason, count, percentage: Math.round((count / failedCameras.length) * 100) }))
             .sort((a, b) => b.count - a.count)
     }
@@ -291,13 +314,17 @@ export const useLotsData = () => {
     const getAvailableDates = (section) => {
         const lots = getSectionLots(section)
         const set = new Set(lots.map(l => l.date))
-        return Array.from(set).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+
+        
+return Array.from(set).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
     }
 
     // ---- 詳細表示向けヘルパ ----
     const getLotShots = lotId => {
         const lot = (apiPayload?.lots || []).find(l => l.lot_id === lotId)
-        return lot ? (lot.cameras || []).map(c => ({
+
+        
+return lot ? (lot.cameras || []).map(c => ({
             camera_id: c.camera_id,
             status: c.status, // PASS | FAIL（生のまま）
             details: c.details,
@@ -307,17 +334,22 @@ export const useLotsData = () => {
 
     const getLotShotsByCamera = lotId => {
         const shots = getLotShots(lotId)
+
         const grouped = shots.reduce((acc, s) => {
             if (!acc[s.camera_id]) acc[s.camera_id] = []
             acc[s.camera_id].push(s)
-            return acc
+            
+return acc
         }, {})
-        return grouped
+
+        
+return grouped
     }
 
     return {
         // 既存UIが参照する互換データ
         lotsData: uiLots,
+
         // 必要であれば生API形も公開（将来の統合向け）
         apiPayload,
         getSectionLots,

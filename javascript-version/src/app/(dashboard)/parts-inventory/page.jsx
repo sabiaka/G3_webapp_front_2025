@@ -9,6 +9,7 @@ import ModalBridge from './ModalBridge';
 
 const Page = () => {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+    const enableGoogleFonts = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_FONTS === 'true';
 
     useEffect(() => {
         const start = () => {
@@ -46,13 +47,17 @@ return () => {
 
     return (
         <div className="bg-slate-100 text-gray-800" style={{ minHeight: '100vh', marginTop: '-24px' }}>
-            {/* Google Fonts */}
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link
-                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
-                rel="stylesheet"
-            />
+            {/* Google Fonts (proxy 環境では既定で無効。必要なら NEXT_PUBLIC_ENABLE_GOOGLE_FONTS=true を設定) */}
+            {enableGoogleFonts && (
+                <>
+                    <link rel="preconnect" href="https://fonts.googleapis.com" />
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                    <link
+                        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+                        rel="stylesheet"
+                    />
+                </>
+            )}
 
             {/* Ionicons */}
             <Script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js" />

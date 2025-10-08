@@ -122,7 +122,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書</h1>
+                    <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書()</h1>
                 </div>
                 <a href="../index.html"
                     class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
@@ -137,30 +137,12 @@
 
         <div class="space-y-12">
 
-            <!-- 1. DB設計 -->
-            <section id="db-design">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. DB設計</h2>
+            <!-- 1. 機械系DB設計 -->
+                <section id="db-design">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 機械系DB設計</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4">このページで扱うデータは主に「検査結果」と「生産カウンタ」です。以下は対応するテーブル定義です。</p>
-
-                    <h3 class="text-lg font-semibold mt-4 mb-2">inspection_results（検査結果）</h3>
-                    <pre><code class="language-sql">CREATE TABLE inspection_results (
-    inspection_id SERIAL PRIMARY KEY,                                   -- 自動採番
-    inspection_camera_id VARCHAR(50) NOT NULL,                          -- カメラ名
-    inspection_product_id VARCHAR(50) NOT NULL,                         -- 製品名
-    inspection_result VARCHAR(50) NULL,                                 -- 検査結果（良品、不良など）
-    inspection_reason TEXT NULL,                                        -- 問題点詳細
-    inspection_image_path TEXT NOT NULL,                                -- 検査画像パス
-    inspection_captured_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 撮影日時
-    inspection_inspected_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  -- 検査日時
-);</code></pre>
-
-                    <div class="mt-2 text-sm text-slate-600">
-                        <p>POST <code>/api/ingress/inspection</code> で受け取る <code>metadata</code> と画像は、本テーブルに保存します。</p>
-                    </div>
-
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
-<pre><code class="language-sql">CREATE TABLE machine_logs (
+                    <pre><code class="language-sql">CREATE TABLE machine_logs (
     log_id SERIAL PRIMARY KEY,                                           -- ログID
     machine_name VARCHAR(100) NOT NULL,                                  -- 対象機械NAME
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
@@ -175,39 +157,128 @@
                 </div>
             </section>
 
+            <!-- 2. 画像系DB設計 -->
+                <section id="image-db-design">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 画像系DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">画像系データはセクション・ロット・カメラショットの3階層で管理します。以下はテーブル定義例です。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">inspection_sections（セクション正規化）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_sections (
+    section_id SERIAL PRIMARY KEY,                       -- セクションID（内部連番）
+    section_code VARCHAR(32) UNIQUE NOT NULL,            -- セクション内部コード（例: 'spring', 'alayer'）
+    section_name VARCHAR(64) NOT NULL                    -- セクション表示名（例: 'バネ留め', 'A層検査'）
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">inspection_lots（ロット/製品ID）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_lots (
+    id BIGSERIAL PRIMARY KEY,                                       -- ロット内部ID（連番）
+    lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
+    section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
+    captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
+    UNIQUE (lot_id)                                                 -- ロットIDは一意
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">inspection_camera_shots（カメラショット）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_camera_shots (
+    id BIGSERIAL PRIMARY KEY,                                                   -- ショット内部ID（連番）
+    lot_id_ref BIGINT NOT NULL REFERENCES inspection_lots(id) ON DELETE CASCADE,-- ロット参照ID
+    camera_id VARCHAR(64) NOT NULL,                                             -- カメラID（例: 'B-spring01', 'A-main01'）
+    status VARCHAR(16) NOT NULL CHECK (status IN ('PASS','FAIL','MISSING')),    -- 判定ステータス
+    details TEXT NULL,                                                          -- 不良理由等（PASS時はNULL推奨）
+    image_path TEXT NULL,                                                       -- 画像パス（MISSING時はNULL可）
+    shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
+    captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">インデックス例</h3>
+                    <pre><code class="language-sql">CREATE INDEX idx_lots_section_date ON inspection_lots (section_code, date(captured_at) DESC, captured_at DESC); -- セクション＋日付検索用
+CREATE INDEX idx_shots_lot ON inspection_camera_shots (lot_id_ref);                                             -- ロット単位検索用
+CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);                                           -- カメラ単位検索用
+</code></pre>
+                </div>
+            </section>
+
             <!-- 3. PLC情報送信 -->
-            <section id="post-plc-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (機械 → サーバー)</h2>
+                <section id="post-plc-data">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (PLC通信JETSON → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/plc</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">生産機械 (PLC) からの様々な情報をサーバーに送信するための汎用APIです。エラー、起動通知、消耗品（ホックリングなど）の残量警告など、あらゆる種類のログをこのエンドポイントで受け付けます。</p>
+                    <p class="mb-4">生産機械 (PLC)
+                        からの様々な情報をサーバーに送信するための汎用APIです。エラー、起動通知、消耗品（ホックリングなど）の残量警告など、あらゆる種類のログをこのエンドポイントで受け付けます。</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
-                    <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>, <code>warning</code>, <code>error</code>）</p>
+                    <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>,
+                        <code>warning</code>, <code>error</code>）</p>
                     <pre><code class="language-json">{
     "timestamp": "2025-07-15T10:15:32Z",
     "machine_name":"半自動バネどめ機",
     "log_type": "error",
-    "status": "停止中",
     "title": "E-102: トルク過負荷",
     "message": "モーターの負荷が規定値を超えました。"
 }</code></pre>
-    <p class="text-sm">statusはmachine_statusの中のstatusに書き込むようにしてください｡</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは <code>202 Accepted</code> が最適です。</p>
+                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは
+                        <code>202 Accepted</code> が最適です。</p>
                     <pre><code class="language-json">{
     "message": "データを受け付けました。処理を開始します。"
 }</code></pre>
                 </div>
             </section>
 
-            <!-- 4. 画像と検査データを送信 (POSTで全部やる) -->
-            <section id="post-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 画像と検査データを送信 (撮影/検査Jetson →
-                    サーバー)</h2>
+            <!-- 4. 機械の稼働開始 -->
+                <section id="start-machine">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 機械の稼働開始</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/start</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
+                    </div>
+                    <p class="mb-4">機械の稼働を開始したときに呼ぶAPI。開始時刻を記録するのに使う</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "started_at": "2025-07-15T08:00:00Z"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Machine not found"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 5. 生産数をインクリメント -->
+                <section id="increment-production">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 生産数をインクリメント</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                    </div>
+                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて累計生産数をプラス1する。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "today_production_count": 1521
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Machine not found"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 6. 新しい画像検査データ送信API -->
+            <section id="post-inspection-data-new">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 検査データ一括登録 (Jetson → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -215,70 +286,109 @@
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
-                        撮影担当Jetsonと検査担当Jetsonが、<strong>どっちも使う最強API！</strong>
-                        サーバーは送られてきた <code>product_id</code> がもう存在するかチェックして、なかったら新規作成、あったらデータと画像をまるっと上書きする感じ！
+                        Jetsonから検査結果のデータ一式をまとめてドン！と送るためのAPIだよ。<br>
+                        前は <code>product_id</code> をこっちで決めてたけど、これからは<strong class="text-pink-500">サーバーがイケてる <code>lot_id</code> を自動でつけてくれる</strong>から、マジ楽ちんになったんだよね✨
                     </p>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <div class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-r-lg mb-4">
-                        <p class="font-bold">タイムスタンプ改善！</p>
-                        <p class="text-sm mt-1">いつ撮って、いつ検査したか分かるように、<code>captured_at</code> と <code>inspected_at</code>
-                            に分けたよ！これで分かりみUP！</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">lot_idのルールについて</h3>
+                    <div class="p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg mb-4">
+                        <p class="font-bold">ここマジ大事！</p>
+                        <p class="text-sm mt-1">サーバーは <code>metadata</code> に入ってる <code>section_code</code> を見て、どっちのIDをつけるか判断するよん💖</p>
+                        <ul class="list-disc list-inside mt-2 text-sm font-mono">
+                            <li><code>section_code</code> が <strong>"バネ留め"</strong> の場合 → <code>MAT-00001</code>, <code>MAT-00002</code>, ...</li>
+                            <li><code>section_code</code> が <strong>"A層検査"</strong> の場合 → <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...</li>
+                        </ul>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="font-semibold text-sm mb-1">① 撮影Jetsonが送る初期データ</p>
-                            <pre><code class="language-json">{
-    "camera_id": "inspection-camera-01",
-    "product_id": "A-102-002",
-    "result": null,
-    "reason": null,
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
+                    <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
+                        <p class="font-bold">ファイル名はサーバーが自動でつけちゃう！</p>
+                        <p class="text-sm mt-1">Jetsonから送られてきた画像は、サーバー側でルールに沿った名前にリネームして保存するよ。ファイル名でどの製品のどのカメラの写真か一発でわかるようになってて、マジ便利✨</p>
+                        <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
+                            <strong>フォーマット:</strong> {lot_id}_{camera_id}-{shot_seq}.jpg<br>
+                            <strong>保存例:</strong> /imageDB/MAT-00123_B-spring01-1.jpg
+                        </p>
+                        <p class="text-xs mt-2">このファイルパスが、DBの`inspection_camera_shots`テーブルにある`image_path`カラムに保存されるってわけ！</p>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
+                    <ul class="list-disc list-inside text-sm space-y-1 mb-4">
+                        <li>パート1: <code>metadata</code> というキーで、検査情報のJSONを送る。</li>
+                        <li>パート2以降: <code>metadata</code>内の<code>shots</code>配列に入ってる各<code>camera_id</code>をキーにして、対応する画像ファイルを送る。</li>
+                    </ul>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
+                    <p class="text-sm mb-2">1製品（1ロット）に関する全カメラショットの情報を、<code>shots</code>配列にまとめて入れてね！</p>
+                    <div class="code-block-wrapper">
+                    <pre><code class="language-json">{
+    "section_code": "spring",
     "captured_at": "2025-09-12T05:09:04Z",
-    "inspected_at": null
+    "shots": [
+        {
+            "camera_id": "B-spring01",
+            "status": "PASS",
+            "details": null,
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:02Z"
+        },
+        {
+            "camera_id": "B-spring02",
+            "status": "FAIL",
+            "details": "傷あり",
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:04Z"
+        },
+        {
+            "camera_id": "B-spring03",
+            "status": "MISSING",
+            "details": "画像なし",
+            "shot_seq": 1,
+            "captured_at": null
+        }
+    ]
 }</code></pre>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm mb-1">② 検査Jetsonが送る最終データ</p>
-                            <pre><code class="language-json">{
-    "camera_id": "inspection-camera-01",
-    "product_id": "A-102-002",
-    "result": "fail",
-    "reason": "傷",
-    "captured_at": "2025-09-12T05:09:04Z",
-    "inspected_at": "2025-09-12T05:15:20Z"
-}</code></pre>
-                        </div>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
-                    <p class="mb-2 text-sm">検査Jetsonは、GETで受け取ったデータを元にmetadata作って、枠付けした画像をセットして送ればOK！</p>
+                    <p class="mb-2 text-sm"><code>files</code> を作る時、画像のキーをちゃんと <code>camera_id</code> に合わせるのがポイントだよ！</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-python">
 import requests
 import json
 import datetime
 
-# --- どっちのJetsonでも共通 ---
 url = "http://your-server.com/api/ingress/inspection"
 
-# --- ② 検査Jetsonが、検査結果を送る場合の例 ---
-# GET APIから受け取ったcaptured_atはそのまま使うのがイケてる
-captured_timestamp = "2025-09-12T05:09:04Z" # GETレスポンスから取得したと仮定
-
-metadata_for_update = {
-  "camera_id": "inspection-camera-01",
-  "product_id": "A-102-002",
-  "result": "fail", # "pass" or "fail"
-  "reason": "傷", # NGの理由
-  "captured_at": captured_timestamp, # 撮影時間はそのまま
-  # 検査した"今"の時間をセット！
-  "inspected_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+# 送信するメタデータを作成
+metadata = {
+  "section_code": "spring", # "バネ留め" or "A層検査" に対応するコード
+  "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  "shots": [
+    {
+      "camera_id": "B-spring01",
+      "status": "PASS",
+      "details": None,
+      "shot_seq": 1,
+      "captured_at": "2025-09-12T05:09:02Z"
+    },
+    {
+      "camera_id": "B-spring02",
+      "status": "FAIL",
+      "details": "傷あり",
+      "shot_seq": 1,
+      "captured_at": "2025-09-12T05:09:04Z"
+    }
+  ]
 }
 
+# 送信するファイル一式を準備
+# (注意: 'MISSING'の画像は含めない)
 files = {
-    'metadata': (None, json.dumps(metadata_for_update), 'application/json'),
-    # 枠付けとかした、加工後の画像をセットしてね！
-    'image_file': ('inspected_image.jpg', open('/path/to/processed_image.jpg', 'rb'), 'image/jpeg')
+    'metadata': (None, json.dumps(metadata), 'application/json'),
+    # metadataのcamera_idをキーにして画像をセット！
+    'B-spring01': ('B-spring01.jpg', open('/path/to/B-spring01.jpg', 'rb'), 'image/jpeg'),
+    'B-spring02': ('B-spring02.jpg', open('/path/to/B-spring02.jpg', 'rb'), 'image/jpeg')
 }
 
 response = requests.post(url, files=files)
@@ -287,15 +397,29 @@ print(f"ステータスコード: {response.status_code}")
 print("レスポンス:", response.json())
 </code></pre>
                     </div>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データと画像をちゃんと受け取れたら、「OK、受け取った！」って返事する。これで通信完了！</p>
-                    <pre><code class="language-json">{ "message": "データを受け付け、処理を開始します。" }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
+                    <p class="text-sm">データと画像をちゃんと受け取って、新しいロットデータが作れたら、サーバーはこんな感じ↑↑で返事するよ！<br>返ってきた <code>lot_id</code> は、あとで検索とかするときに使えるから、超便利！</p>
+                    <pre><code class="language-json">{
+    "message": "検査データ、うぇーい！作成OKだよ🎉",
+    "lot_id": "MAT-00123"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (400 Bad Request)</h3>
+                    <p class="text-sm">送ったデータがイケてないと、サーバーは怒ってこう返すから、気をつけて！</p>
+                     <pre><code class="language-json">{
+    "error": "リクエストが不正です。",
+    "details": [
+        "section_code は必須項目です。",
+        "画像ファイル 'B-spring01.jpg' が見つかりません。"
+    ]
+}</code></pre>
                 </div>
             </section>
 
-            <!-- 5. 画像のアクセス方法 -->
-            <section id="get-image-direct">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 画像のアクセス方法 (超シンプル版)</h2>
+            <!-- 7. 画像のアクセス方法 -->
+                <section id="get-image-direct">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">7. 画像のアクセス方法 (超シンプル版)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
@@ -306,35 +430,6 @@ print("レスポンス:", response.json())
                     </p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
                     <pre><code class="language-plaintext">http://your-server.com/imageDB/A-102-002.jpg</code></pre>
-                </div>
-            </section>
-
-            <!-- 6. 未検査の画像とデータをゲトるAPI -->
-            <section id="get-uninspected-item">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 未検査の画像とデータ取得 (検査Jetson ←
-                    サーバー)</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <span class="method-badge get">GET</span>
-                        <span class="font-mono text-lg font-semibold">/api/inspections/uninspected</span>
-                        <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">継続！</span>
-                    </div>
-                    <p class="mb-4">
-                        検査担当のJetsonが「次どれ検査すればいい？」って聞くためのAPI。サーバーに溜まってる未検査データの中から、一番古いやつを1個だけ選んで、そのメタデータと画像をbase64形式で返してくれる！
-                    </p>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <p class="text-sm mb-2">うまくいくと、次に検査すべきアイテムのデータがJSONで返ってくる。画像はbase64エンコードされてるから、デコードすればすぐに使えるよ！</p>
-                    <pre><code class="language-json">{
-    "metadata": {
-        "camera_id": "inspection-camera-01",
-        "product_id": "A-102-005",
-        "captured_at": "2025-09-13T10:00:00Z"
-    },
-    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-}</code></pre>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス (204 No Content)</h3>
-                    <p class="text-sm">もし未検査のアイテムが1個もなかったら、サーバーは「今はないよー」って感じで、中身が空っぽの <code>204 No Content</code> を返すよ！
-                    </p>
                 </div>
             </section>
         </div>

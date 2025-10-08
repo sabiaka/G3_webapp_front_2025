@@ -12,19 +12,26 @@ export default function useAuthMe() {
 
     useEffect(() => {
         const ac = new AbortController()
+
         const run = async () => {
             setLoading(true)
             setError(null)
+
             try {
                 const token = (typeof window !== 'undefined' && (window.localStorage.getItem('access_token') || window.sessionStorage.getItem('access_token'))) || ''
+
                 if (!token) {
                     setUser(null)
-                    return
+                    
+return
                 }
+
                 const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
                 const res = await fetch(`${apiBase}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` }, signal: ac.signal })
+
                 if (res.ok) {
                     const data = await res.json()
+
                     setUser(data || null)
                 } else if (res.status === 401) {
                     setUser(null)
@@ -37,8 +44,10 @@ export default function useAuthMe() {
                 setLoading(false)
             }
         }
+
         run()
-        return () => ac.abort()
+        
+return () => ac.abort()
     }, [tick])
 
     const isAdmin = !!user?.is_admin

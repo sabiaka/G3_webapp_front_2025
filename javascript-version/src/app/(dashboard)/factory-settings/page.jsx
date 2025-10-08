@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import useAuthMe from '@core/hooks/useAuthMe'
+
 
 // MUI Components
 import Box from '@mui/material/Box'
@@ -28,6 +28,8 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined'
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionManufacturingOutlined'
+
+import useAuthMe from '@core/hooks/useAuthMe'
 
 // 型の簡易表現
 const ADMIN = '管理者'
@@ -96,6 +98,7 @@ function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 	const handleToggleType = () => {
 		if (!canEdit) return
 		const nextType = isAdminType ? MEMBER : ADMIN
+
 		onUpdate({ ...role, type: nextType })
 	}
 
@@ -112,6 +115,7 @@ function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 
 	const saveEdit = () => {
 		const trimmed = nameDraft.trim()
+
 		if (!trimmed) return cancelEdit()
 		if (trimmed === role.name) return cancelEdit()
 		onUpdate({ ...role, name: trimmed })
@@ -201,6 +205,7 @@ function LineItem({ line, onRename, onDelete, canEdit }) {
 
 	const saveEdit = () => {
 		const trimmed = draft.trim()
+
 		if (!trimmed) return cancelEdit()
 		if (trimmed === line.name) return cancelEdit()
 		onRename(trimmed)
@@ -315,8 +320,10 @@ export default function FactorySettingsPage() {
 	const addRole = async () => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		const name = newRoleName.trim()
 
 		if (!name) return
@@ -346,8 +353,10 @@ return
 	const updateRole = async updated => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		const original = roles.find(r => r.id === updated.id)
 
 		if (!original) return
@@ -373,8 +382,10 @@ return
 	const deleteRole = async id => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		try {
 			await api(`/api/roles/${id}`, { method: 'DELETE' })
 			setRoles(prev => prev.filter(r => r.id !== id))
@@ -389,8 +400,10 @@ return
 	const addLine = async () => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		const name = newLineName.trim()
 
 		if (!name) return
@@ -416,8 +429,10 @@ return
 	const renameLine = async (id, newName) => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		if (!newName) return
 
 		if (lineNames.has(newName)) {
@@ -441,8 +456,10 @@ return
 	const deleteLine = async id => {
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			return
+			
+return
 		}
+
 		try {
 			await api(`/api/lines/${id}`, { method: 'DELETE' })
 			setLines(prev => prev.filter(l => l.id !== id))

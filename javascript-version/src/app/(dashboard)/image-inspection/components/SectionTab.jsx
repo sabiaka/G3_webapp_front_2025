@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
+
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -21,6 +22,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import TextField from '@mui/material/TextField'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+
 import DonutChart from './DonutChart'
 import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
@@ -53,17 +55,23 @@ const SectionTab = ({
     setManualDate('')
     setSelectedDateIndex(i => Math.min(i + 1, Math.max(availableDates.length - 1, 0)))
   }
+
   const goNextDate = () => {
     setManualDate('')
     setSelectedDateIndex(i => Math.max(i - 1, 0))
   }
+
   const canGoPrev = selectedDateIndex < (availableDates.length - 1)
   const canGoNext = selectedDateIndex > 0
+
+
   // 最新ロット概要
   const renderLatestLotSummary = () => {
     const latest = getLatestLot(section)
     const lotStatus = latest ? getLotStatus(latest) : undefined
-    return <SectionSummary latestLot={latest} lotStatus={lotStatus} />
+
+    
+return <SectionSummary latestLot={latest} lotStatus={lotStatus} />
   }
 
   // カメラグリッド
@@ -71,7 +79,9 @@ const SectionTab = ({
     const latest = getLatestLot(section)
     const names = SECTION_CONFIG[section].cameras
     const statusByName = Object.fromEntries((latest?.cameras || []).map(c => [c.name, c.status]))
-    return <CameraGrid cameraNames={names} statusByName={statusByName} />
+
+    
+return <CameraGrid cameraNames={names} statusByName={statusByName} />
   }
 
   return (
@@ -105,7 +115,9 @@ const SectionTab = ({
                     const latest = getLatestLot(section)
                     const latestDate = latest?.date
                     const statsLatest = getSectionStats(section, latestDate)
-                    return <DonutChart percentage={statsLatest.passRate} />
+
+                    
+return <DonutChart percentage={statsLatest.passRate} />
                   })()}
                 </Box>
                 <Grid container spacing={2}>
@@ -116,7 +128,9 @@ const SectionTab = ({
                         const latest = getLatestLot(section)
                         const latestDate = latest?.date
                         const statsLatest = getSectionStats(section, latestDate)
-                        return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
+
+                        
+return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
                       })()}
                     </Box>
                   </Grid>
@@ -127,7 +141,9 @@ const SectionTab = ({
                         const latest = getLatestLot(section)
                         const latestDate = latest?.date
                         const statsLatest = getSectionStats(section, latestDate)
-                        return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
+
+                        
+return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
                       })()}
                     </Box>
                   </Grid>
@@ -138,7 +154,9 @@ const SectionTab = ({
                         const latest = getLatestLot(section)
                         const latestDate = latest?.date
                         const statsLatest = getSectionStats(section, latestDate)
-                        return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
+
+                        
+return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
                       })()}
                     </Box>
                   </Grid>
@@ -152,7 +170,9 @@ const SectionTab = ({
                   const latest = getLatestLot(section)
                   const latestDate = latest?.date
                   const fr = getFailReasons(section, latestDate)
-                  return fr.length === 0 ? (
+
+                  
+return fr.length === 0 ? (
                     <Typography color="text.secondary">本日の不良品はありません。</Typography>
                   ) : (
                     <Box sx={{ '& > * + *': { mt: 2 } }}>
@@ -198,8 +218,10 @@ const SectionTab = ({
                 value={selectedDate || ''}
                 onChange={(e) => {
                   const v = e.target.value
+
                   setManualDate(v)
                   const idx = availableDates.indexOf(v)
+
                   if (idx >= 0) setSelectedDateIndex(idx)
                 }}
                 inputProps={{ max: availableDates[0] || undefined }}
@@ -233,7 +255,9 @@ const SectionTab = ({
                     const shotsByCam = getLotShotsByCamera(lot.lotId)
                     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
                     const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
-                    return (
+
+                    
+return (
                       <Fragment key={lot.lotId}>
                         <TableRow hover onClick={toggle} sx={{ cursor: 'pointer' }} aria-expanded={isOpen}>
                           <TableCell width={56}>
@@ -302,6 +326,7 @@ const SectionTab = ({
                                                 sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900', cursor: 'pointer' }}
                                                 onClick={() => {
                                                   const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
+
                                                   setLightbox({ open: true, src, alt: s.image_path || 'shot' })
                                                 }}
                                               >

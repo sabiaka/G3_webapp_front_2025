@@ -9,7 +9,9 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 
 function getInitials(name) {
   const parts = String(name || '').trim().split(/\s+/)
-  return parts[0] || ''
+
+  
+return parts[0] || ''
 }
 
 const EmployeeCard = ({ employee, onMenuClick, canEdit }) => {

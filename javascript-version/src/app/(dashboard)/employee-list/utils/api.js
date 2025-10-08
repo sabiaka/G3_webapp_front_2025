@@ -5,12 +5,15 @@ export const getToken = () =>
 
 export const getAuthHeaders = () => {
   const token = getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+
+  
+return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export const ensureHash = hex => {
   if (!hex) return '#999999'
-  return String(hex).startsWith('#') ? String(hex) : `#${hex}`
+  
+return String(hex).startsWith('#') ? String(hex) : `#${hex}`
 }
 
 export const stripHash = hex => (hex || '').replace(/^#/, '')
