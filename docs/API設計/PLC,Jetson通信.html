@@ -122,7 +122,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書</h1>
+                    <h1 class="text-4xl font-bold text-slate-900">PLC,Jetson通信API 設計書()</h1>
                 </div>
                 <a href="../index.html"
                     class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
@@ -137,9 +137,9 @@
 
         <div class="space-y-12">
 
-            <!-- 1. DB設計 -->
-            <section id="db-design">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. DB設計</h2>
+            <!-- 1. 機械系DB設計 -->
+                <section id="db-design">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 機械系DB設計</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <p class="mb-4">このページで扱うデータは主に「検査結果」と「生産カウンタ」です。以下は対応するテーブル定義です。</p>
 
@@ -160,7 +160,7 @@
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">machine_logs（機械エラーログ）</h3>
-<pre><code class="language-sql">CREATE TABLE machine_logs (
+                    <pre><code class="language-sql">CREATE TABLE machine_logs (
     log_id SERIAL PRIMARY KEY,                                           -- ログID
     machine_name VARCHAR(100) NOT NULL,                                  -- 対象機械NAME
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                       -- 発生時刻
@@ -175,39 +175,128 @@
                 </div>
             </section>
 
+            <!-- 2. 画像系DB設計 -->
+                <section id="image-db-design">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">2. 画像系DB設計</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">画像系データはセクション・ロット・カメラショットの3階層で管理します。以下はテーブル定義例です。</p>
+
+                    <h3 class="text-lg font-semibold mt-4 mb-2">inspection_sections（セクション正規化）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_sections (
+    section_id SERIAL PRIMARY KEY,                       -- セクションID（内部連番）
+    section_code VARCHAR(32) UNIQUE NOT NULL,            -- セクション内部コード（例: 'spring', 'alayer'）
+    section_name VARCHAR(64) NOT NULL                    -- セクション表示名（例: 'バネ留め', 'A層検査'）
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">inspection_lots（ロット/製品ID）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_lots (
+    id BIGSERIAL PRIMARY KEY,                                       -- ロット内部ID（連番）
+    lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
+    section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
+    captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
+    UNIQUE (lot_id)                                                 -- ロットIDは一意
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">inspection_camera_shots（カメラショット）</h3>
+                    <pre><code class="language-sql">CREATE TABLE inspection_camera_shots (
+    id BIGSERIAL PRIMARY KEY,                                                   -- ショット内部ID（連番）
+    lot_id_ref BIGINT NOT NULL REFERENCES inspection_lots(id) ON DELETE CASCADE,-- ロット参照ID
+    camera_id VARCHAR(64) NOT NULL,                                             -- カメラID（例: 'B-spring01', 'A-main01'）
+    status VARCHAR(16) NOT NULL CHECK (status IN ('PASS','FAIL','MISSING')),    -- 判定ステータス
+    details TEXT NULL,                                                          -- 不良理由等（PASS時はNULL推奨）
+    image_path TEXT NULL,                                                       -- 画像パス（MISSING時はNULL可）
+    shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
+    captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
+);</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">インデックス例</h3>
+                    <pre><code class="language-sql">CREATE INDEX idx_lots_section_date ON inspection_lots (section_code, date(captured_at) DESC, captured_at DESC); -- セクション＋日付検索用
+CREATE INDEX idx_shots_lot ON inspection_camera_shots (lot_id_ref);                                             -- ロット単位検索用
+CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);                                           -- カメラ単位検索用
+</code></pre>
+                </div>
+            </section>
+
             <!-- 3. PLC情報送信 -->
-            <section id="post-plc-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (機械 → サーバー)</h2>
+                <section id="post-plc-data">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3. PLCログ情報送信 (機械 → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/plc</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">生産機械 (PLC) からの様々な情報をサーバーに送信するための汎用APIです。エラー、起動通知、消耗品（ホックリングなど）の残量警告など、あらゆる種類のログをこのエンドポイントで受け付けます。</p>
+                    <p class="mb-4">生産機械 (PLC)
+                        からの様々な情報をサーバーに送信するための汎用APIです。エラー、起動通知、消耗品（ホックリングなど）の残量警告など、あらゆる種類のログをこのエンドポイントで受け付けます。</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
-                    <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>, <code>warning</code>, <code>error</code>）</p>
+                    <p class="text-sm mb-2">送信する情報の種類に応じて <code>log_type</code> を使い分けます。（例: <code>info</code>,
+                        <code>warning</code>, <code>error</code>）</p>
                     <pre><code class="language-json">{
     "timestamp": "2025-07-15T10:15:32Z",
     "machine_name":"半自動バネどめ機",
     "log_type": "error",
-    "status": "停止中",
     "title": "E-102: トルク過負荷",
     "message": "モーターの負荷が規定値を超えました。"
 }</code></pre>
-    <p class="text-sm">statusはmachine_statusの中のstatusに書き込むようにしてください｡</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは <code>202 Accepted</code> が最適です。</p>
+                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは
+                        <code>202 Accepted</code> が最適です。</p>
                     <pre><code class="language-json">{
     "message": "データを受け付けました。処理を開始します。"
 }</code></pre>
                 </div>
             </section>
 
+            <!-- 4. 機械の稼働開始 -->
+                <section id="start-machine">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 機械の稼働開始</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/start</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
+                    </div>
+                    <p class="mb-4">機械の稼働を開始したときに呼ぶAPI。開始時刻を記録するのに使う</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "started_at": "2025-07-15T08:00:00Z"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Machine not found"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- 5. 生産数をインクリメント -->
+                <section id="increment-production">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 生産数をインクリメント</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production</span>
+                        <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
+                    </div>
+                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて累計生産数をプラス1する。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
+    "today_production_count": 1521
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <pre><code class="language-json">{
+    "error": "Machine not found"
+}</code></pre>
+                </div>
+            </section>
+
             <!-- 4. 画像と検査データを送信 (POSTで全部やる) -->
-            <section id="post-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">4. 画像と検査データを送信 (撮影/検査Jetson →
-                    サーバー)</h2>
+                <section id="post-inspection-data">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 画像と検査データを送信 (撮影/検査Jetson → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -294,8 +383,8 @@ print("レスポンス:", response.json())
             </section>
 
             <!-- 5. 画像のアクセス方法 -->
-            <section id="get-image-direct">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 画像のアクセス方法 (超シンプル版)</h2>
+                <section id="get-image-direct">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">7. 画像のアクセス方法 (超シンプル版)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
@@ -310,9 +399,8 @@ print("レスポンス:", response.json())
             </section>
 
             <!-- 6. 未検査の画像とデータをゲトるAPI -->
-            <section id="get-uninspected-item">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 未検査の画像とデータ取得 (検査Jetson ←
-                    サーバー)</h2>
+                <section id="get-uninspected-item">
+                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">8. 未検査の画像とデータ取得 (検査Jetson ← サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
