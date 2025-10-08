@@ -299,6 +299,17 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                             <li><code>section_code</code> が <strong>"A層検査"</strong> の場合 → <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...</li>
                         </ul>
                     </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
+                    <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
+                        <p class="font-bold">ファイル名はサーバーが自動でつけちゃう！</p>
+                        <p class="text-sm mt-1">Jetsonから送られてきた画像は、サーバー側でルールに沿った名前にリネームして保存するよ。ファイル名でどの製品のどのカメラの写真か一発でわかるようになってて、マジ便利✨</p>
+                        <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
+                            <strong>フォーマット:</strong> {lot_id}_{camera_id}-{shot_seq}.jpg<br>
+                            <strong>保存例:</strong> /imageDB/MAT-00123_B-spring01-1.jpg
+                        </p>
+                        <p class="text-xs mt-2">このファイルパスが、DBの`inspection_camera_shots`テーブルにある`image_path`カラムに保存されるってわけ！</p>
+                    </div>
                     
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
                     <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
