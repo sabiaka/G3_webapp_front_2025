@@ -200,13 +200,7 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <p class="mb-4 text-slate-600">PostgreSQLを想定。1ロット内で同一カメラの複数ショットを保持し、ロット単位の集計を容易にします。</p>
                     <div class="code-block-wrapper">
-<pre><code class="language-sql">-- セクションの正規化（任意）
-CREATE TABLE inspection_sections (
-    section_id SERIAL PRIMARY KEY,                       -- セクションID（内部連番）
-    section_code VARCHAR(32) UNIQUE NOT NULL,            -- セクション内部コード（例: 'spring', 'alayer'）
-    section_name VARCHAR(64) NOT NULL                    -- セクション表示名（例: 'バネ留め', 'A層検査'）
-);
-
+<pre><code class="language-sql">
 -- ロット（製品ID等に相当）
 CREATE TABLE inspection_lots (
     id BIGSERIAL PRIMARY KEY,                                       -- ロット内部ID（連番）
@@ -228,12 +222,6 @@ CREATE TABLE inspection_camera_shots (
     shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
     captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
 );
-
--- 高速化インデックス
-CREATE INDEX idx_lots_section_date ON inspection_lots (section_code, date(captured_at) DESC, captured_at DESC); -- セクション＋日付検索用
-CREATE INDEX idx_shots_lot ON inspection_camera_shots (lot_id_ref);                                             -- ロット単位検索用
-CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);                                           -- カメラ単位検索用
-
 </code></pre>
                     </div>
                     <p class="mt-2 text-sm text-slate-600">備考: ロットの総合判定はビューやアプリ側で算出（<strong>同一camera_idで1つでもFAILがあればNG</strong> ルール）。必要ならマテリアライズドビューやトリガで日次集計を保持。</p>
