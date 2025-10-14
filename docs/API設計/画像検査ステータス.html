@@ -207,7 +207,6 @@ CREATE TABLE inspection_lots (
     lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
     section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
     captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
     UNIQUE (lot_id)                                                 -- ロットIDは一意
 );
 
@@ -365,8 +364,6 @@ CREATE TABLE inspection_camera_shots (
                                                 <li>フロントは <code>camera_id</code> をそのまま表示（別名は不要）。</li>
                                                 <li>ステータスは <code>PASS/FAIL</code> を返す。UI上の <code>OK/NG</code> などはフロント側で変換。</li>
                                                 <li>画像ファイル名は <strong>lot_id</strong> と <strong>camera_id</strong> を含め、通番を付与する形式を推奨: <code>{lot_id}_{camera_id}-{seq}.jpg</code>（例: <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
-                                                <li>各セクションの期待カメラ数（例: バネ留め=4, A層=3）を満たすように <code>cameras</code> を返す。欠損は <code>MISSING</code> か <code>FAIL</code> とし、<code>details</code> に理由（未検出等）を入れる。</li>
-                                                <li>生ログ用途の <code>/api/inspections</code> は保守/診断向けに残し、UI は原則このロットAPIを利用。</li>
                                             </ul>
                                         </div>
                 </div>

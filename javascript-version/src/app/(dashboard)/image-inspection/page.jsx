@@ -59,7 +59,8 @@ const ImageInspection = () => {
     getFailReasons,
     getLatestLot,
     getLotShotsByCamera,
-    getAvailableDates
+    getAvailableDates,
+    ensureLotShotsLoaded
   } = useLotsData()
 
   // セクションごとの展開行状態（詳細表示用）
@@ -142,6 +143,7 @@ const ImageInspection = () => {
       getSectionLots={getSectionLots}
       getLotStatus={getLotStatus}
       getLotShotsByCamera={getLotShotsByCamera}
+      ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}
       openRows={openRows}
