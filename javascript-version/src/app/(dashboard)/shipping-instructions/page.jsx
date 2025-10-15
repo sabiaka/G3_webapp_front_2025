@@ -15,7 +15,6 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
-import IconButton from '@mui/material/IconButton'
 import Checkbox from '@mui/material/Checkbox'
 import InputAdornment from '@mui/material/InputAdornment'
 import AddIcon from '@mui/icons-material/Add'
@@ -23,66 +22,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
-// サンプルデータ
-const initialInstructions = [
-  {
-    id: 1,
-    title: '木枠',
-    line: 'マット',
-    completed: false,
-    remarks: '西川仕様・至急',
-    color: 'GM/BE',
-    shippingMethod: '匠',
-    destination: 'ホテル',
-    note: '両面張り',
-  },
-  {
-    id: 2,
-    title: 'マット 1200x1950x200 平 gm/be 1.9 路線 グリーン ホテル仕上',
-    line: 'マット',
-    completed: true,
-    remarks: 'グリーン',
-    color: 'GM/BE',
-    shippingMethod: '路線',
-    destination: 'ホテル',
-    note: 'ホテル仕上',
-  },
-  {
-    id: 3,
-    title: 'サポート 80巾 5col 福岡県小郡 アマゾン アマゾン直送便',
-    line: 'ボトム',
-    completed: false,
-    remarks: 'アマゾン直送',
-    color: '',
-    shippingMethod: 'アマゾン直送便',
-    destination: '福岡県小郡',
-    note: '',
-  },
-  {
-    id: 4,
-    title: 'ピロー スタンダード white 保証書 路線 サンプル出荷',
-    line: 'その他',
-    completed: false,
-    remarks: 'サンプル出荷',
-    color: 'white',
-    shippingMethod: '路線',
-    destination: '',
-    note: '保証書',
-  },
-]
-
-const lineOptions = [
-  { value: 'すべて', label: 'すべて' },
-  { value: 'マット', label: 'マット' },
-  { value: 'ボトム', label: 'ボトム' },
-  { value: 'その他', label: 'その他' },
-]
-
-const completedOptions = [
-  { value: 'all', label: 'すべて' },
-  { value: 'completed', label: '完了' },
-  { value: 'not-completed', label: '未完了' },
-]
+// データ: サンプル初期値とセレクトオプションを外部から読み込み
+import { initialInstructions, lineOptions, completedOptions } from './data/sampleInitialInstructions'
 
 // タイトル分割用: 先頭のライン名(例: "マット")と残りの内容を分ける
 function splitTitle(title, line) {
