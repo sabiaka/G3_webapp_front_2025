@@ -1,52 +1,124 @@
-// サンプルデータ
+// サンプルデータ: 新しいAPI仕様に合わせた形
 export const initialInstructions = [
     {
-        id: 1,
-        title: '木枠',
-        line: 'マット',
-        completed: false,
-        remarks: '西川仕様・至急',
-        color: 'GM/BE',
-        shippingMethod: '匠',
-        destination: 'ホテル',
-        note: '両面張り',
-        quantity: 1,
+        id: 1,                                          // 指示ID
+        line: 'ボトム',                                 // ライン名
+        product_name: '木枠',                           // 製品名
+        size: '1200x1950x170',                          // サイズ
+        color: 'こげ茶',                                // 色
+        spring_type: '2R/M8脚',                         // スプリング種類
+        included_items: '',                            // 同梱物
+        shipping_method: '㈱西',                        // 出荷方法
+        destination: 'フラワーホテル',                  // 出荷先
+        remarks: '',                                    // 備考
+        quantity: 1,                                    // 数量
+        is_completed: false,                            // 完了フラグ
+        created_at: '2025-04-23T10:00:00Z'              // 作成日時
     },
     {
-        id: 2,
-        title: 'マット 1200x1950x200 平 gm/be 1.9 路線 グリーン ホテル仕上',
-        line: 'マット',
-        completed: true,
-        remarks: 'グリーン',
-        color: 'GM/BE',
-        shippingMethod: '路線',
-        destination: 'ホテル',
-        note: 'ホテル仕上',
-        quantity: 2,
+        id: 2, // 指示ID
+        line: 'ボトム', // ライン名
+        product_name: '木枠', // 製品名
+        size: '1200x1950x170', // サイズ
+        color: 'こげ茶', // 色
+        spring_type: '2R/M8脚', // スプリング種類
+        included_items: '', // 同梱物
+        shipping_method: '㈱濃', // 出荷方法
+        destination: 'グリーンホテル北上', // 出荷先
+        remarks: '', // 備考
+        quantity: 1, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
     },
     {
-        id: 3,
-        title: 'サポート 80巾 5col 福岡県小郡 アマゾン アマゾン直送便',
-        line: 'ボトム',
-        completed: false,
-        remarks: 'アマゾン直送',
-        color: '',
-        shippingMethod: 'アマゾン直送便',
-        destination: '福岡県小郡',
-        note: '',
-        quantity: 1,
+        id: 3, // 指示ID
+        line: 'マット', // ライン名
+        product_name: 'マット', // 製品名
+        size: '1200x1950x200 SD', // サイズ
+        color: 'GMBE', // 色
+        spring_type: '平/1.9', // スプリング種類
+        included_items: '西川仕様 / 西川アイロンシール', // 同梱物
+        shipping_method: '西', // 出荷方法
+        destination: 'フラワーホテル / ㈱西川', // 出荷先
+        remarks: '', // 備考
+        quantity: 1, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
     },
     {
-        id: 4,
-        title: 'ピロー スタンダード white 保証書 路線 サンプル出荷',
-        line: 'その他',
-        completed: false,
-        remarks: 'サンプル出荷',
-        color: 'white',
-        shippingMethod: '路線',
-        destination: '',
-        note: '保証書',
-        quantity: 5,
+        id: 4, // 指示ID
+        line: 'マット', // ライン名
+        product_name: 'マット', // 製品名
+        size: '1200x1950x200 SD', // サイズ
+        color: 'GMBE', // 色
+        spring_type: '平/1.9', // スプリング種類
+        included_items: '西川仕様 / 西川アイロンシール', // 同梱物
+        shipping_method: '㈱濃', // 出荷方法
+        destination: 'グリーンホテル北上 / ㈱西川', // 出荷先
+        remarks: '', // 備考
+        quantity: 1, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
+    },
+    {
+        id: 5, // 指示ID
+        line: 'マット', // ライン名
+        product_name: 'サポート', // 製品名
+        size: '80巾', // サイズ
+        color: '5cm', // 色
+        spring_type: '', // スプリング種類
+        included_items: '', // 同梱物
+        shipping_method: 'Amazon', // 出荷方法
+        destination: '福岡県 小都 / Amazon', // 出荷先
+        remarks: '', // 備考
+        quantity: 1, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
+    },
+    {
+        id: 6, // 指示ID
+        line: 'マット', // ライン名
+        product_name: '天の羽衣', // 製品名
+        size: '', // サイズ
+        color: '', // 色
+        spring_type: '', // スプリング種類
+        included_items: '', // 同梱物
+        shipping_method: '夜', // 出荷方法
+        destination: '名古屋 / Amazon / オアシス便', // 出荷先
+        remarks: '', // 備考
+        quantity: 2, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
+    },
+    {
+        id: 7, // 指示ID
+        line: 'マット', // ライン名
+        product_name: 'マット', // 製品名
+        size: '', // サイズ
+        color: '', // 色
+        spring_type: '', // スプリング種類
+        included_items: '', // 同梱物
+        shipping_method: '積', // 出荷方法
+        destination: '名古屋 / Amazon / オアシス便', // 出荷先
+        remarks: '', // 備考
+        quantity: 8, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
+    },
+    {
+        id: 8, // 指示ID
+        line: 'マット', // ライン名
+        product_name: '木枠', // 製品名
+        size: '', // サイズ
+        color: '', // 色
+        spring_type: '', // スプリング種類
+        included_items: '', // 同梱物
+        shipping_method: '', // 出荷方法
+        destination: '名古屋 / Amazon / オアシス便', // 出荷先
+        remarks: '', // 備考
+        quantity: 37, // 数量
+        is_completed: false, // 完了フラグ
+        created_at: '2025-04-23T15:30:00Z' // 作成日時
     },
 ]
 
