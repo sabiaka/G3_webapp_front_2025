@@ -10,6 +10,7 @@ export const initialInstructions = [
         shippingMethod: '匠',
         destination: 'ホテル',
         note: '両面張り',
+        quantity: 1,
     },
     {
         id: 2,
@@ -21,6 +22,7 @@ export const initialInstructions = [
         shippingMethod: '路線',
         destination: 'ホテル',
         note: 'ホテル仕上',
+        quantity: 2,
     },
     {
         id: 3,
@@ -32,6 +34,7 @@ export const initialInstructions = [
         shippingMethod: 'アマゾン直送便',
         destination: '福岡県小郡',
         note: '',
+        quantity: 1,
     },
     {
         id: 4,
@@ -43,6 +46,7 @@ export const initialInstructions = [
         shippingMethod: '路線',
         destination: '',
         note: '保証書',
+        quantity: 5,
     },
 ]
 

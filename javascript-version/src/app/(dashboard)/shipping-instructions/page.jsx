@@ -40,6 +40,13 @@ function splitTitle(title, line) {
 
 const cardMinHeight = 260
 
+// ライン別の差し色
+const lineAccent = {
+  'マット': '#06b6d4', // cyan-500
+  'ボトム': '#f97316', // orange-500
+  'その他': '#9ca3af'  // gray-400
+}
+
 const LineChip = ({ line }) => {
   const chipStyles = {
     'マット': { backgroundColor: '#cffafe', color: '#0e7490' },
@@ -64,9 +71,25 @@ return (
         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         opacity: instruction.completed ? 0.6 : 1,
         minHeight: cardMinHeight,
+        height: '100%',
+        width: '100%',
+        minWidth: 0, // flex 子要素のはみ出し防止（内容で横幅が伸びないように）
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s',
+        position: 'relative',
+        // 左側差し色バー
+        '&:before': {
+          content: '""',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '6px',
+          borderTopLeftRadius: '12px',
+          borderBottomLeftRadius: '12px',
+          backgroundColor: lineAccent[instruction.line] || lineAccent['その他']
+        },
         '&:hover': {
           boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
           transform: 'translateY(-4px)'
@@ -77,14 +100,14 @@ return (
       <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
         <div>
           <LineChip line={instruction.line} />
-          <Typography variant='h3' sx={{ fontWeight: 800, fontSize: 20, color: '#111827', mt: 1.5, lineHeight: 1.3 }}>
+          <Typography variant='h3' sx={{ fontWeight: 800, fontSize: 20, color: '#111827', mt: 1.5, lineHeight: 1.3, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {main}
-            <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5 }}>
+            <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               {sub}
             </Typography>
           </Typography>
         </div>
-        <div className='text-right flex-shrink-0'>
+        <div className='text-right flex-shrink-0 flex items-start gap-3'>
           <Checkbox
               checked={instruction.completed}
               onChange={() => onToggleComplete(instruction.id)}
@@ -116,7 +139,24 @@ return (
       </div>
 
       {/* 下部: フッター */}
-      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-end items-center'>
+      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-between items-center'>
+        {/* 左下 数量表示（画像のテイスト） */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{
+            marginLeft: 8,
+            color: '#9ca3af',
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: 1
+          }}>数量:</span>
+          <span style={{
+            marginLeft: 5,
+            marginBottom: 3,
+            color: '#4f46e5',
+            fontSize: 25,
+            fontWeight: 800,
+          }}>{instruction.quantity ?? '-'}</span>
+        </div>
         <Button 
           variant="text" 
           size='small' 
@@ -137,7 +177,7 @@ const ShippingInstructions = () => {
   const [line, setLine] = useState('すべて')
   const [completed, setCompleted] = useState('all')
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '' })
+  const [form, setForm] = useState({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '', quantity: 1 })
   const [editMode, setEditMode] = useState(false)
 
   // フィルタリング
@@ -177,7 +217,7 @@ const ShippingInstructions = () => {
 
   // 追加
   const handleAdd = () => {
-    setForm({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '' })
+  setForm({ id: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', note: '', quantity: 1 })
     setEditMode(false)
     setModalOpen(true)
   }
@@ -259,7 +299,7 @@ const ShippingInstructions = () => {
   </Card>
 
   {/* 指示カードリスト */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} alignItems='stretch'>
         {filtered.length === 0 ? (
           <Grid item xs={12}>
             <Card sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
@@ -269,7 +309,7 @@ const ShippingInstructions = () => {
           </Grid>
         ) : (
           filtered.map(inst => (
-            <Grid item xs={12} sm={6} md={4} xl={3} key={inst.id}>
+            <Grid item xs={12} sm={6} md={4} xl={3} key={inst.id} sx={{ display: 'flex' }}>
               <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} />
             </Grid>
           ))
@@ -295,6 +335,9 @@ const ShippingInstructions = () => {
                   <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                 ))}
               </Select>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label='数量' name='quantity' type='number' inputProps={{ min: 1 }} value={form.quantity} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField label='色' name='color' value={form.color} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }} />
