@@ -267,8 +267,6 @@ const ShippingInstructions = () => {
 
   return (
     <>
-      <Typography variant='h4' sx={{ mb: 4, fontWeight: 700 }}>製造出荷指示</Typography>
-
       {/* フィルターバー */}
       <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
         <CardContent>
