@@ -62,14 +62,25 @@ return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chi
 const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
   const { main, sub } = splitTitle(instruction.title, instruction.line);
 
-  
+  // カード全体クリックで完了トグル（Enter/Spaceでも可）
+  const handleCardClick = () => onToggleComplete(instruction.id)
+  const handleKeyDown = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onToggleComplete(instruction.id)
+    }
+  }
+
 return (
     <Card
       className='fade-in'
       sx={{
         borderRadius: '12px',
         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        opacity: instruction.completed ? 0.6 : 1,
+        // 完了/未完了の見た目差分（完了は緑基調）
+        opacity: instruction.completed ? 0.95 : 1,
+        border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb',
+        backgroundColor: instruction.completed ? '#f0fdf4' : '#ffffff',
         minHeight: cardMinHeight,
         height: '100%',
         width: '100%',
@@ -78,6 +89,7 @@ return (
         flexDirection: 'column',
         transition: 'all 0.3s',
         position: 'relative',
+        cursor: 'pointer',
         // 左側差し色バー
         '&:before': {
           content: '""',
@@ -88,19 +100,41 @@ return (
           width: '6px',
           borderTopLeftRadius: '12px',
           borderBottomLeftRadius: '12px',
-          backgroundColor: lineAccent[instruction.line] || lineAccent['その他']
+          backgroundColor: instruction.completed ? '#22c55e' : (lineAccent[instruction.line] || lineAccent['その他'])
         },
         '&:hover': {
           boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
           transform: 'translateY(-4px)'
         }
       }}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role='button'
+      tabIndex={0}
     >
+      {/* 完了時の大きなチェック透かし */}
+      {instruction.completed && (
+        <div className='absolute inset-0 pointer-events-none flex items-center justify-center'>
+          <CheckCircleIcon sx={{ fontSize: 140, color: 'rgba(34,197,94,0.12)' }} />
+        </div>
+      )}
       {/* 上部: ヘッダー */}
       <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
         <div>
           <LineChip line={instruction.line} />
-          <Typography variant='h3' sx={{ fontWeight: 800, fontSize: 20, color: '#111827', mt: 1.5, lineHeight: 1.3, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+          <Typography
+            variant='h3'
+            sx={{
+              fontWeight: 800,
+              fontSize: 20,
+              color: '#111827',
+              mt: 1.5,
+              lineHeight: 1.3,
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere',
+              textDecoration: instruction.completed ? 'line-through' : 'none'
+            }}
+          >
             {main}
             <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               {sub}
@@ -108,19 +142,36 @@ return (
           </Typography>
         </div>
         <div className='text-right flex-shrink-0 flex items-start gap-3'>
+          {/* ステータス表示ピル */}
+          <span
+            className='px-2.5 py-1 rounded-full text-xs font-bold select-none'
+            style={{
+              backgroundColor: instruction.completed ? '#dcfce7' : '#f3f4f6',
+              color: instruction.completed ? '#166534' : '#374151',
+              border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb'
+            }}
+          >
+            {instruction.completed ? '完了' : '未完了'}
+          </span>
+
+          {/* チェックボックス（クリックの伝播停止） */}
           <Checkbox
-              checked={instruction.completed}
-              onChange={() => onToggleComplete(instruction.id)}
-              icon={<RadioButtonUncheckedIcon />}
-              checkedIcon={<CheckCircleIcon />}
-              sx={{ p: 0, '&.Mui-checked': { color: '#4f46e5' } }}
-              inputProps={{ 'aria-label': '完了' }}
-            />
+            checked={instruction.completed}
+            onClick={e => e.stopPropagation()}
+            onChange={() => onToggleComplete(instruction.id)}
+            icon={<RadioButtonUncheckedIcon />}
+            checkedIcon={<CheckCircleIcon />}
+            sx={{ p: 0, '&.Mui-checked': { color: '#16a34a' } }}
+            inputProps={{ 'aria-label': '完了' }}
+          />
         </div>
       </div>
 
       {/* 中央: 詳細 */}
-      <div className='p-5 flex-grow space-y-3 text-sm'>
+      <div
+        className='p-5 flex-grow space-y-3 text-sm'
+        style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}
+      >
         <div>
             <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
             <div className="space-y-1 text-gray-700">
@@ -141,7 +192,7 @@ return (
       {/* 下部: フッター */}
       <div className='p-4 bg-gray-50 rounded-b-xl flex justify-between items-center'>
         {/* 左下 数量表示（画像のテイスト） */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', textDecoration: instruction.completed ? 'line-through' : 'none' }}>
           <span style={{
             marginLeft: 8,
             color: '#9ca3af',
@@ -152,7 +203,7 @@ return (
           <span style={{
             marginLeft: 5,
             marginBottom: 3,
-            color: '#4f46e5',
+            color: instruction.completed ? '#16a34a' : '#4f46e5',
             fontSize: 25,
             fontWeight: 800,
           }}>{instruction.quantity ?? '-'}</span>
@@ -160,7 +211,7 @@ return (
         <Button 
           variant="text" 
           size='small' 
-          onClick={() => onEdit(instruction)} 
+          onClick={(e) => { e.stopPropagation(); onEdit(instruction) }} 
           startIcon={<EditOutlinedIcon />}
           sx={{ color: '#4f46e5', fontWeight: 600 }}
         >
