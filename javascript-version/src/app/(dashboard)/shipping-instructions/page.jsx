@@ -67,6 +67,10 @@ const ShippingInstructions = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
   const [editMode, setEditMode] = useState(false)
+  const [saving, setSaving] = useState(false)
+  // ライン一覧（APIから取得してモーダルのプルダウンに使用）
+  const [lines, setLines] = useState([])
+  const [loadingLines, setLoadingLines] = useState(false)
 
   // APIモード: /api/instructions から取得
   useEffect(() => {
@@ -75,6 +79,7 @@ const ShippingInstructions = () => {
       setError(null)
       setLoading(false)
       setInstructions(initialInstructions.map(normalizeInstruction))
+      setLines([])
       return
     }
 
@@ -123,6 +128,49 @@ const ShippingInstructions = () => {
     run()
     return () => controller.abort()
   }, [dataSource, reloadTick])
+
+  // APIモード: ライン一覧を取得してモーダルのプルダウンに使う
+  useEffect(() => {
+    if (dataSource !== 'api') return
+
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoadingLines(true)
+        const token = typeof window !== 'undefined'
+          ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
+          : null
+
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${base}/api/lines`, {
+          method: 'GET',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          signal: controller.signal
+        })
+
+        if (!res.ok) {
+          // 失敗してもフォームは開けるようにする（fallback: 空配列）
+          setLines([])
+          return
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+        if (Array.isArray(list)) setLines(list)
+        else setLines([])
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setLines([])
+      } finally {
+        setLoadingLines(false)
+      }
+    }
+
+    run()
+    return () => controller.abort()
+  }, [dataSource])
 
   // フィルタリング
   const filtered = instructions.filter(inst => {
@@ -199,13 +247,16 @@ const ShippingInstructions = () => {
 
   // 追加
   const handleAdd = () => {
-    setForm({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
+    const defaultLine = (dataSource === 'api' && lines?.length > 0)
+      ? (lines[0]?.line_name || '')
+      : 'マット'
+    setForm({ id: '', productName: '', size: '', title: '', line: defaultLine, completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
     setEditMode(false)
     setModalOpen(true)
   }
 
   // 保存
-  const handleSave = () => {
+  const handleSave = async () => {
     // 必須: productName (もしくは title の互換)
     if (!form.productName && !form.title) return
 
@@ -226,12 +277,68 @@ const ShippingInstructions = () => {
 
     if (editMode) {
       setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
+      setModalOpen(false)
     } else {
-      const newId = Math.max(...instructions.map(i => i.id), 0) + 1
-      setInstructions(prev => [...prev, { ...toSave, id: newId }])
-    }
+      // 新規作成
+      if (dataSource === 'api') {
+        // API 経由で作成
+        try {
+          setSaving(true)
+          setError(null)
+          const token = typeof window !== 'undefined'
+            ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
+            : null
 
-    setModalOpen(false)
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
+          // API v2 形式へ変換
+          const payload = {
+            line: form.line || 'その他',
+            product_name: form.productName || form.title || '',
+            size: form.size || '',
+            quantity: typeof form.quantity === 'number' ? form.quantity : Number(form.quantity || 0),
+            remarks: form.remarks || ''
+          }
+          if (form.color) payload.color = form.color
+          if (form.springType) payload.spring_type = form.springType
+          if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
+          if (form.shippingMethod) payload.shipping_method = form.shippingMethod
+          if (form.destination) payload.destination = form.destination
+
+          const res = await fetch(`${base}/api/instructions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(payload)
+          })
+
+          if (!res.ok) {
+            let detail = ''
+            try {
+              const t = await res.text()
+              detail = t?.slice(0, 200)
+            } catch {}
+            throw new Error(`作成に失敗しました (${res.status}) ${detail}`)
+          }
+
+          const created = await res.json()
+          const normalized = normalizeInstruction(created)
+          setInstructions(prev => [...prev, normalized])
+          setModalOpen(false)
+        } catch (e) {
+          setError(e?.message || '作成に失敗しました')
+        } finally {
+          setSaving(false)
+        }
+      } else {
+        // ローカルモード: ローカル状態に追加
+        const newId = Math.max(...instructions.map(i => i.id), 0) + 1
+        setInstructions(prev => [...prev, { ...toSave, id: newId }])
+        setModalOpen(false)
+      }
+    }
   }
 
   // 入力変更
@@ -256,8 +363,11 @@ const ShippingInstructions = () => {
         onLineChange={setLine}
         completed={completed}
         onCompletedChange={setCompleted}
-        lineOptions={lineOptions}
+        lineOptions={(dataSource === 'api'
+          ? [{ value: 'すべて', label: 'すべて' }, ...(lines?.map(l => ({ value: l.line_name, label: l.line_name })) || [])]
+          : lineOptions)}
         completedOptions={completedOptions}
+        loadingLines={dataSource === 'api' ? loadingLines : false}
       />
       <Grid container spacing={3} alignItems='stretch'>
         {filtered.length === 0 ? (
@@ -288,7 +398,8 @@ const ShippingInstructions = () => {
         editMode={editMode}
         form={form}
         onFormChange={handleFormChange}
-        lineOptions={lineOptions}
+        lineOptions={(dataSource === 'api' ? (lines?.map(l => ({ value: l.line_name, label: l.line_name })) || []) : lineOptions)}
+        saving={saving}
       />
 
       <ConfirmRevertDialog open={confirmOpen} onCancel={cancelRevert} onConfirm={confirmRevert} />

@@ -22,7 +22,7 @@ import NotesIcon from '@mui/icons-material/Notes'
 
 import SpringIcon from './icons/SpringIcon'
 
-const InstructionModal = ({ open, onClose, onSave, editMode, form, onFormChange, lineOptions }) => {
+const InstructionModal = ({ open, onClose, onSave, editMode, form, onFormChange, lineOptions, saving = false }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth='md' fullWidth>
       <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
@@ -155,8 +155,8 @@ const InstructionModal = ({ open, onClose, onSave, editMode, form, onFormChange,
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>キャンセル</Button>
-        <Button onClick={onSave} variant='contained'>保存</Button>
+        <Button onClick={onClose} disabled={saving}>キャンセル</Button>
+        <Button onClick={onSave} variant='contained' disabled={saving}>{saving ? '保存中…' : '保存'}</Button>
       </DialogActions>
     </Dialog>
   )
