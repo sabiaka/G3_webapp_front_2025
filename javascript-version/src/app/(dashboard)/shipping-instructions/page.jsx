@@ -5,55 +5,15 @@ import confetti from 'canvas-confetti'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import Button from '@mui/material/Button'
 import Fab from '@mui/material/Fab'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Checkbox from '@mui/material/Checkbox'
-import InputAdornment from '@mui/material/InputAdornment'
 import AddIcon from '@mui/icons-material/Add'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import SquareFootIcon from '@mui/icons-material/SquareFoot'
-import PaletteIcon from '@mui/icons-material/Palette'
-import LocalShippingIcon from '@mui/icons-material/LocalShipping'
-import PlaceIcon from '@mui/icons-material/Place'
-import EventIcon from '@mui/icons-material/Event'
-import Inventory2Icon from '@mui/icons-material/Inventory2'
-import NotesIcon from '@mui/icons-material/Notes'
-import SvgIcon from '@mui/material/SvgIcon'
-import CategoryIcon from '@mui/icons-material/Category'
-import NumbersIcon from '@mui/icons-material/Numbers'
 
-// 縦向きのギザギザ線アイコン（コイル/バネ風）
-const SpringIcon = props => (
-  <SvgIcon {...props} viewBox='0 0 24 24'>
-    <path
-      d='M7 4 L11 8 L7 12 L11 16 L7 20'
-      stroke='currentColor'
-      strokeWidth='2'
-      fill='none'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-    <path
-      d='M17 4 L13 8 L17 12 L13 16 L17 20'
-      stroke='currentColor'
-      strokeWidth='2'
-      fill='none'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </SvgIcon>
-)
+// UI 分割コンポーネント
+import FilterBar from './components/FilterBar'
+import ShippingInstructionCard from './components/ShippingInstructionCard'
+import InstructionModal from './components/InstructionModal'
+import ConfirmRevertDialog from './components/ConfirmRevertDialog'
 
 // データ: サンプル初期値とセレクトオプションを外部から読み込み
 import { initialInstructions, lineOptions, completedOptions } from './data/sampleInitialInstructions'
@@ -90,211 +50,7 @@ function normalizeInstruction(apiItem) {
   return { id, line, title, completed, color, shippingMethod, destination, remarks, note, quantity, createdAt, productName: productNameField, size: sizeField, springType, includedItems }
 }
 
-// タイトル分割用: 先頭のライン名(例: "マット")と残りの内容を分ける
-function splitTitle(title, line) {
-  if (!title) return { main: line, sub: '' }
-
-  if (title.startsWith(line)) {
-    return { main: line, sub: title.slice(line.length).trim() }
-  }
-
-
-  // マッチしない場合は、lineをメイン、title全体をサブとして扱う
-  return { main: line, sub: title }
-}
-
-const cardMinHeight = 260
-
-// ライン別の差し色
-const lineAccent = {
-  'マット': '#06b6d4', // cyan-500
-  'ボトム': '#f97316', // orange-500
-  'その他': '#9ca3af'  // gray-400
-}
-
-const LineChip = ({ line }) => {
-  const chipStyles = {
-    'マット': { backgroundColor: '#cffafe', color: '#0e7490' },
-    'ボトム': { backgroundColor: '#ffedd5', color: '#9a3412' },
-    'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
-  }
-
-
-  return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
-}
-
-
-const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
-  const { main, sub } = splitTitle(instruction.title, instruction.line);
-
-  // カード全体クリックで完了トグル（Enter/Spaceでも可）
-  const handleCardClick = (e) => onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
-  const handleKeyDown = e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      // キーボード操作時はマウス座標がないため undefined を渡す
-      onToggleComplete(instruction.id)
-    }
-  }
-
-  return (
-    <Card
-      className='fade-in'
-      sx={{
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        // 完了/未完了の見た目差分（完了は緑基調）
-        opacity: instruction.completed ? 0.95 : 1,
-        border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb',
-        backgroundColor: instruction.completed ? '#f0fdf4' : '#ffffff',
-        minHeight: cardMinHeight,
-        height: '100%',
-        width: '100%',
-        minWidth: 0, // flex 子要素のはみ出し防止（内容で横幅が伸びないように）
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'all 0.3s',
-        position: 'relative',
-        cursor: 'pointer',
-        // 左側差し色バー
-        '&:before': {
-          content: '""',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: '6px',
-          borderTopLeftRadius: '12px',
-          borderBottomLeftRadius: '12px',
-          backgroundColor: instruction.completed ? '#22c55e' : (lineAccent[instruction.line] || lineAccent['その他'])
-        },
-        '&:hover': {
-          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-          transform: 'translateY(-4px)'
-        }
-      }}
-      onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
-      role='button'
-      tabIndex={0}
-    >
-      {/* 完了時の大きなチェック透かし */}
-      {instruction.completed && (
-        <div className='absolute inset-0 pointer-events-none flex items-center justify-center'>
-          <CheckCircleIcon sx={{ fontSize: 140, color: 'rgba(34,197,94,0.12)' }} />
-        </div>
-      )}
-      {/* 上部: ヘッダー */}
-      <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
-        <div>
-          <LineChip line={instruction.line} />
-          <Typography
-            variant='h3'
-            sx={{
-              fontWeight: 800,
-              fontSize: 20,
-              color: '#111827',
-              mt: 1.5,
-              lineHeight: 1.3,
-              wordBreak: 'break-word',
-              overflowWrap: 'anywhere',
-              textDecoration: instruction.completed ? 'line-through' : 'none'
-            }}
-          >
-            {instruction.productName || main}
-            <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              {instruction.size || sub}
-            </Typography>
-          </Typography>
-        </div>
-        <div className='text-right flex-shrink-0 flex items-start gap-3'>
-          {/* ステータス表示ピル */}
-          <span
-            className='px-2.5 py-1 rounded-full text-xs font-bold select-none'
-            style={{
-              backgroundColor: instruction.completed ? '#dcfce7' : '#f3f4f6',
-              color: instruction.completed ? '#166534' : '#374151',
-              border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb'
-            }}
-          >
-            {instruction.completed ? '完了' : '未完了'}
-          </span>
-
-          {/* チェックボックス（クリックの伝播停止） */}
-          <Checkbox
-            checked={instruction.completed}
-            // クリック時に座標を渡して toggle
-            onClick={e => { e.stopPropagation(); onToggleComplete(instruction.id, e.clientX, e.clientY) }}
-            // onChange は noop にしておく（状態は親が更新する）
-            onChange={() => { }}
-            icon={<RadioButtonUncheckedIcon />}
-            checkedIcon={<CheckCircleIcon />}
-            sx={{ p: 0, '&.Mui-checked': { color: '#16a34a' } }}
-            inputProps={{ 'aria-label': '完了' }}
-          />
-        </div>
-      </div>
-
-      {/* 中央: 詳細 */}
-      <div
-        className='p-5 flex-grow space-y-3 text-sm'
-        style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}
-      >
-        <div>
-          <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
-          <div className="space-y-1 text-gray-700">
-            <div className="flex items-center"><PaletteIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">カラー:</p><p className="font-medium">{instruction.color || '-'}</p></div>
-            <div className="flex items-center"><SquareFootIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">サイズ:</p><p className="font-medium">{instruction.size || '-'}</p></div>
-            <div className="flex items-center"><SpringIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">スプリング:</p><p className="font-medium">{instruction.springType || '-'}</p></div>
-            <div className="flex items-center"><Inventory2Icon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">同梱物:</p><p className="font-medium">{instruction.includedItems || instruction.note || '-'}</p></div>
-            <div className="flex items-center"><NotesIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">備考:</p><p className="font-medium">{instruction.remarks || '-'}</p></div>
-          </div>
-        </div>
-        <div>
-          <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">配送情報</h4>
-          <div className="space-y-1 text-gray-700">
-            <div className="flex items-center"><LocalShippingIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送方法:</p><p className="font-medium">{instruction.shippingMethod || '-'}</p></div>
-            <div className="flex items-center"><PlaceIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送先:</p><p className="font-medium">{instruction.destination || '-'}</p></div>
-            {instruction.remarks && <div className="flex items-center"><EventIcon sx={{ mr: 1, color: '#ef4444', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">特記:</p><p className="font-bold text-red-600">{instruction.remarks}</p></div>}
-            {instruction.createdAt && (
-              <div className="flex items-center text-sm text-gray-500"><EventIcon sx={{ mr: 1, fontSize: 18 }} />{new Date(instruction.createdAt).toLocaleString()}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 下部: フッター */}
-      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-between items-center'>
-        {/* 左下 数量表示（画像のテイスト） */}
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: instruction.completed ? 'line-through' : 'none' }}>
-          <span style={{
-            marginLeft: 8,
-            color: '#9ca3af',
-            fontSize: 12,
-            fontWeight: 700,
-            lineHeight: 1
-          }}>数量:</span>
-          <span style={{
-            marginLeft: 5,
-            marginBottom: 3,
-            color: instruction.completed ? '#16a34a' : '#4f46e5',
-            fontSize: 25,
-            fontWeight: 800,
-          }}>{instruction.quantity ?? '-'}</span>
-        </div>
-        <Button
-          variant="text"
-          size='small'
-          onClick={(e) => { e.stopPropagation(); onEdit(instruction) }}
-          startIcon={<EditOutlinedIcon />}
-          sx={{ color: '#4f46e5', fontWeight: 600 }}
-        >
-          編集
-        </Button>
-      </div>
-    </Card>
-  )
-}
+// ページ内関数: normalize はここに定義して各コンポーネントからは props で利用
 
 const ShippingInstructions = () => {
   // 初期データを正規化して内部で使う形にする
@@ -491,59 +247,18 @@ const ShippingInstructions = () => {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
-  // ここから描画
-
   return (
     <>
-
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems='flex-end'>
-            <Grid item xs={12} md={5}>
-              <TextField
-                fullWidth
-                label='品名 / 配送先 / 備考で検索'
-                size='small'
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <span className='ri-search-line' />
-                    </InputAdornment>
-                  )
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Select
-                fullWidth
-                size='small'
-                value={line}
-                onChange={e => setLine(e.target.value)}
-                displayEmpty
-              >
-                {lineOptions.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
-            <Grid item xs={6} md={2}>
-              <Select
-                fullWidth
-                size='small'
-                value={completed}
-                onChange={e => setCompleted(e.target.value)}
-                displayEmpty
-              >
-                {completedOptions.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        line={line}
+        onLineChange={setLine}
+        completed={completed}
+        onCompletedChange={setCompleted}
+        lineOptions={lineOptions}
+        completedOptions={completedOptions}
+      />
       <Grid container spacing={3} alignItems='stretch'>
         {filtered.length === 0 ? (
           <Grid item xs={12}>
@@ -566,153 +281,17 @@ const ShippingInstructions = () => {
         <AddIcon fontSize='large' />
       </Fab>
 
-      {/* モーダル（追加・編集） */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth='md' fullWidth>
-        <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                label='品名'
-                name='productName'
-                value={form.productName}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                required
-                InputProps={{ startAdornment: (<InputAdornment position='start'><CategoryIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='サイズ'
-                name='size'
-                value={form.size}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><SquareFootIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Select label='担当ライン' name='line' value={form.line} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }}>
-                {lineOptions.filter(opt => opt.value !== 'すべて').map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
+      <InstructionModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        editMode={editMode}
+        form={form}
+        onFormChange={handleFormChange}
+        lineOptions={lineOptions}
+      />
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='スプリング種別'
-                name='springType'
-                value={form.springType}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><SpringIcon sx={{ fontSize: 18 }} /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='同梱物'
-                name='includedItems'
-                value={form.includedItems}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><Inventory2Icon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='数量'
-                name='quantity'
-                type='number'
-                inputProps={{ min: 1 }}
-                value={form.quantity}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><NumbersIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='色'
-                name='color'
-                value={form.color}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><PaletteIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='配送方法'
-                name='shippingMethod'
-                value={form.shippingMethod}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><LocalShippingIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label='配送先'
-                name='destination'
-                value={form.destination}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><PlaceIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                label='備考'
-                name='remarks'
-                value={form.remarks}
-                onChange={handleFormChange}
-                fullWidth
-                size='small'
-                multiline
-                rows={2}
-                sx={{ mb: 2 }}
-                InputProps={{ startAdornment: (<InputAdornment position='start'><NotesIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>キャンセル</Button>
-          <Button onClick={handleSave} variant='contained'>保存</Button>
-        </DialogActions>
-      </Dialog>
-      {/* 完了 -> 未完了 に戻す確認ダイアログ */}
-      <Dialog open={confirmOpen} onClose={cancelRevert}>
-        <DialogTitle>完了を取り消しますか？</DialogTitle>
-        <DialogContent>
-          <Typography>この指示を未完了に戻しますか？</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelRevert}>キャンセル</Button>
-          <Button onClick={confirmRevert} variant='contained'>未完了に戻す</Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmRevertDialog open={confirmOpen} onCancel={cancelRevert} onConfirm={confirmRevert} />
     </>
   )
 }
