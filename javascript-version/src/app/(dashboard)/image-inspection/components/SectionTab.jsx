@@ -36,6 +36,7 @@ const SectionTab = ({
   getSectionLots,
   getLotStatus,
   getLotShotsByCamera,
+  ensureLotShotsLoaded,
   getSectionStats,
   getFailReasons,
   openRows,
@@ -251,7 +252,11 @@ return fr.length === 0 ? (
                 <TableBody>
                   {getSectionLots(section, selectedDate).map((lot, index) => {
                     const isOpen = !!openRows[lot.lotId]
-                    const toggle = () => setOpenRows(prev => ({ ...prev, [lot.lotId]: !isOpen }))
+                    const toggle = () => {
+                      const nextOpen = !isOpen
+                      setOpenRows(prev => ({ ...prev, [lot.lotId]: nextOpen }))
+                      if (nextOpen && ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
+                    }
                     const shotsByCam = getLotShotsByCamera(lot.lotId)
                     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
                     const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`

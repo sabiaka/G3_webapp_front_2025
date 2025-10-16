@@ -200,20 +200,13 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <p class="mb-4 text-slate-600">PostgreSQLを想定。1ロット内で同一カメラの複数ショットを保持し、ロット単位の集計を容易にします。</p>
                     <div class="code-block-wrapper">
-<pre><code class="language-sql">-- セクションの正規化（任意）
-CREATE TABLE inspection_sections (
-    section_id SERIAL PRIMARY KEY,                       -- セクションID（内部連番）
-    section_code VARCHAR(32) UNIQUE NOT NULL,            -- セクション内部コード（例: 'spring', 'alayer'）
-    section_name VARCHAR(64) NOT NULL                    -- セクション表示名（例: 'バネ留め', 'A層検査'）
-);
-
+<pre><code class="language-sql">
 -- ロット（製品ID等に相当）
 CREATE TABLE inspection_lots (
     id BIGSERIAL PRIMARY KEY,                                       -- ロット内部ID（連番）
     lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
     section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
     captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
     UNIQUE (lot_id)                                                 -- ロットIDは一意
 );
 
@@ -228,12 +221,6 @@ CREATE TABLE inspection_camera_shots (
     shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
     captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
 );
-
--- 高速化インデックス
-CREATE INDEX idx_lots_section_date ON inspection_lots (section_code, date(captured_at) DESC, captured_at DESC); -- セクション＋日付検索用
-CREATE INDEX idx_shots_lot ON inspection_camera_shots (lot_id_ref);                                             -- ロット単位検索用
-CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);                                           -- カメラ単位検索用
-
 </code></pre>
                     </div>
                     <p class="mt-2 text-sm text-slate-600">備考: ロットの総合判定はビューやアプリ側で算出（<strong>同一camera_idで1つでもFAILがあればNG</strong> ルール）。必要ならマテリアライズドビューやトリガで日次集計を保持。</p>
@@ -377,8 +364,6 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                                                 <li>フロントは <code>camera_id</code> をそのまま表示（別名は不要）。</li>
                                                 <li>ステータスは <code>PASS/FAIL</code> を返す。UI上の <code>OK/NG</code> などはフロント側で変換。</li>
                                                 <li>画像ファイル名は <strong>lot_id</strong> と <strong>camera_id</strong> を含め、通番を付与する形式を推奨: <code>{lot_id}_{camera_id}-{seq}.jpg</code>（例: <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
-                                                <li>各セクションの期待カメラ数（例: バネ留め=4, A層=3）を満たすように <code>cameras</code> を返す。欠損は <code>MISSING</code> か <code>FAIL</code> とし、<code>details</code> に理由（未検出等）を入れる。</li>
-                                                <li>生ログ用途の <code>/api/inspections</code> は保守/診断向けに残し、UI は原則このロットAPIを利用。</li>
                                             </ul>
                                         </div>
                 </div>
