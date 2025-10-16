@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 
 import Grid from '@mui/material/Grid'
@@ -119,8 +119,8 @@ const LineChip = ({ line }) => {
     'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
   }
 
-  
-return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
+
+  return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
 }
 
 
@@ -137,7 +137,7 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
     }
   }
 
-return (
+  return (
     <Card
       className='fade-in'
       sx={{
@@ -226,7 +226,7 @@ return (
             // クリック時に座標を渡して toggle
             onClick={e => { e.stopPropagation(); onToggleComplete(instruction.id, e.clientX, e.clientY) }}
             // onChange は noop にしておく（状態は親が更新する）
-            onChange={() => {}}
+            onChange={() => { }}
             icon={<RadioButtonUncheckedIcon />}
             checkedIcon={<CheckCircleIcon />}
             sx={{ p: 0, '&.Mui-checked': { color: '#16a34a' } }}
@@ -240,26 +240,26 @@ return (
         className='p-5 flex-grow space-y-3 text-sm'
         style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}
       >
-    <div>
-      <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
-      <div className="space-y-1 text-gray-700">
-                <div className="flex items-center"><PaletteIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">カラー:</p><p className="font-medium">{instruction.color || '-'}</p></div>
-                <div className="flex items-center"><SquareFootIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">サイズ:</p><p className="font-medium">{instruction.size || '-'}</p></div>
-                <div className="flex items-center"><SpringIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">スプリング:</p><p className="font-medium">{instruction.springType || '-'}</p></div>
-                <div className="flex items-center"><Inventory2Icon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">同梱物:</p><p className="font-medium">{instruction.includedItems || instruction.note || '-'}</p></div>
-                <div className="flex items-center"><NotesIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">備考:</p><p className="font-medium">{instruction.remarks || '-'}</p></div>
-      </div>
-    </div>
-         <div>
-            <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">配送情報</h4>
-            <div className="space-y-1 text-gray-700">
-        <div className="flex items-center"><LocalShippingIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送方法:</p><p className="font-medium">{instruction.shippingMethod || '-'}</p></div>
-        <div className="flex items-center"><PlaceIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送先:</p><p className="font-medium">{instruction.destination || '-'}</p></div>
-        {instruction.remarks && <div className="flex items-center"><EventIcon sx={{ mr: 1, color: '#ef4444', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">特記:</p><p className="font-bold text-red-600">{instruction.remarks}</p></div>}
-        {instruction.createdAt && (
-          <div className="flex items-center text-sm text-gray-500"><EventIcon sx={{ mr: 1, fontSize: 18 }} />{new Date(instruction.createdAt).toLocaleString()}</div>
-        )}
-            </div>
+        <div>
+          <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
+          <div className="space-y-1 text-gray-700">
+            <div className="flex items-center"><PaletteIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">カラー:</p><p className="font-medium">{instruction.color || '-'}</p></div>
+            <div className="flex items-center"><SquareFootIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">サイズ:</p><p className="font-medium">{instruction.size || '-'}</p></div>
+            <div className="flex items-center"><SpringIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">スプリング:</p><p className="font-medium">{instruction.springType || '-'}</p></div>
+            <div className="flex items-center"><Inventory2Icon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">同梱物:</p><p className="font-medium">{instruction.includedItems || instruction.note || '-'}</p></div>
+            <div className="flex items-center"><NotesIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">備考:</p><p className="font-medium">{instruction.remarks || '-'}</p></div>
+          </div>
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">配送情報</h4>
+          <div className="space-y-1 text-gray-700">
+            <div className="flex items-center"><LocalShippingIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送方法:</p><p className="font-medium">{instruction.shippingMethod || '-'}</p></div>
+            <div className="flex items-center"><PlaceIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送先:</p><p className="font-medium">{instruction.destination || '-'}</p></div>
+            {instruction.remarks && <div className="flex items-center"><EventIcon sx={{ mr: 1, color: '#ef4444', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">特記:</p><p className="font-bold text-red-600">{instruction.remarks}</p></div>}
+            {instruction.createdAt && (
+              <div className="flex items-center text-sm text-gray-500"><EventIcon sx={{ mr: 1, fontSize: 18 }} />{new Date(instruction.createdAt).toLocaleString()}</div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -282,10 +282,10 @@ return (
             fontWeight: 800,
           }}>{instruction.quantity ?? '-'}</span>
         </div>
-        <Button 
-          variant="text" 
-          size='small' 
-          onClick={(e) => { e.stopPropagation(); onEdit(instruction) }} 
+        <Button
+          variant="text"
+          size='small'
+          onClick={(e) => { e.stopPropagation(); onEdit(instruction) }}
           startIcon={<EditOutlinedIcon />}
           sx={{ color: '#4f46e5', fontWeight: 600 }}
         >
@@ -299,12 +299,74 @@ return (
 const ShippingInstructions = () => {
   // 初期データを正規化して内部で使う形にする
   const [instructions, setInstructions] = useState(() => initialInstructions.map(normalizeInstruction))
+  // データソース切替（ローカル or API）
+  const [dataSource, setDataSource] = useState('api') // 'local' | 'api'
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState(null)
+  const [reloadTick, setReloadTick] = useState(0)
   const [search, setSearch] = useState('')
   const [line, setLine] = useState('すべて')
   const [completed, setCompleted] = useState('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
   const [editMode, setEditMode] = useState(false)
+
+  // APIモード: /api/instructions から取得
+  useEffect(() => {
+    if (dataSource !== 'api') {
+      // ローカルモードに戻ったら初期データへリセット
+      setError(null)
+      setLoading(false)
+      setInstructions(initialInstructions.map(normalizeInstruction))
+      return
+    }
+
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        // 認証トークン（AuthGuard と同じキー）
+        const token = typeof window !== 'undefined'
+          ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
+          : null
+
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${base}/api/instructions`, {
+          method: 'GET',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          signal: controller.signal
+        })
+
+        if (!res.ok) {
+          let detail = ''
+          try {
+            const t = await res.text()
+            detail = t?.slice(0, 200)
+          } catch { }
+          throw new Error(`APIエラー (${res.status}) ${detail}`)
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+        if (!Array.isArray(list)) throw new Error('APIのレスポンス形式が不正です')
+
+        setInstructions(list.map(normalizeInstruction))
+        setLastFetchedAt(new Date().toISOString())
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setError(e?.message || 'データ取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    run()
+    return () => controller.abort()
+  }, [dataSource, reloadTick])
 
   // フィルタリング
   const filtered = instructions.filter(inst => {
@@ -325,7 +387,7 @@ const ShippingInstructions = () => {
 
     if (completed === 'completed') completedMatch = inst.completed
     else if (completed === 'not-completed') completedMatch = !inst.completed
-    
+
     return textMatch && lineMatch && completedMatch
   })
 
@@ -381,7 +443,7 @@ const ShippingInstructions = () => {
 
   // 追加
   const handleAdd = () => {
-  setForm({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
+    setForm({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
     setEditMode(false)
     setModalOpen(true)
   }
@@ -433,7 +495,7 @@ const ShippingInstructions = () => {
 
   return (
     <>
-      {/* フィルターバー */}
+
       <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
         <CardContent>
           <Grid container spacing={2} alignItems='flex-end'>
@@ -481,9 +543,7 @@ const ShippingInstructions = () => {
             </Grid>
           </Grid>
         </CardContent>
-  </Card>
-
-  {/* 指示カードリスト */}
+      </Card>
       <Grid container spacing={3} alignItems='stretch'>
         {filtered.length === 0 ? (
           <Grid item xs={12}>
@@ -499,40 +559,40 @@ const ShippingInstructions = () => {
             </Grid>
           ))
         )}
-  </Grid>
+      </Grid>
 
-  {/* フローティング追加ボタン */}
+      {/* フローティング追加ボタン */}
       <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
         <AddIcon fontSize='large' />
-  </Fab>
+      </Fab>
 
-  {/* モーダル（追加・編集） */}
+      {/* モーダル（追加・編集） */}
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <TextField 
-                label='品名' 
-                name='productName' 
-                value={form.productName} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                required 
+              <TextField
+                label='品名'
+                name='productName'
+                value={form.productName}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
+                required
                 InputProps={{ startAdornment: (<InputAdornment position='start'><CategoryIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='サイズ' 
-                name='size' 
-                value={form.size} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='サイズ'
+                name='size'
+                value={form.size}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><SquareFootIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
@@ -545,93 +605,93 @@ const ShippingInstructions = () => {
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='スプリング種別' 
-                name='springType' 
-                value={form.springType} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='スプリング種別'
+                name='springType'
+                value={form.springType}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><SpringIcon sx={{ fontSize: 18 }} /></InputAdornment>) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='同梱物' 
-                name='includedItems' 
-                value={form.includedItems} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='同梱物'
+                name='includedItems'
+                value={form.includedItems}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><Inventory2Icon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='数量' 
-                name='quantity' 
-                type='number' 
-                inputProps={{ min: 1 }} 
-                value={form.quantity} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='数量'
+                name='quantity'
+                type='number'
+                inputProps={{ min: 1 }}
+                value={form.quantity}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><NumbersIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='色' 
-                name='color' 
-                value={form.color} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='色'
+                name='color'
+                value={form.color}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><PaletteIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='配送方法' 
-                name='shippingMethod' 
-                value={form.shippingMethod} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='配送方法'
+                name='shippingMethod'
+                value={form.shippingMethod}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><LocalShippingIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField 
-                label='配送先' 
-                name='destination' 
-                value={form.destination} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='配送先'
+                name='destination'
+                value={form.destination}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><PlaceIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField 
-                label='備考' 
-                name='remarks' 
-                value={form.remarks} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                multiline 
-                rows={2} 
-                sx={{ mb: 2 }} 
+              <TextField
+                label='備考'
+                name='remarks'
+                value={form.remarks}
+                onChange={handleFormChange}
+                fullWidth
+                size='small'
+                multiline
+                rows={2}
+                sx={{ mb: 2 }}
                 InputProps={{ startAdornment: (<InputAdornment position='start'><NotesIcon fontSize='small' /></InputAdornment>) }}
               />
             </Grid>
