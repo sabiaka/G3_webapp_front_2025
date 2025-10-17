@@ -262,14 +262,43 @@ const ShippingInstructions = () => {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggleId, setPendingToggleId] = useState(null)
 
+  // 指示の完了状態をサーバーに反映（dataSource === 'api' のとき）
+  const updateCompletionOnServer = async (id, completed) => {
+    if (dataSource !== 'api' || !id) return
+    try {
+      setError(null)
+      const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+      const res = await fetch(`${base}/api/instructions/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_completed: completed })
+      })
+      if (!res.ok) {
+        let detail = ''
+        try { detail = (await res.text())?.slice(0, 200) } catch {}
+        throw new Error(`更新に失敗しました (${res.status}) ${detail}`)
+      }
+      // 可能ならサーバー返却を使ってローカル状態を最新化
+      let updated = null
+      try { updated = await res.json() } catch {}
+      if (updated) {
+        setInstructions(prev => prev.map(inst => inst.id === id ? normalizeInstruction(updated) : inst))
+      }
+    } catch (e) {
+      // エラー時はローカルの楽観更新を取り消す
+      setError(e?.message || '完了状態の更新に失敗しました')
+      setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: !completed } : inst))
+    }
+  }
+
   const handleToggleComplete = (id, clientX, clientY) => {
     const target = instructions.find(i => i.id === id)
     if (!target) return
 
     if (!target.completed) {
-      // 未完了 -> 完了: 即時変更 + 紙吹雪
+      // 未完了 -> 完了: 楽観的に即時変更 + 紙吹雪、その後APIへ反映
       setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: true } : inst))
-      // クリック座標が渡されたらその位置を起点に発射する
+
       let originX = 0.5
       let originY = 0.2
       if (typeof clientX === 'number' && typeof clientY === 'number') {
@@ -279,9 +308,11 @@ const ShippingInstructions = () => {
       try {
         confetti({ particleCount: 150, spread: 80, origin: { x: originX, y: originY } })
       } catch (err) {
-        // confetti が読み込めなくても動作は阻害しない
         console.warn('confetti failed', err)
       }
+
+      // 非同期でサーバーへ反映（エラー時はローカルを巻き戻す）
+      updateCompletionOnServer(id, true)
     } else {
       // 完了 -> 未完了: 確認ダイアログを開く
       setPendingToggleId(id)
