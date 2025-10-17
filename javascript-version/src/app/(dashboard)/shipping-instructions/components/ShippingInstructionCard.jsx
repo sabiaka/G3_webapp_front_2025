@@ -50,8 +50,12 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
   const { isAdmin } = useAuthMe()
   const { main, sub } = splitTitle(instruction.title, instruction.line)
 
-  const handleCardClick = e => onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
+  const handleCardClick = e => {
+    if (!onToggleComplete) return
+    onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
+  }
   const handleKeyDown = e => {
+    if (!onToggleComplete) return
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       onToggleComplete(instruction.id)
@@ -75,7 +79,7 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
         flexDirection: 'column',
         transition: 'all 0.3s',
         position: 'relative',
-        cursor: 'pointer',
+  cursor: onToggleComplete ? 'pointer' : 'default',
         '&:before': {
           content: '""',
           position: 'absolute',
@@ -138,7 +142,7 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
           </span>
           <Checkbox
             checked={instruction.completed}
-            onClick={e => { e.stopPropagation(); onToggleComplete(instruction.id, e.clientX, e.clientY) }}
+            onClick={e => { if (!onToggleComplete) return; e.stopPropagation(); onToggleComplete(instruction.id, e.clientX, e.clientY) }}
             onChange={() => { }}
             icon={<RadioButtonUncheckedIcon />}
             checkedIcon={<CheckCircleIcon />}
