@@ -14,6 +14,7 @@ import FilterBar from './components/FilterBar'
 import ShippingInstructionCard from './components/ShippingInstructionCard'
 import InstructionModal from './components/InstructionModal'
 import ConfirmRevertDialog from './components/ConfirmRevertDialog'
+import ConfirmDeleteDialog from './components/ConfirmDeleteDialog'
 
 // データ: サンプル初期値とセレクトオプションを外部から読み込み
 import { initialInstructions, lineOptions, completedOptions } from './data/sampleInitialInstructions'
@@ -71,6 +72,10 @@ const ShippingInstructions = () => {
   // ライン一覧（APIから取得してモーダルのプルダウンに使用）
   const [lines, setLines] = useState([])
   const [loadingLines, setLoadingLines] = useState(false)
+  // 削除確認
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [targetToDelete, setTargetToDelete] = useState(null)
 
   // APIモード: /api/instructions から取得
   useEffect(() => {
@@ -88,17 +93,10 @@ const ShippingInstructions = () => {
       try {
         setLoading(true)
         setError(null)
-        // 認証トークン（AuthGuard と同じキー）
-        const token = typeof window !== 'undefined'
-          ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
-          : null
 
         const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
         const res = await fetch(`${base}/api/instructions`, {
           method: 'GET',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
           signal: controller.signal
         })
 
@@ -137,16 +135,10 @@ const ShippingInstructions = () => {
     const run = async () => {
       try {
         setLoadingLines(true)
-        const token = typeof window !== 'undefined'
-          ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
-          : null
 
         const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
         const res = await fetch(`${base}/api/lines`, {
           method: 'GET',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
           signal: controller.signal
         })
 
@@ -245,6 +237,56 @@ const ShippingInstructions = () => {
     setModalOpen(true)
   }
 
+  // 削除開始（確認ダイアログを開く）
+  const handleRequestDelete = inst => {
+    setTargetToDelete(inst)
+    setDeleteOpen(true)
+  }
+
+  const handleCancelDelete = () => {
+    setTargetToDelete(null)
+    setDeleteOpen(false)
+  }
+
+  // 実削除
+  const handleConfirmDelete = async () => {
+    if (!targetToDelete) return
+    const id = targetToDelete.id
+    if (!id && dataSource === 'api') {
+      // APIモードでIDがなければ何もしない
+      setTargetToDelete(null)
+      setDeleteOpen(false)
+      return
+    }
+
+    if (dataSource === 'api') {
+      try {
+        setDeleting(true)
+        setError(null)
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${base}/api/instructions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+        if (!res.ok) {
+          let detail = ''
+          try { detail = (await res.text())?.slice(0, 200) } catch {}
+          throw new Error(`削除に失敗しました (${res.status}) ${detail}`)
+        }
+        // 成功: ローカル状態から除去
+        setInstructions(prev => prev.filter(i => i.id !== id))
+      } catch (e) {
+        setError(e?.message || '削除に失敗しました')
+      } finally {
+        setDeleting(false)
+        setTargetToDelete(null)
+        setDeleteOpen(false)
+      }
+    } else {
+      // ローカルモード
+      setInstructions(prev => prev.filter(i => i.id !== id))
+      setTargetToDelete(null)
+      setDeleteOpen(false)
+    }
+  }
+
   // 追加
   const handleAdd = () => {
     const defaultLine = (dataSource === 'api' && lines?.length > 0)
@@ -276,8 +318,61 @@ const ShippingInstructions = () => {
     }
 
     if (editMode) {
-      setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
-      setModalOpen(false)
+      if (dataSource === 'api') {
+        // API 経由で更新（PUT）
+        try {
+          setSaving(true)
+          setError(null)
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
+          // API v2 形式へ変換（POSTと同様のキーに揃える）
+          const payload = {
+            line: form.line || 'その他',
+            product_name: form.productName || form.title || '',
+            size: form.size || '',
+            quantity: typeof form.quantity === 'number' ? form.quantity : Number(form.quantity || 0),
+            remarks: form.remarks || ''
+          }
+          if (form.color) payload.color = form.color
+          if (form.springType) payload.spring_type = form.springType
+          if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
+          if (form.shippingMethod) payload.shipping_method = form.shippingMethod
+          if (form.destination) payload.destination = form.destination
+
+          const res = await fetch(`${base}/api/instructions/${encodeURIComponent(form.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+
+          if (!res.ok) {
+            let detail = ''
+            try {
+              const t = await res.text()
+              detail = t?.slice(0, 200)
+            } catch {}
+            throw new Error(`更新に失敗しました (${res.status}) ${detail}`)
+          }
+
+          let updated
+          try {
+            updated = await res.json()
+          } catch {
+            updated = null
+          }
+          const normalized = updated ? normalizeInstruction(updated) : { ...toSave }
+          setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...normalized } : inst))
+          setModalOpen(false)
+        } catch (e) {
+          setError(e?.message || '更新に失敗しました')
+        } finally {
+          setSaving(false)
+        }
+      } else {
+        // ローカルモード: ローカル状態のみ更新
+        setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
+        setModalOpen(false)
+      }
     } else {
       // 新規作成
       if (dataSource === 'api') {
@@ -285,9 +380,6 @@ const ShippingInstructions = () => {
         try {
           setSaving(true)
           setError(null)
-          const token = typeof window !== 'undefined'
-            ? (localStorage.getItem('access_token') || sessionStorage.getItem('access_token'))
-            : null
 
           const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
@@ -308,8 +400,7 @@ const ShippingInstructions = () => {
           const res = await fetch(`${base}/api/instructions`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
           })
@@ -380,7 +471,7 @@ const ShippingInstructions = () => {
         ) : (
           filtered.map(inst => (
             <Grid item xs={12} sm={6} md={4} xl={3} key={inst.id} sx={{ display: 'flex' }}>
-              <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} />
+              <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} onDelete={handleRequestDelete} />
             </Grid>
           ))
         )}
@@ -403,6 +494,7 @@ const ShippingInstructions = () => {
       />
 
       <ConfirmRevertDialog open={confirmOpen} onCancel={cancelRevert} onConfirm={confirmRevert} />
+      <ConfirmDeleteDialog open={deleteOpen} onCancel={handleCancelDelete} onConfirm={handleConfirmDelete} itemTitle={targetToDelete?.title || targetToDelete?.productName} />
     </>
   )
 }

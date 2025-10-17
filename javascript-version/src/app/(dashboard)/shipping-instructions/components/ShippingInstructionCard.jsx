@@ -4,6 +4,7 @@ import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
 import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -43,7 +44,7 @@ function splitTitle(title, line) {
   return { main: line, sub: title }
 }
 
-const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
+const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDelete }) => {
   const { main, sub } = splitTitle(instruction.title, instruction.line)
 
   const handleCardClick = e => onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
@@ -188,15 +189,28 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
             fontWeight: 800,
           }}>{instruction.quantity ?? '-'}</span>
         </div>
-        <Button
-          variant='text'
-          size='small'
-          onClick={e => { e.stopPropagation(); onEdit(instruction) }}
-          startIcon={<EditOutlinedIcon />}
-          sx={{ color: '#4f46e5', fontWeight: 600 }}
-        >
-          編集
-        </Button>
+        <div className='flex items-center gap-1'>
+          <Button
+            variant='text'
+            size='small'
+            onClick={e => { e.stopPropagation(); onEdit(instruction) }}
+            startIcon={<EditOutlinedIcon />}
+            sx={{ color: '#4f46e5', fontWeight: 600 }}
+          >
+            編集
+          </Button>
+          {onDelete && (
+            <Button
+              variant='text'
+              size='small'
+              onClick={e => { e.stopPropagation(); onDelete(instruction) }}
+              startIcon={<DeleteOutlineIcon />}
+              sx={{ color: '#dc2626', fontWeight: 600 }}
+            >
+              削除
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   )
