@@ -9,8 +9,29 @@ import MenuItem from '@mui/material/MenuItem'
 import InputAdornment from '@mui/material/InputAdornment'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
+import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
+import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 
-const FilterBar = ({ search, onSearchChange, line, onLineChange, completed, onCompletedChange, lineOptions, completedOptions, loadingLines = false }) => {
+const FilterBar = ({
+  search,
+  onSearchChange,
+  line,
+  onLineChange,
+  completed,
+  onCompletedChange,
+  date,
+  onDateChange,
+  onPrevDate,
+  onNextDate,
+  canPrev = true,
+  canNext = true,
+  lineOptions,
+  completedOptions,
+  loadingLines = false
+}) => {
   return (
     <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
       <CardContent>
@@ -67,6 +88,33 @@ const FilterBar = ({ search, onSearchChange, line, onLineChange, completed, onCo
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                fullWidth
+                size='small'
+                label='作成日'
+                type='date'
+                value={date || ''}
+                onChange={e => onDateChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <Tooltip title='前の日付'>
+                <span>
+                  <IconButton size='small' onClick={onPrevDate} disabled={!canPrev} aria-label='前の日付へ'>
+                    <NavigateBeforeIcon fontSize='small' />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title='次の日付'>
+                <span>
+                  <IconButton size='small' onClick={onNextDate} disabled={!canNext} aria-label='次の日付へ'>
+                    <NavigateNextIcon fontSize='small' />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
           </Grid>
         </Grid>
       </CardContent>

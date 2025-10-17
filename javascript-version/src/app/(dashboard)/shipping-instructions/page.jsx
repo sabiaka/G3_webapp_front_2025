@@ -52,6 +52,14 @@ function normalizeInstruction(apiItem) {
   return { id, line, title, completed, color, shippingMethod, destination, remarks, note, quantity, createdAt, productName: productNameField, size: sizeField, springType, includedItems }
 }
 
+// ローカルタイムゾーンの YYYY-MM-DD を返す
+function formatLocalYmd(dateObj = new Date()) {
+  const y = dateObj.getFullYear()
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const d = String(dateObj.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 // ページ内関数: normalize はここに定義して各コンポーネントからは props で利用
 
 const ShippingInstructions = () => {
@@ -67,6 +75,7 @@ const ShippingInstructions = () => {
   const [search, setSearch] = useState('')
   const [line, setLine] = useState('すべて')
   const [completed, setCompleted] = useState('all')
+  const [date, setDate] = useState(() => formatLocalYmd())
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
   const [editMode, setEditMode] = useState(false)
@@ -74,12 +83,15 @@ const ShippingInstructions = () => {
   // ライン一覧（APIから取得してモーダルのプルダウンに使用）
   const [lines, setLines] = useState([])
   const [loadingLines, setLoadingLines] = useState(false)
+  // 利用可能日付
+  const [availableDates, setAvailableDates] = useState([])
+  const [loadingDates, setLoadingDates] = useState(false)
   // 削除確認
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [targetToDelete, setTargetToDelete] = useState(null)
 
-  // APIモード: /api/instructions から取得
+  // APIモード: /api/instructions から取得（サーバー側で絞り込み）
   useEffect(() => {
     if (dataSource !== 'api') {
       // ローカルモードに戻ったら初期データへリセット
@@ -97,7 +109,16 @@ const ShippingInstructions = () => {
         setError(null)
 
         const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
-        const res = await fetch(`${base}/api/instructions`, {
+        // クエリパラメータを組み立て
+        const params = new URLSearchParams()
+        if (search && search.trim()) params.set('q', search.trim())
+        if (line && line !== 'すべて') params.set('line', line)
+        if (completed === 'completed') params.set('is_completed', 'true')
+        else if (completed === 'not-completed') params.set('is_completed', 'false')
+        if (date) params.set('date', date) // YYYY-MM-DD
+
+        const url = `${base}/api/instructions${params.toString() ? `?${params.toString()}` : ''}`
+        const res = await fetch(url, {
           method: 'GET',
           signal: controller.signal
         })
@@ -127,7 +148,7 @@ const ShippingInstructions = () => {
 
     run()
     return () => controller.abort()
-  }, [dataSource, reloadTick])
+  }, [dataSource, reloadTick, search, line, completed, date])
 
   // APIモード: ライン一覧を取得してモーダルのプルダウンに使う
   useEffect(() => {
@@ -166,28 +187,76 @@ const ShippingInstructions = () => {
     return () => controller.abort()
   }, [dataSource])
 
-  // フィルタリング
-  const filtered = instructions.filter(inst => {
-    // 検索テキストのマッチング
-    const searchText = search.toLowerCase()
+  // APIモード: 利用可能日付を取得
+  useEffect(() => {
+    if (dataSource !== 'api') return
 
-    const textMatch = !searchText ||
-      inst.title.toLowerCase().includes(searchText) ||
-      (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
-      (inst.remarks && inst.remarks.toLowerCase().includes(searchText)) ||
-      (inst.note && inst.note.toLowerCase().includes(searchText))
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoadingDates(true)
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        // line / is_completed も考慮して候補を取得（必要に応じて）
+  const params = new URLSearchParams()
+        if (line && line !== 'すべて') params.set('line', line)
+        if (completed === 'completed') params.set('is_completed', 'true')
+        else if (completed === 'not-completed') params.set('is_completed', 'false')
+  // 前/次の意味とインデックスを合わせるため、昇順（古い→新しい）で取得
+  params.set('order', 'asc')
 
-    // ラインのマッチング
-    const lineMatch = line === 'すべて' || inst.line === line
+        const url = `${base}/api/instructions/available-dates${params.toString() ? `?${params.toString()}` : ''}`
+        const res = await fetch(url, { method: 'GET', signal: controller.signal })
+        if (!res.ok) {
+          setAvailableDates([])
+          return
+        }
+  const json = await res.json()
+  const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+  const asc = Array.isArray(list) ? [...list].sort((a, b) => String(a).localeCompare(String(b))) : []
+  setAvailableDates(asc)
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setAvailableDates([])
+      } finally {
+        setLoadingDates(false)
+      }
+    }
 
-    // 完了状態のマッチング
-    let completedMatch = true
+    run()
+    return () => controller.abort()
+  }, [dataSource, line, completed])
 
-    if (completed === 'completed') completedMatch = inst.completed
-    else if (completed === 'not-completed') completedMatch = !inst.completed
+  // 前/次日付ナビゲーション
+  const currentIndex = availableDates.findIndex(d => d === date)
+  const canPrev = currentIndex > 0
+  const canNext = currentIndex !== -1 && currentIndex < availableDates.length - 1
+  const handlePrevDate = () => {
+    if (!canPrev) return
+    setDate(availableDates[currentIndex - 1])
+  }
+  const handleNextDate = () => {
+    if (!canNext) return
+    setDate(availableDates[currentIndex + 1])
+  }
 
-    return textMatch && lineMatch && completedMatch
-  })
+  // 表示用データ: APIモードではサーバーで絞り込まれた結果をそのまま使う
+  const filtered = dataSource === 'api'
+    ? instructions
+    : instructions.filter(inst => {
+        const searchText = search.toLowerCase()
+        const textMatch = !searchText ||
+          inst.title.toLowerCase().includes(searchText) ||
+          (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
+          (inst.remarks && inst.remarks.toLowerCase().includes(searchText)) ||
+          (inst.note && inst.note.toLowerCase().includes(searchText))
+        const lineMatch = line === 'すべて' || inst.line === line
+        let completedMatch = true
+        if (completed === 'completed') completedMatch = inst.completed
+        else if (completed === 'not-completed') completedMatch = !inst.completed
+        // ローカルモード時のみ date でのクライアント絞り込みも適用
+        const dateMatch = !date || (inst.createdAt && inst.createdAt.startsWith(date))
+        return textMatch && lineMatch && completedMatch && dateMatch
+      })
 
   // 完了トグル（未完了->完了 は即時：紙吹雪、完了->未完了 は確認ダイアログ）
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -456,6 +525,12 @@ const ShippingInstructions = () => {
         onLineChange={setLine}
         completed={completed}
         onCompletedChange={setCompleted}
+        date={date}
+        onDateChange={setDate}
+        onPrevDate={handlePrevDate}
+        onNextDate={handleNextDate}
+        canPrev={canPrev}
+        canNext={canNext}
         lineOptions={(dataSource === 'api'
           ? [{ value: 'すべて', label: 'すべて' }, ...(lines?.map(l => ({ value: l.line_name, label: l.line_name })) || [])]
           : lineOptions)}
