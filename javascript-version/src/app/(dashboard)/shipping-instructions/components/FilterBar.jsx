@@ -18,7 +18,6 @@ import Tooltip from '@mui/material/Tooltip'
 import Button from '@mui/material/Button'
 import Badge from '@mui/material/Badge'
 import Collapse from '@mui/material/Collapse'
-import Chip from '@mui/material/Chip'
 // Divider は縦幅最適化のため未使用に
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
@@ -57,19 +56,7 @@ const FilterBar = ({
   }, [search, line, completed])
 
   return (
-    <Card
-      sx={theme => ({
-        mb: 2,
-        borderRadius: 3,
-        boxShadow: 1,
-        position: 'sticky',
-        top: { xs: 8, sm: 12 },
-        zIndex: theme.zIndex.appBar - 1,
-        backgroundColor: theme.palette.background.paper,
-        // 背景がスクロール時に読みやすいように薄くブラー
-        backdropFilter: 'saturate(1.2) blur(4px)'
-      })}
-    >
+    <Card sx={{ mb: 2, borderRadius: 3, boxShadow: 1 }}>
       <CardContent sx={{ py: 1.25, px: { xs: 1.5, sm: 2 } }}>
         {/* 1行に日付ページング＋その他フィルターのトグルをまとめて縦幅を抑制 */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
