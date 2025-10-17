@@ -1,59 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import Button from '@mui/material/Button'
 import Fab from '@mui/material/Fab'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Checkbox from '@mui/material/Checkbox'
-import InputAdornment from '@mui/material/InputAdornment'
 import AddIcon from '@mui/icons-material/Add'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import SquareFootIcon from '@mui/icons-material/SquareFoot'
-import PaletteIcon from '@mui/icons-material/Palette'
-import LocalShippingIcon from '@mui/icons-material/LocalShipping'
-import PlaceIcon from '@mui/icons-material/Place'
-import EventIcon from '@mui/icons-material/Event'
-import Inventory2Icon from '@mui/icons-material/Inventory2'
-import NotesIcon from '@mui/icons-material/Notes'
-import SvgIcon from '@mui/material/SvgIcon'
-import CategoryIcon from '@mui/icons-material/Category'
-import NumbersIcon from '@mui/icons-material/Numbers'
+import useAuthMe from '@core/hooks/useAuthMe'
 
-// 縦向きのギザギザ線アイコン（コイル/バネ風）
-const SpringIcon = props => (
-  <SvgIcon {...props} viewBox='0 0 24 24'>
-    <path
-      d='M7 4 L11 8 L7 12 L11 16 L7 20'
-      stroke='currentColor'
-      strokeWidth='2'
-      fill='none'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-    <path
-      d='M17 4 L13 8 L17 12 L13 16 L17 20'
-      stroke='currentColor'
-      strokeWidth='2'
-      fill='none'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </SvgIcon>
-)
+// UI 分割コンポーネント
+import FilterBar from './components/FilterBar'
+import ShippingInstructionCard from './components/ShippingInstructionCard'
+import InstructionModal from './components/InstructionModal'
+import ConfirmRevertDialog from './components/ConfirmRevertDialog'
+import ConfirmDeleteDialog from './components/ConfirmDeleteDialog'
 
 // データ: サンプル初期値とセレクトオプションを外部から読み込み
 import { initialInstructions, lineOptions, completedOptions } from './data/sampleInitialInstructions'
@@ -90,257 +52,253 @@ function normalizeInstruction(apiItem) {
   return { id, line, title, completed, color, shippingMethod, destination, remarks, note, quantity, createdAt, productName: productNameField, size: sizeField, springType, includedItems }
 }
 
-// タイトル分割用: 先頭のライン名(例: "マット")と残りの内容を分ける
-function splitTitle(title, line) {
-  if (!title) return { main: line, sub: '' }
-
-  if (title.startsWith(line)) {
-    return { main: line, sub: title.slice(line.length).trim() }
-  }
-
-
-  // マッチしない場合は、lineをメイン、title全体をサブとして扱う
-  return { main: line, sub: title }
+// ローカルタイムゾーンの YYYY-MM-DD を返す
+function formatLocalYmd(dateObj = new Date()) {
+  const y = dateObj.getFullYear()
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const d = String(dateObj.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
-const cardMinHeight = 260
-
-// ライン別の差し色
-const lineAccent = {
-  'マット': '#06b6d4', // cyan-500
-  'ボトム': '#f97316', // orange-500
-  'その他': '#9ca3af'  // gray-400
-}
-
-const LineChip = ({ line }) => {
-  const chipStyles = {
-    'マット': { backgroundColor: '#cffafe', color: '#0e7490' },
-    'ボトム': { backgroundColor: '#ffedd5', color: '#9a3412' },
-    'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
-  }
-
-  
-return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
-}
-
-
-const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit }) => {
-  const { main, sub } = splitTitle(instruction.title, instruction.line);
-
-  // カード全体クリックで完了トグル（Enter/Spaceでも可）
-  const handleCardClick = (e) => onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
-  const handleKeyDown = e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      // キーボード操作時はマウス座標がないため undefined を渡す
-      onToggleComplete(instruction.id)
-    }
-  }
-
-return (
-    <Card
-      className='fade-in'
-      sx={{
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        // 完了/未完了の見た目差分（完了は緑基調）
-        opacity: instruction.completed ? 0.95 : 1,
-        border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb',
-        backgroundColor: instruction.completed ? '#f0fdf4' : '#ffffff',
-        minHeight: cardMinHeight,
-        height: '100%',
-        width: '100%',
-        minWidth: 0, // flex 子要素のはみ出し防止（内容で横幅が伸びないように）
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'all 0.3s',
-        position: 'relative',
-        cursor: 'pointer',
-        // 左側差し色バー
-        '&:before': {
-          content: '""',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: '6px',
-          borderTopLeftRadius: '12px',
-          borderBottomLeftRadius: '12px',
-          backgroundColor: instruction.completed ? '#22c55e' : (lineAccent[instruction.line] || lineAccent['その他'])
-        },
-        '&:hover': {
-          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-          transform: 'translateY(-4px)'
-        }
-      }}
-      onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
-      role='button'
-      tabIndex={0}
-    >
-      {/* 完了時の大きなチェック透かし */}
-      {instruction.completed && (
-        <div className='absolute inset-0 pointer-events-none flex items-center justify-center'>
-          <CheckCircleIcon sx={{ fontSize: 140, color: 'rgba(34,197,94,0.12)' }} />
-        </div>
-      )}
-      {/* 上部: ヘッダー */}
-      <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
-        <div>
-          <LineChip line={instruction.line} />
-          <Typography
-            variant='h3'
-            sx={{
-              fontWeight: 800,
-              fontSize: 20,
-              color: '#111827',
-              mt: 1.5,
-              lineHeight: 1.3,
-              wordBreak: 'break-word',
-              overflowWrap: 'anywhere',
-              textDecoration: instruction.completed ? 'line-through' : 'none'
-            }}
-          >
-            {instruction.productName || main}
-            <Typography component="span" sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              {instruction.size || sub}
-            </Typography>
-          </Typography>
-        </div>
-        <div className='text-right flex-shrink-0 flex items-start gap-3'>
-          {/* ステータス表示ピル */}
-          <span
-            className='px-2.5 py-1 rounded-full text-xs font-bold select-none'
-            style={{
-              backgroundColor: instruction.completed ? '#dcfce7' : '#f3f4f6',
-              color: instruction.completed ? '#166534' : '#374151',
-              border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb'
-            }}
-          >
-            {instruction.completed ? '完了' : '未完了'}
-          </span>
-
-          {/* チェックボックス（クリックの伝播停止） */}
-          <Checkbox
-            checked={instruction.completed}
-            // クリック時に座標を渡して toggle
-            onClick={e => { e.stopPropagation(); onToggleComplete(instruction.id, e.clientX, e.clientY) }}
-            // onChange は noop にしておく（状態は親が更新する）
-            onChange={() => {}}
-            icon={<RadioButtonUncheckedIcon />}
-            checkedIcon={<CheckCircleIcon />}
-            sx={{ p: 0, '&.Mui-checked': { color: '#16a34a' } }}
-            inputProps={{ 'aria-label': '完了' }}
-          />
-        </div>
-      </div>
-
-      {/* 中央: 詳細 */}
-      <div
-        className='p-5 flex-grow space-y-3 text-sm'
-        style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}
-      >
-    <div>
-      <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">仕様</h4>
-      <div className="space-y-1 text-gray-700">
-                <div className="flex items-center"><PaletteIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">カラー:</p><p className="font-medium">{instruction.color || '-'}</p></div>
-                <div className="flex items-center"><SquareFootIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">サイズ:</p><p className="font-medium">{instruction.size || '-'}</p></div>
-                <div className="flex items-center"><SpringIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">スプリング:</p><p className="font-medium">{instruction.springType || '-'}</p></div>
-                <div className="flex items-center"><Inventory2Icon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">同梱物:</p><p className="font-medium">{instruction.includedItems || instruction.note || '-'}</p></div>
-                <div className="flex items-center"><NotesIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">備考:</p><p className="font-medium">{instruction.remarks || '-'}</p></div>
-      </div>
-    </div>
-         <div>
-            <h4 className="font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider">配送情報</h4>
-            <div className="space-y-1 text-gray-700">
-        <div className="flex items-center"><LocalShippingIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送方法:</p><p className="font-medium">{instruction.shippingMethod || '-'}</p></div>
-        <div className="flex items-center"><PlaceIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">配送先:</p><p className="font-medium">{instruction.destination || '-'}</p></div>
-        {instruction.remarks && <div className="flex items-center"><EventIcon sx={{ mr: 1, color: '#ef4444', fontSize: 18 }} /><p className="w-20 text-gray-500 shrink-0">特記:</p><p className="font-bold text-red-600">{instruction.remarks}</p></div>}
-        {instruction.createdAt && (
-          <div className="flex items-center text-sm text-gray-500"><EventIcon sx={{ mr: 1, fontSize: 18 }} />{new Date(instruction.createdAt).toLocaleString()}</div>
-        )}
-            </div>
-        </div>
-      </div>
-
-      {/* 下部: フッター */}
-      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-between items-center'>
-        {/* 左下 数量表示（画像のテイスト） */}
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: instruction.completed ? 'line-through' : 'none' }}>
-          <span style={{
-            marginLeft: 8,
-            color: '#9ca3af',
-            fontSize: 12,
-            fontWeight: 700,
-            lineHeight: 1
-          }}>数量:</span>
-          <span style={{
-            marginLeft: 5,
-            marginBottom: 3,
-            color: instruction.completed ? '#16a34a' : '#4f46e5',
-            fontSize: 25,
-            fontWeight: 800,
-          }}>{instruction.quantity ?? '-'}</span>
-        </div>
-        <Button 
-          variant="text" 
-          size='small' 
-          onClick={(e) => { e.stopPropagation(); onEdit(instruction) }} 
-          startIcon={<EditOutlinedIcon />}
-          sx={{ color: '#4f46e5', fontWeight: 600 }}
-        >
-          編集
-        </Button>
-      </div>
-    </Card>
-  )
-}
+// ページ内関数: normalize はここに定義して各コンポーネントからは props で利用
 
 const ShippingInstructions = () => {
+  const { isAdmin } = useAuthMe()
   // 初期データを正規化して内部で使う形にする
   const [instructions, setInstructions] = useState(() => initialInstructions.map(normalizeInstruction))
+  // データソース切替（ローカル or API）
+  const [dataSource, setDataSource] = useState('api') // 'local' | 'api'
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState(null)
+  const [reloadTick, setReloadTick] = useState(0)
   const [search, setSearch] = useState('')
   const [line, setLine] = useState('すべて')
   const [completed, setCompleted] = useState('all')
+  const [date, setDate] = useState(() => formatLocalYmd())
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
   const [editMode, setEditMode] = useState(false)
+  const [saving, setSaving] = useState(false)
+  // ライン一覧（APIから取得してモーダルのプルダウンに使用）
+  const [lines, setLines] = useState([])
+  const [loadingLines, setLoadingLines] = useState(false)
+  // 利用可能日付
+  const [availableDates, setAvailableDates] = useState([])
+  const [loadingDates, setLoadingDates] = useState(false)
+  // 削除確認
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [targetToDelete, setTargetToDelete] = useState(null)
 
-  // フィルタリング
-  const filtered = instructions.filter(inst => {
-    // 検索テキストのマッチング
-    const searchText = search.toLowerCase()
+  // APIモード: /api/instructions から取得（サーバー側で絞り込み）
+  useEffect(() => {
+    if (dataSource !== 'api') {
+      // ローカルモードに戻ったら初期データへリセット
+      setError(null)
+      setLoading(false)
+      setInstructions(initialInstructions.map(normalizeInstruction))
+      setLines([])
+      return
+    }
 
-    const textMatch = !searchText ||
-      inst.title.toLowerCase().includes(searchText) ||
-      (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
-      (inst.remarks && inst.remarks.toLowerCase().includes(searchText)) ||
-      (inst.note && inst.note.toLowerCase().includes(searchText))
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-    // ラインのマッチング
-    const lineMatch = line === 'すべて' || inst.line === line
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        // クエリパラメータを組み立て
+        const params = new URLSearchParams()
+        if (search && search.trim()) params.set('q', search.trim())
+        if (line && line !== 'すべて') params.set('line', line)
+        if (completed === 'completed') params.set('is_completed', 'true')
+        else if (completed === 'not-completed') params.set('is_completed', 'false')
+        if (date) params.set('date', date) // YYYY-MM-DD
 
-    // 完了状態のマッチング
-    let completedMatch = true
+        const url = `${base}/api/instructions${params.toString() ? `?${params.toString()}` : ''}`
+        const res = await fetch(url, {
+          method: 'GET',
+          signal: controller.signal
+        })
 
-    if (completed === 'completed') completedMatch = inst.completed
-    else if (completed === 'not-completed') completedMatch = !inst.completed
-    
-    return textMatch && lineMatch && completedMatch
-  })
+        if (!res.ok) {
+          let detail = ''
+          try {
+            const t = await res.text()
+            detail = t?.slice(0, 200)
+          } catch { }
+          throw new Error(`APIエラー (${res.status}) ${detail}`)
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+        if (!Array.isArray(list)) throw new Error('APIのレスポンス形式が不正です')
+
+        setInstructions(list.map(normalizeInstruction))
+        setLastFetchedAt(new Date().toISOString())
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setError(e?.message || 'データ取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    run()
+    return () => controller.abort()
+  }, [dataSource, reloadTick, search, line, completed, date])
+
+  // APIモード: ライン一覧を取得してモーダルのプルダウンに使う
+  useEffect(() => {
+    if (dataSource !== 'api') return
+
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoadingLines(true)
+
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${base}/api/lines`, {
+          method: 'GET',
+          signal: controller.signal
+        })
+
+        if (!res.ok) {
+          // 失敗してもフォームは開けるようにする（fallback: 空配列）
+          setLines([])
+          return
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+        if (Array.isArray(list)) setLines(list)
+        else setLines([])
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setLines([])
+      } finally {
+        setLoadingLines(false)
+      }
+    }
+
+    run()
+    return () => controller.abort()
+  }, [dataSource])
+
+  // APIモード: 利用可能日付を取得
+  useEffect(() => {
+    if (dataSource !== 'api') return
+
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        setLoadingDates(true)
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        // line / is_completed も考慮して候補を取得（必要に応じて）
+  const params = new URLSearchParams()
+        if (line && line !== 'すべて') params.set('line', line)
+        if (completed === 'completed') params.set('is_completed', 'true')
+        else if (completed === 'not-completed') params.set('is_completed', 'false')
+  // 前/次の意味とインデックスを合わせるため、昇順（古い→新しい）で取得
+  params.set('order', 'asc')
+
+        const url = `${base}/api/instructions/available-dates${params.toString() ? `?${params.toString()}` : ''}`
+        const res = await fetch(url, { method: 'GET', signal: controller.signal })
+        if (!res.ok) {
+          setAvailableDates([])
+          return
+        }
+  const json = await res.json()
+  const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
+  const asc = Array.isArray(list) ? [...list].sort((a, b) => String(a).localeCompare(String(b))) : []
+  setAvailableDates(asc)
+      } catch (e) {
+        if (e?.name === 'AbortError') return
+        setAvailableDates([])
+      } finally {
+        setLoadingDates(false)
+      }
+    }
+
+    run()
+    return () => controller.abort()
+  }, [dataSource, line, completed])
+
+  // 前/次日付ナビゲーション
+  const currentIndex = availableDates.findIndex(d => d === date)
+  const canPrev = currentIndex > 0
+  const canNext = currentIndex !== -1 && currentIndex < availableDates.length - 1
+  const handlePrevDate = () => {
+    if (!canPrev) return
+    setDate(availableDates[currentIndex - 1])
+  }
+  const handleNextDate = () => {
+    if (!canNext) return
+    setDate(availableDates[currentIndex + 1])
+  }
+
+  // 表示用データ: APIモードではサーバーで絞り込まれた結果をそのまま使う
+  const filtered = dataSource === 'api'
+    ? instructions
+    : instructions.filter(inst => {
+        const searchText = search.toLowerCase()
+        const textMatch = !searchText ||
+          inst.title.toLowerCase().includes(searchText) ||
+          (inst.destination && inst.destination.toLowerCase().includes(searchText)) ||
+          (inst.remarks && inst.remarks.toLowerCase().includes(searchText)) ||
+          (inst.note && inst.note.toLowerCase().includes(searchText))
+        const lineMatch = line === 'すべて' || inst.line === line
+        let completedMatch = true
+        if (completed === 'completed') completedMatch = inst.completed
+        else if (completed === 'not-completed') completedMatch = !inst.completed
+        // ローカルモード時のみ date でのクライアント絞り込みも適用
+        const dateMatch = !date || (inst.createdAt && inst.createdAt.startsWith(date))
+        return textMatch && lineMatch && completedMatch && dateMatch
+      })
 
   // 完了トグル（未完了->完了 は即時：紙吹雪、完了->未完了 は確認ダイアログ）
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggleId, setPendingToggleId] = useState(null)
+
+  // 指示の完了状態をサーバーに反映（dataSource === 'api' のとき）
+  const updateCompletionOnServer = async (id, completed) => {
+    if (dataSource !== 'api' || !id) return
+    try {
+      setError(null)
+      const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+      const res = await fetch(`${base}/api/instructions/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_completed: completed })
+      })
+      if (!res.ok) {
+        let detail = ''
+        try { detail = (await res.text())?.slice(0, 200) } catch {}
+        throw new Error(`更新に失敗しました (${res.status}) ${detail}`)
+      }
+      // 可能ならサーバー返却を使ってローカル状態を最新化
+      let updated = null
+      try { updated = await res.json() } catch {}
+      if (updated) {
+        setInstructions(prev => prev.map(inst => inst.id === id ? normalizeInstruction(updated) : inst))
+      }
+    } catch (e) {
+      // エラー時はローカルの楽観更新を取り消す
+      setError(e?.message || '完了状態の更新に失敗しました')
+      setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: !completed } : inst))
+    }
+  }
 
   const handleToggleComplete = (id, clientX, clientY) => {
     const target = instructions.find(i => i.id === id)
     if (!target) return
 
     if (!target.completed) {
-      // 未完了 -> 完了: 即時変更 + 紙吹雪
+      // 未完了 -> 完了: 楽観的に即時変更 + 紙吹雪、その後APIへ反映
       setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: true } : inst))
-      // クリック座標が渡されたらその位置を起点に発射する
+
       let originX = 0.5
       let originY = 0.2
       if (typeof clientX === 'number' && typeof clientY === 'number') {
@@ -350,9 +308,11 @@ const ShippingInstructions = () => {
       try {
         confetti({ particleCount: 150, spread: 80, origin: { x: originX, y: originY } })
       } catch (err) {
-        // confetti が読み込めなくても動作は阻害しない
         console.warn('confetti failed', err)
       }
+
+      // 非同期でサーバーへ反映（エラー時はローカルを巻き戻す）
+      updateCompletionOnServer(id, true)
     } else {
       // 完了 -> 未完了: 確認ダイアログを開く
       setPendingToggleId(id)
@@ -379,15 +339,68 @@ const ShippingInstructions = () => {
     setModalOpen(true)
   }
 
+  // 削除開始（確認ダイアログを開く）
+  const handleRequestDelete = inst => {
+    setTargetToDelete(inst)
+    setDeleteOpen(true)
+  }
+
+  const handleCancelDelete = () => {
+    setTargetToDelete(null)
+    setDeleteOpen(false)
+  }
+
+  // 実削除
+  const handleConfirmDelete = async () => {
+    if (!targetToDelete) return
+    const id = targetToDelete.id
+    if (!id && dataSource === 'api') {
+      // APIモードでIDがなければ何もしない
+      setTargetToDelete(null)
+      setDeleteOpen(false)
+      return
+    }
+
+    if (dataSource === 'api') {
+      try {
+        setDeleting(true)
+        setError(null)
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const res = await fetch(`${base}/api/instructions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+        if (!res.ok) {
+          let detail = ''
+          try { detail = (await res.text())?.slice(0, 200) } catch {}
+          throw new Error(`削除に失敗しました (${res.status}) ${detail}`)
+        }
+        // 成功: ローカル状態から除去
+        setInstructions(prev => prev.filter(i => i.id !== id))
+      } catch (e) {
+        setError(e?.message || '削除に失敗しました')
+      } finally {
+        setDeleting(false)
+        setTargetToDelete(null)
+        setDeleteOpen(false)
+      }
+    } else {
+      // ローカルモード
+      setInstructions(prev => prev.filter(i => i.id !== id))
+      setTargetToDelete(null)
+      setDeleteOpen(false)
+    }
+  }
+
   // 追加
   const handleAdd = () => {
-  setForm({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
+    const defaultLine = (dataSource === 'api' && lines?.length > 0)
+      ? (lines[0]?.line_name || '')
+      : 'マット'
+    setForm({ id: '', productName: '', size: '', title: '', line: defaultLine, completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 })
     setEditMode(false)
     setModalOpen(true)
   }
 
   // 保存
-  const handleSave = () => {
+  const handleSave = async () => {
     // 必須: productName (もしくは title の互換)
     if (!form.productName && !form.title) return
 
@@ -407,13 +420,118 @@ const ShippingInstructions = () => {
     }
 
     if (editMode) {
-      setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
-    } else {
-      const newId = Math.max(...instructions.map(i => i.id), 0) + 1
-      setInstructions(prev => [...prev, { ...toSave, id: newId }])
-    }
+      if (dataSource === 'api') {
+        // API 経由で更新（PUT）
+        try {
+          setSaving(true)
+          setError(null)
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
-    setModalOpen(false)
+          // API v2 形式へ変換（POSTと同様のキーに揃える）
+          const payload = {
+            line: form.line || 'その他',
+            product_name: form.productName || form.title || '',
+            size: form.size || '',
+            quantity: typeof form.quantity === 'number' ? form.quantity : Number(form.quantity || 0),
+            remarks: form.remarks || ''
+          }
+          if (form.color) payload.color = form.color
+          if (form.springType) payload.spring_type = form.springType
+          if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
+          if (form.shippingMethod) payload.shipping_method = form.shippingMethod
+          if (form.destination) payload.destination = form.destination
+
+          const res = await fetch(`${base}/api/instructions/${encodeURIComponent(form.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+
+          if (!res.ok) {
+            let detail = ''
+            try {
+              const t = await res.text()
+              detail = t?.slice(0, 200)
+            } catch {}
+            throw new Error(`更新に失敗しました (${res.status}) ${detail}`)
+          }
+
+          let updated
+          try {
+            updated = await res.json()
+          } catch {
+            updated = null
+          }
+          const normalized = updated ? normalizeInstruction(updated) : { ...toSave }
+          setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...normalized } : inst))
+          setModalOpen(false)
+        } catch (e) {
+          setError(e?.message || '更新に失敗しました')
+        } finally {
+          setSaving(false)
+        }
+      } else {
+        // ローカルモード: ローカル状態のみ更新
+        setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
+        setModalOpen(false)
+      }
+    } else {
+      // 新規作成
+      if (dataSource === 'api') {
+        // API 経由で作成
+        try {
+          setSaving(true)
+          setError(null)
+
+          const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
+          // API v2 形式へ変換
+          const payload = {
+            line: form.line || 'その他',
+            product_name: form.productName || form.title || '',
+            size: form.size || '',
+            quantity: typeof form.quantity === 'number' ? form.quantity : Number(form.quantity || 0),
+            remarks: form.remarks || ''
+          }
+          if (form.color) payload.color = form.color
+          if (form.springType) payload.spring_type = form.springType
+          if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
+          if (form.shippingMethod) payload.shipping_method = form.shippingMethod
+          if (form.destination) payload.destination = form.destination
+
+          const res = await fetch(`${base}/api/instructions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          })
+
+          if (!res.ok) {
+            let detail = ''
+            try {
+              const t = await res.text()
+              detail = t?.slice(0, 200)
+            } catch {}
+            throw new Error(`作成に失敗しました (${res.status}) ${detail}`)
+          }
+
+          const created = await res.json()
+          const normalized = normalizeInstruction(created)
+          setInstructions(prev => [...prev, normalized])
+          setModalOpen(false)
+        } catch (e) {
+          setError(e?.message || '作成に失敗しました')
+        } finally {
+          setSaving(false)
+        }
+      } else {
+        // ローカルモード: ローカル状態に追加
+        const newId = Math.max(...instructions.map(i => i.id), 0) + 1
+        setInstructions(prev => [...prev, { ...toSave, id: newId }])
+        setModalOpen(false)
+      }
+    }
   }
 
   // 入力変更
@@ -429,61 +547,27 @@ const ShippingInstructions = () => {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
-  // ここから描画
-
   return (
     <>
-      {/* フィルターバー */}
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems='flex-end'>
-            <Grid item xs={12} md={5}>
-              <TextField
-                fullWidth
-                label='品名 / 配送先 / 備考で検索'
-                size='small'
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <span className='ri-search-line' />
-                    </InputAdornment>
-                  )
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Select
-                fullWidth
-                size='small'
-                value={line}
-                onChange={e => setLine(e.target.value)}
-                displayEmpty
-              >
-                {lineOptions.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
-            <Grid item xs={6} md={2}>
-              <Select
-                fullWidth
-                size='small'
-                value={completed}
-                onChange={e => setCompleted(e.target.value)}
-                displayEmpty
-              >
-                {completedOptions.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
-          </Grid>
-        </CardContent>
-  </Card>
-
-  {/* 指示カードリスト */}
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        line={line}
+        onLineChange={setLine}
+        completed={completed}
+        onCompletedChange={setCompleted}
+        date={date}
+        onDateChange={setDate}
+        onPrevDate={handlePrevDate}
+        onNextDate={handleNextDate}
+        canPrev={canPrev}
+        canNext={canNext}
+        lineOptions={(dataSource === 'api'
+          ? [{ value: 'すべて', label: 'すべて' }, ...(lines?.map(l => ({ value: l.line_name, label: l.line_name })) || [])]
+          : lineOptions)}
+        completedOptions={completedOptions}
+        loadingLines={dataSource === 'api' ? loadingLines : false}
+      />
       <Grid container spacing={3} alignItems='stretch'>
         {filtered.length === 0 ? (
           <Grid item xs={12}>
@@ -495,164 +579,32 @@ const ShippingInstructions = () => {
         ) : (
           filtered.map(inst => (
             <Grid item xs={12} sm={6} md={4} xl={3} key={inst.id} sx={{ display: 'flex' }}>
-              <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} />
+              <ShippingInstructionCard instruction={inst} onToggleComplete={handleToggleComplete} onEdit={handleEdit} onDelete={handleRequestDelete} />
             </Grid>
           ))
         )}
-  </Grid>
+      </Grid>
 
-  {/* フローティング追加ボタン */}
-      <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
-        <AddIcon fontSize='large' />
-  </Fab>
+      {/* フローティング追加ボタン（管理者のみ） */}
+      {isAdmin && (
+        <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
+          <AddIcon fontSize='large' />
+        </Fab>
+      )}
 
-  {/* モーダル（追加・編集） */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth='md' fullWidth>
-        <DialogTitle>{editMode ? '指示編集' : '新規 製造指示'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField 
-                label='品名' 
-                name='productName' 
-                value={form.productName} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                required 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><CategoryIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='サイズ' 
-                name='size' 
-                value={form.size} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><SquareFootIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Select label='担当ライン' name='line' value={form.line} onChange={handleFormChange} fullWidth size='small' sx={{ mb: 2 }}>
-                {lineOptions.filter(opt => opt.value !== 'すべて').map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </Grid>
+      <InstructionModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        editMode={editMode}
+        form={form}
+        onFormChange={handleFormChange}
+        lineOptions={(dataSource === 'api' ? (lines?.map(l => ({ value: l.line_name, label: l.line_name })) || []) : lineOptions)}
+        saving={saving}
+      />
 
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='スプリング種別' 
-                name='springType' 
-                value={form.springType} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><SpringIcon sx={{ fontSize: 18 }} /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='同梱物' 
-                name='includedItems' 
-                value={form.includedItems} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><Inventory2Icon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='数量' 
-                name='quantity' 
-                type='number' 
-                inputProps={{ min: 1 }} 
-                value={form.quantity} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><NumbersIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='色' 
-                name='color' 
-                value={form.color} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><PaletteIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='配送方法' 
-                name='shippingMethod' 
-                value={form.shippingMethod} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><LocalShippingIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label='配送先' 
-                name='destination' 
-                value={form.destination} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><PlaceIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField 
-                label='備考' 
-                name='remarks' 
-                value={form.remarks} 
-                onChange={handleFormChange} 
-                fullWidth 
-                size='small' 
-                multiline 
-                rows={2} 
-                sx={{ mb: 2 }} 
-                InputProps={{ startAdornment: (<InputAdornment position='start'><NotesIcon fontSize='small' /></InputAdornment>) }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>キャンセル</Button>
-          <Button onClick={handleSave} variant='contained'>保存</Button>
-        </DialogActions>
-      </Dialog>
-      {/* 完了 -> 未完了 に戻す確認ダイアログ */}
-      <Dialog open={confirmOpen} onClose={cancelRevert}>
-        <DialogTitle>完了を取り消しますか？</DialogTitle>
-        <DialogContent>
-          <Typography>この指示を未完了に戻しますか？</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelRevert}>キャンセル</Button>
-          <Button onClick={confirmRevert} variant='contained'>未完了に戻す</Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmRevertDialog open={confirmOpen} onCancel={cancelRevert} onConfirm={confirmRevert} />
+      <ConfirmDeleteDialog open={deleteOpen} onCancel={handleCancelDelete} onConfirm={handleConfirmDelete} itemTitle={targetToDelete?.title || targetToDelete?.productName} />
     </>
   )
 }

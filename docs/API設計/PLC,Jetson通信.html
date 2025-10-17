@@ -176,7 +176,6 @@
     lot_id VARCHAR(64) NOT NULL,                                    -- ロットID（製品ID等、例: 'MAT-10001'）
     section_code VARCHAR(32) NOT NULL,                              -- セクション内部コード（例: 'spring'）
     captured_at TIMESTAMP WITH TIME ZONE NOT NULL,                  -- 検査代表時刻（最初/最後のいずれか）
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- レコード作成日時
     UNIQUE (lot_id)                                                 -- ロットIDは一意
 );</code></pre>
 
