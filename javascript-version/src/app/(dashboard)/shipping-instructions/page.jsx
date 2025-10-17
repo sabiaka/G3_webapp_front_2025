@@ -60,6 +60,44 @@ function formatLocalYmd(dateObj = new Date()) {
   return `${y}-${m}-${d}`
 }
 
+// datetime-local 文字列("YYYY-MM-DDTHH:mm")や Date/ISO を、ローカルオフセット付きの ISO 文字列に変換
+// 例: 2025-10-17T10:30 -> 2025-10-17T10:30:00+09:00
+function toOffsetIso(input) {
+  if (!input) return null
+  let d
+  if (typeof input === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      // date 形式はローカルタイムの 00:00 として解釈
+      const [y, m, day] = input.split('-').map(Number)
+      d = new Date(y, (m || 1) - 1, day || 1, 0, 0, 0)
+    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input)) {
+      // datetime-local 形式はローカルタイムとして解釈
+      d = new Date(input)
+    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(input)) {
+      // 秒まであるローカル形式
+      d = new Date(input)
+    } else {
+      d = new Date(input)
+    }
+  } else {
+    d = new Date(input)
+  }
+  if (isNaN(d.getTime())) return null
+  const pad = n => String(n).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  const mm = pad(d.getMonth() + 1)
+  const dd = pad(d.getDate())
+  const HH = pad(d.getHours())
+  const MM = pad(d.getMinutes())
+  const SS = pad(d.getSeconds())
+  const tzMin = -d.getTimezoneOffset() // 例: JST は +540
+  const sign = tzMin >= 0 ? '+' : '-'
+  const abs = Math.abs(tzMin)
+  const tzh = pad(Math.floor(abs / 60))
+  const tzm = pad(abs % 60)
+  return `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}${sign}${tzh}:${tzm}`
+}
+
 // ページ内関数: normalize はここに定義して各コンポーネントからは props で利用
 
 const ShippingInstructions = () => {
@@ -224,7 +262,7 @@ const ShippingInstructions = () => {
 
     run()
     return () => controller.abort()
-  }, [dataSource, line, completed])
+  }, [dataSource, line, completed, reloadTick])
 
   // 前/次日付ナビゲーション
   const currentIndex = availableDates.findIndex(d => d === date)
@@ -407,6 +445,9 @@ const ShippingInstructions = () => {
     // 作成時は title を productName + size で組み立てる
     const computedTitle = form.productName ? ([form.productName, form.size].filter(Boolean).join(' ').trim()) : form.title
 
+    // 実施日付(createdAt) をローカルオフセット付き ISO に揃える
+    const createdAtIso = toOffsetIso(form.createdAt) || toOffsetIso(new Date())
+
     const toSave = {
       ...form,
       title: computedTitle,
@@ -416,7 +457,7 @@ const ShippingInstructions = () => {
       includedItems: form.includedItems || form.note || null,
       shippingMethod: form.shippingMethod || null,
       quantity: typeof form.quantity === 'number' ? form.quantity : Number(form.quantity || 0),
-      createdAt: form.createdAt || new Date().toISOString()
+      createdAt: createdAtIso
     }
 
     if (editMode) {
@@ -440,6 +481,7 @@ const ShippingInstructions = () => {
           if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
           if (form.shippingMethod) payload.shipping_method = form.shippingMethod
           if (form.destination) payload.destination = form.destination
+          if (createdAtIso) payload.created_at = createdAtIso
 
           const res = await fetch(`${base}/api/instructions/${encodeURIComponent(form.id)}`, {
             method: 'PUT',
@@ -465,6 +507,10 @@ const ShippingInstructions = () => {
           const normalized = updated ? normalizeInstruction(updated) : { ...toSave }
           setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...normalized } : inst))
           setModalOpen(false)
+          // 編集後のフィルタ再適用と日付ピッカー更新
+          const ymd = (normalized.createdAt || createdAtIso || '').slice(0, 10)
+          if (ymd) setDate(ymd)
+          setReloadTick(t => t + 1)
         } catch (e) {
           setError(e?.message || '更新に失敗しました')
         } finally {
@@ -472,8 +518,11 @@ const ShippingInstructions = () => {
         }
       } else {
         // ローカルモード: ローカル状態のみ更新
-        setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
-        setModalOpen(false)
+  setInstructions(prev => prev.map(inst => inst.id === form.id ? { ...inst, ...toSave } : inst))
+  setModalOpen(false)
+  // ローカルモードでも選択日付を更新して即時反映
+  const ymd = (toSave.createdAt || '').slice(0, 10)
+  if (ymd) setDate(ymd)
       }
     } else {
       // 新規作成
@@ -498,6 +547,7 @@ const ShippingInstructions = () => {
           if (form.includedItems || form.note) payload.included_items = form.includedItems || form.note
           if (form.shippingMethod) payload.shipping_method = form.shippingMethod
           if (form.destination) payload.destination = form.destination
+          if (createdAtIso) payload.created_at = createdAtIso
 
           const res = await fetch(`${base}/api/instructions`, {
             method: 'POST',
@@ -520,6 +570,10 @@ const ShippingInstructions = () => {
           const normalized = normalizeInstruction(created)
           setInstructions(prev => [...prev, normalized])
           setModalOpen(false)
+          // 追加後のフィルタ再適用と日付ピッカー更新
+          const ymd = (normalized.createdAt || createdAtIso || '').slice(0, 10)
+          if (ymd) setDate(ymd)
+          setReloadTick(t => t + 1)
         } catch (e) {
           setError(e?.message || '作成に失敗しました')
         } finally {
@@ -527,9 +581,13 @@ const ShippingInstructions = () => {
         }
       } else {
         // ローカルモード: ローカル状態に追加
-        const newId = Math.max(...instructions.map(i => i.id), 0) + 1
-        setInstructions(prev => [...prev, { ...toSave, id: newId }])
-        setModalOpen(false)
+  const newId = Math.max(...instructions.map(i => i.id), 0) + 1
+  const added = { ...toSave, id: newId }
+  setInstructions(prev => [...prev, added])
+  setModalOpen(false)
+  // ローカルモードでも選択日付を更新して即時反映
+  const ymd = (added.createdAt || '').slice(0, 10)
+  if (ymd) setDate(ymd)
       }
     }
   }
