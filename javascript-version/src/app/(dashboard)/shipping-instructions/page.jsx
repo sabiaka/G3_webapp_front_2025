@@ -8,6 +8,7 @@ import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
 import Fab from '@mui/material/Fab'
 import AddIcon from '@mui/icons-material/Add'
+import useAuthMe from '@core/hooks/useAuthMe'
 
 // UI 分割コンポーネント
 import FilterBar from './components/FilterBar'
@@ -54,6 +55,7 @@ function normalizeInstruction(apiItem) {
 // ページ内関数: normalize はここに定義して各コンポーネントからは props で利用
 
 const ShippingInstructions = () => {
+  const { isAdmin } = useAuthMe()
   // 初期データを正規化して内部で使う形にする
   const [instructions, setInstructions] = useState(() => initialInstructions.map(normalizeInstruction))
   // データソース切替（ローカル or API）
@@ -477,10 +479,12 @@ const ShippingInstructions = () => {
         )}
       </Grid>
 
-      {/* フローティング追加ボタン */}
-      <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
-        <AddIcon fontSize='large' />
-      </Fab>
+      {/* フローティング追加ボタン（管理者のみ） */}
+      {isAdmin && (
+        <Fab color='primary' aria-label='add' sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }} onClick={handleAdd}>
+          <AddIcon fontSize='large' />
+        </Fab>
+      )}
 
       <InstructionModal
         open={modalOpen}

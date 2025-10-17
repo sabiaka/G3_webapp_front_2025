@@ -1,3 +1,4 @@
+"use client"
 // カードのコンポーネント
 
 import Card from '@mui/material/Card'
@@ -15,6 +16,7 @@ import PlaceIcon from '@mui/icons-material/Place'
 import EventIcon from '@mui/icons-material/Event'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import NotesIcon from '@mui/icons-material/Notes'
+import useAuthMe from '@core/hooks/useAuthMe'
 
 import SpringIcon from './icons/SpringIcon'
 
@@ -45,6 +47,7 @@ function splitTitle(title, line) {
 }
 
 const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDelete }) => {
+  const { isAdmin } = useAuthMe()
   const { main, sub } = splitTitle(instruction.title, instruction.line)
 
   const handleCardClick = e => onToggleComplete(instruction.id, e && e.clientX, e && e.clientY)
@@ -189,28 +192,30 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
             fontWeight: 800,
           }}>{instruction.quantity ?? '-'}</span>
         </div>
-        <div className='flex items-center gap-1'>
-          <Button
-            variant='text'
-            size='small'
-            onClick={e => { e.stopPropagation(); onEdit(instruction) }}
-            startIcon={<EditOutlinedIcon />}
-            sx={{ color: '#4f46e5', fontWeight: 600 }}
-          >
-            編集
-          </Button>
-          {onDelete && (
+        {isAdmin && (
+          <div className='flex items-center gap-1'>
             <Button
               variant='text'
               size='small'
-              onClick={e => { e.stopPropagation(); onDelete(instruction) }}
-              startIcon={<DeleteOutlineIcon />}
-              sx={{ color: '#dc2626', fontWeight: 600 }}
+              onClick={e => { e.stopPropagation(); onEdit(instruction) }}
+              startIcon={<EditOutlinedIcon />}
+              sx={{ color: '#4f46e5', fontWeight: 600 }}
             >
-              削除
+              編集
             </Button>
-          )}
-        </div>
+            {onDelete && (
+              <Button
+                variant='text'
+                size='small'
+                onClick={e => { e.stopPropagation(); onDelete(instruction) }}
+                startIcon={<DeleteOutlineIcon />}
+                sx={{ color: '#dc2626', fontWeight: 600 }}
+              >
+                削除
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   )
