@@ -23,6 +23,7 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import TodayIcon from '@mui/icons-material/Today'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
@@ -41,7 +42,8 @@ const FilterBar = ({
   canNext = true,
   lineOptions,
   completedOptions,
-  loadingLines = false
+  loadingLines = false,
+  onOpenCalendar
 }) => {
   // 折りたたみフィルターの表示切替
   const [openMore, setOpenMore] = useState(false)
@@ -99,6 +101,14 @@ const FilterBar = ({
             >
               今日
             </Button>
+
+            <Tooltip title='日付一覧を開く'>
+              <span>
+                <IconButton color='secondary' onClick={onOpenCalendar} aria-label='日付一覧' sx={{ p: 1 }}>
+                  <CalendarMonthIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
 
             <Tooltip title='次の日付'>
               <span>

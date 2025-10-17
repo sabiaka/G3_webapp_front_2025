@@ -12,6 +12,7 @@ import ShippingInstructionCard from './components/ShippingInstructionCard'
 import InstructionModal from './components/InstructionModal'
 import ConfirmRevertDialog from './components/ConfirmRevertDialog'
 import ConfirmDeleteDialog from './components/ConfirmDeleteDialog'
+import CalendarModal from './components/CalendarModal'
 
 import useShippingInstructions from './hooks/useShippingInstructions'
 import { completedOptions, lineOptions } from './data/sampleInitialInstructions'
@@ -24,7 +25,9 @@ const ShippingInstructions = () => {
     dataSource, search, line, completed, date, lines, loadingLines,
     modalOpen, form, editMode, saving,
     deleteOpen, targetToDelete,
-    confirmOpen
+    confirmOpen,
+    calendarOpen,
+    availableDateItems
   } = state
 
   const { filtered, canPrev, canNext } = derived
@@ -35,7 +38,8 @@ const ShippingInstructions = () => {
     handleToggleComplete, handleEdit, handleRequestDelete,
     handleAdd, handleSave, handleFormChange,
     handleCancelDelete, handleConfirmDelete,
-    cancelRevert, confirmRevert
+    cancelRevert, confirmRevert,
+    setCalendarOpen
   } = actions
 
   return (
@@ -58,6 +62,7 @@ const ShippingInstructions = () => {
           : lineOptions)}
         completedOptions={completedOptions}
         loadingLines={dataSource === 'api' ? loadingLines : false}
+        onOpenCalendar={() => setCalendarOpen(true)}
       />
 
       <Grid container spacing={3} alignItems='stretch'>
@@ -96,6 +101,14 @@ const ShippingInstructions = () => {
 
       <ConfirmRevertDialog open={confirmOpen} onCancel={cancelRevert} onConfirm={confirmRevert} />
       <ConfirmDeleteDialog open={deleteOpen} onCancel={handleCancelDelete} onConfirm={handleConfirmDelete} itemTitle={targetToDelete?.title || targetToDelete?.productName} />
+
+      <CalendarModal
+        open={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        onSelect={(d) => { setDate(d); setCalendarOpen(false) }}
+        items={availableDateItems}
+        selectedDate={date}
+      />
     </>
   )
 }

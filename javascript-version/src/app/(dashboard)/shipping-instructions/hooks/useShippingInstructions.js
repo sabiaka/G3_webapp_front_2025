@@ -26,6 +26,7 @@ export default function useShippingInstructions() {
     const [loadingLines, setLoadingLines] = useState(false)
 
     const [availableDates, setAvailableDates] = useState([])
+    const [availableDateItems, setAvailableDateItems] = useState([]) // {date, count}
     const [loadingDates, setLoadingDates] = useState(false)
 
     const [deleteOpen, setDeleteOpen] = useState(false)
@@ -133,7 +134,6 @@ export default function useShippingInstructions() {
                 const json = await res.json()
                 const list = Array.isArray(json) ? json : (json?.data || json?.items || [])
                 // 仕様変更対応: [{ date: 'YYYY-MM-DD', count: number }] を想定
-                // 互換性のため、文字列配列の場合も考慮しつつ、日付文字列配列に正規化
                 const items = Array.isArray(list) ? list : []
                 const normalized = items.map(item => {
                     if (typeof item === 'string') return { date: item, count: null }
@@ -141,9 +141,11 @@ export default function useShippingInstructions() {
                     return { date: '', count: null }
                 }).filter(i => i.date)
                 const asc = normalized.sort((a, b) => String(a.date).localeCompare(String(b.date)))
+                setAvailableDateItems(asc)
                 setAvailableDates(asc.map(i => i.date))
             } catch (e) {
                 if (e?.name === 'AbortError') return
+                setAvailableDateItems([])
                 setAvailableDates([])
             } finally {
                 setLoadingDates(false)
@@ -401,11 +403,14 @@ export default function useShippingInstructions() {
         setForm(prev => ({ ...prev, [name]: value }))
     }
 
+    // Calendar modal state
+    const [calendarOpen, setCalendarOpen] = useState(false)
+
     return {
         state: {
             instructions, dataSource, loading, error, lastFetchedAt, reloadTick, search, line, completed, date,
-            modalOpen, form, editMode, saving, lines, loadingLines, availableDates, loadingDates, deleteOpen, deleting, targetToDelete,
-            confirmOpen, pendingToggleId
+            modalOpen, form, editMode, saving, lines, loadingLines, availableDates, availableDateItems, loadingDates, deleteOpen, deleting, targetToDelete,
+            confirmOpen, pendingToggleId, calendarOpen
         },
         derived: {
             filtered, canPrev, canNext
@@ -416,7 +421,8 @@ export default function useShippingInstructions() {
             handlePrevDate, handleNextDate,
             handleToggleComplete, confirmRevert, cancelRevert,
             handleEdit, handleRequestDelete, handleCancelDelete, handleConfirmDelete,
-            handleAdd, handleSave, handleFormChange
+            handleAdd, handleSave, handleFormChange,
+            setCalendarOpen
         }
     }
 }
