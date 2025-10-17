@@ -4,7 +4,7 @@ import { SAMPLE_SUMMARIES } from '../data/sampleSummaries'
 import { SAMPLE_LOTS } from '../data/sampleLots'
 
 // 簡易トグル: trueでAPIを叩いてサマリー（総数/良品/不良/不良理由）を取得、falseでフロント側計算
-const USE_API_SUMMARY = false;
+const USE_API_SUMMARY = true;
 // ロットログ（一覧）もAPIに切り替えるトグル
 const USE_API_LOTS = true;
 
