@@ -275,9 +275,9 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                 </div>
             </section>
 
-            <!-- 6. 新しい画像検査データ送信API -->
-            <section id="post-inspection-data-new">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 検査データ一括登録 (Jetson → サーバー)</h2>
+            <!-- 6. 検査前画像の送信 -->
+            <section id="post-before-inspection-image">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】初期データと画像の登録 (Jetson → サーバー)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -285,14 +285,14 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
-                        Jetsonから検査結果のデータ一式をまとめてドン！と送るためのAPIだよ。<br>
-                        前は <code>product_id</code> をこっちで決めてたけど、これからは<strong class="text-pink-500">サーバーがイケてる <code>lot_id</code> を自動でつけてくれる</strong>から、マジ楽ちんになったんだよね✨
+                        Jetsonから検査前の画像と、それがどの製品に関するものか分かる最低限の初期データを送るためのAPIだよ。<br>
+                        この情報をもとに、サーバー側でロットIDを採番して、DBに最初のレコードを作るってわけ！
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">lot_idのルールについて</h3>
                     <div class="p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg mb-4">
-                        <p class="font-bold">ここマジ大事！</p>
-                        <p class="text-sm mt-1">サーバーは <code>metadata</code> に入ってる <code>section_code</code> を見て、どっちのIDをつけるか判断するよん💖</p>
+                        <p class="font-bold">ロットIDの命名規則</p>
+                        <p class="text-sm mt-1">サーバーは <code>metadata</code> に入ってる <code>section_code</code> を見て、どっちのIDをつけるか判断するよ</p>
                         <ul class="list-disc list-inside mt-2 text-sm font-mono">
                             <li><code>section_code</code> が <strong>"バネ留め"</strong> の場合 → <code>MAT-00001</code>, <code>MAT-00002</code>, ...</li>
                             <li><code>section_code</code> が <strong>"A層検査"</strong> の場合 → <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...</li>
@@ -302,55 +302,35 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
                     <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
                         <p class="font-bold">ファイル名はサーバーが自動でつけちゃう！</p>
-                        <p class="text-sm mt-1">Jetsonから送られてきた画像は、サーバー側でルールに沿った名前にリネームして保存するよ。ファイル名でどの製品のどのカメラの写真か一発でわかるようになってて、マジ便利✨</p>
+                        <p class="text-sm mt-1">
+                            サーバーは受け取ったメタデータと、新しく採番した<code>lot_id</code>を元に、ファイル名を自動生成するよ！後で結果を更新するときに、このファイル名がキーになるからマジ重要！
+                        </p>
                         <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
                             <strong>フォーマット:</strong> {lot_id}_{camera_id}_{shot_seq}.jpg<br>
-                            <strong>保存例:</strong> /imageDB/MAT-00123_B-spring01_1.jpg
+                            <strong>保存先フォルダ:</strong> /imageDB/beforeTest/<br>
+                            <strong>保存例:</strong> /imageDB/beforeTest/MAT-00125_B-spring01_1.jpg
                         </p>
-                        <p class="text-xs mt-2">このファイルパスが、DBの`inspection_camera_shots`テーブルにある`image_path`カラムに保存されるってわけ！</p>
                     </div>
-                    
+
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
                     <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
-                        <li>パート1: <code>metadata</code> というキーで、検査情報のJSONを送る。</li>
-                        <li>パート2以降: <code>metadata</code>内の<code>shots</code>配列に入ってる各<code>camera_id</code>をキーにして、対応する画像ファイルを送る。</li>
+                        <li>パート1: <code>metadata</code> というキーで、検査の初期情報のJSONを送る。</li>
+                        <li>パート2: <code>image</code> というキーで、検査前の画像ファイルを送る。</li>
                     </ul>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <p class="text-sm mb-2">1製品（1ロット）に関する全カメラショットの情報を、<code>shots</code>配列にまとめて入れてね！</p>
+                    <p class="text-sm mb-2">サーバーがロットIDを採番するのに必要な、最低限の情報を入れてね！</p>
                     <div class="code-block-wrapper">
-                    <pre><code class="language-json">{
+                        <pre><code class="language-json">{
     "section_code": "spring",
-    "captured_at": "2025-09-12T05:09:04Z",
-    "shots": [
-        {
-            "camera_id": "B-spring01",
-            "status": "PASS",
-            "details": null,
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:02Z"
-        },
-        {
-            "camera_id": "B-spring02",
-            "status": "FAIL",
-            "details": "傷あり",
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:04Z"
-        },
-        {
-            "camera_id": "B-spring03",
-            "status": "MISSING",
-            "details": "画像なし",
-            "shot_seq": 1,
-            "captured_at": null
-        }
-    ]
+    "camera_id": "B-spring01",
+    "shot_seq": 1,
+    "captured_at": "2025-09-12T05:09:02Z"
 }</code></pre>
                     </div>
-
+                    
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
-                    <p class="mb-2 text-sm"><code>files</code> を作る時、画像のキーをちゃんと <code>camera_id</code> に合わせるのがポイントだよ！</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-python">
 import requests
@@ -358,36 +338,20 @@ import json
 import datetime
 
 url = "http://your-server.com/api/ingress/inspection"
+image_path = '/path/to/source_image.jpg'
 
 # 送信するメタデータを作成
 metadata = {
-  "section_code": "spring", # "バネ留め" or "A層検査" に対応するコード
-  "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-  "shots": [
-    {
-      "camera_id": "B-spring01",
-      "status": "PASS",
-      "details": None,
-      "shot_seq": 1,
-      "captured_at": "2025-09-12T05:09:02Z"
-    },
-    {
-      "camera_id": "B-spring02",
-      "status": "FAIL",
-      "details": "傷あり",
-      "shot_seq": 1,
-      "captured_at": "2025-09-12T05:09:04Z"
-    }
-  ]
+    "section_code": "spring",
+    "camera_id": "B-spring01",
+    "shot_seq": 1,
+    "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
 }
 
-# 送信するファイル一式を準備
-# (注意: 'MISSING'の画像は含めない)
+# 送信するファイルを準備
 files = {
     'metadata': (None, json.dumps(metadata), 'application/json'),
-    # metadataのcamera_idをキーにして画像をセット！
-    'B-spring01': ('B-spring01.jpg', open('/path/to/B-spring01.jpg', 'rb'), 'image/jpeg'),
-    'B-spring02': ('B-spring02.jpg', open('/path/to/B-spring02.jpg', 'rb'), 'image/jpeg')
+    'image': ('source_image.jpg', open(image_path, 'rb'), 'image/jpeg')
 }
 
 response = requests.post(url, files=files)
@@ -398,43 +362,137 @@ print("レスポンス:", response.json())
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
-                    <p class="text-sm">データと画像をちゃんと受け取って、新しいロットデータが作れたら、サーバーはこんな感じ↑↑で返事するよ！<br>返ってきた <code>lot_id</code> は、あとで検索とかするときに使えるから、超便利！</p>
+                    <p class="text-sm">データがちゃんと登録できたら、サーバーから新しい<code>lot_id</code>と、サーバー側でつけた<code>filename</code>が返ってくるよ！このファイル名は後で使うから、ちゃんと覚えといてね！</p>
                     <pre><code class="language-json">{
-    "message": "検査データ、うぇーい！作成OKだよ🎉",
-    "lot_id": "MAT-00123"
+    "message": "初期データ登録OK！ロットID採番しといたよ✌️",
+    "lot_id": "MAT-00125",
+    "filename": "MAT-00125_B-spring01_1.jpg"
 }</code></pre>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (400 Bad Request)</h3>
-                    <p class="text-sm">送ったデータがイケてないと、サーバーは怒ってこう返すから、気をつけて！</p>
-                     <pre><code class="language-json">{
-    "error": "リクエストが不正です。",
-    "details": [
-        "section_code は必須項目です。",
-        "画像ファイル 'B-spring01.jpg' が見つかりません。"
-    ]
+                </div>
+            </section>
+
+            <!-- 7. 検査後データと画像の送信 -->
+            <section id="put-after-inspection-data">
+                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信 (Jetson → サーバー)</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge put">PUT</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/result/{filename}</span>
+                        <span class="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">これも超重要！</span>
+                    </div>
+                    <p class="mb-4">
+                        さっき送った画像の検査が終わったら、その結果（OKかNGかとか）と、もしあれば検査後の画像をこのAPIで送るよ！<br>
+                        URLの <code>{filename}</code> の部分で、どの画像の検査結果なのかを指定するのがポイント！
+                    </p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
+                    <div class="p-4 bg-sky-100 border-l-4 border-sky-500 text-sky-700 rounded-r-lg mb-4">
+                        <p class="font-bold">検査前と同じファイル名で別の場所に保存！</p>
+                        <p class="text-sm mt-1">
+                            検査後の画像は、検査前の画像と同じファイル名で、専用のフォルダに保存するよ。これでビフォーアフターが分かりやすくなるってわけ！
+                        </p>
+                        <p class="text-sm mt-2 font-mono bg-sky-200 p-2 rounded">
+                            <strong>保存先フォルダ:</strong> /imageDB/afterTest/<br>
+                            <strong>保存例:</strong> /imageDB/afterTest/MAT-00123_B-spring01_1.jpg
+                        </p>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
+                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
+                        <li>パート1: <code>metadata</code> というキーで、検査結果のJSONを送る。</li>
+                        <li>パート2: <code>image</code> というキーで、検査後の画像ファイルを送る (もしあれば)。</li>
+                    </ul>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
+                    <p class="text-sm mb-2">検査結果の詳細をJSONでまとめてね！</p>
+                    <div class="code-block-wrapper">
+                        <pre><code class="language-json">{
+    "lot_id": "MAT-00123",
+    "section_code": "spring",
+    "camera_id": "B-spring01",
+    "status": "FAIL",
+    "details": "傷あり",
+    "shot_seq": 1,
+    "captured_at": "2025-09-12T05:09:02Z"
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
+                    <div class="code-block-wrapper">
+                        <pre><code class="language-python">
+<pre><code class="language-python">
+import requests
+import json
+import datetime
+
+filename = 'MAT-00123_B-spring01_1.jpg'
+url = f"http://your-server.com/api/ingress/inspection/result/{filename}"
+
+# 送信するメタデータを作成
+metadata = {
+    "lot_id": "MAT-00123",
+    "section_code": "spring",
+    "camera_id": "B-spring01",
+    "status": "FAIL",
+    "details": "傷あり",
+    "shot_seq": 1,
+    "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+}
+
+# 送信するファイル一式を準備
+files = {
+    'metadata': (None, json.dumps(metadata), 'application/json'),
+    'image': (filename, open('/path/to/after_inspection_image.jpg', 'rb'), 'image/jpeg')
+}
+
+response = requests.put(url, files=files)
+
+print(f"ステータスコード: {response.status_code}")
+print("レスポンス:", response.json())
+</code></pre>
+</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <p class="text-sm">データ更新が成功したら、サーバーから「おつかれ！」って感じの返事がくるよ。</p>
+                    <pre><code class="language-json">{
+    "message": "検査結果、更新しといたよ！🎉",
+    "filename": "MAT-00123_B-spring01_1.jpg"
+}</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <p class="text-sm">URLで指定したファイル名の画像が、検査前のフォルダに見つからない場合にこうなるよ。</p>
+                    <pre><code class="language-json">{
+    "error": "Not Found",
+    "details": "指定されたファイル名の検査前データが見つかりません。"
 }</code></pre>
                 </div>
             </section>
 
             <!-- 7. 画像のアクセス方法 -->
-                <section id="get-image-direct">
-                    <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">7. 画像のアクセス方法 (超シンプル版)</h2>
+            <section id="get-image-direct">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">8. 画像のアクセス方法</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge get">GET</span>
-                        <span class="font-mono text-lg font-semibold">/imageDB/{product_id}.jpg</span>
+                        <span class="font-mono text-lg font-semibold">/imageDB/{test_type}/{filename}</span>
                     </div>
                     <p class="mb-4">
-                        Node.jsのExpressとかで<code>public</code>フォルダを公開設定にしとけば、URLを直で叩くだけで画像が見れちゃう。マジ卍で楽ちん！
+                        サーバー側で画像保存フォルダ (例: <code>public/imageDB</code>) を静的ファイルとして公開することで、画像に直接アクセスできます。<br>
+                        検査前後の画像は、同じファイル名で <code>beforeTest</code> と <code>afterTest</code> ディレクトリに保存されているため、パスを切り替えるだけで両方を確認できます。
                     </p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
-                    <pre><code class="language-plaintext">http://your-server.com/imageDB/A-102-002.jpg</code></pre>
+                    <p class="text-sm mb-2">ファイル名は <code>{lot_id}_{camera_id}_{shot_seq}.jpg</code> の形式です。</p>
+                    <pre><code class="language-plaintext">http://your-server.com/imageDB/beforeTest/MAT-00123_B-spring01_1.jpg
+http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_1.jpg</code></pre>
                 </div>
             </section>
 
                         <!-- 8. 未検査ロットIDと画像ファイルパスの取得（読み取り専用・最小） -->
                         <section id="get-uninspected-lot-ids">
-                            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">8. 未検査ロットIDと画像ファイルパスの取得（Jetson用／副作用なし）</h2>
+                            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">9. 未検査ロットIDと画像ファイルパスの取得（Jetson用／副作用なし）</h2>
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <div class="flex items-center space-x-4 mb-4">
                                     <span class="method-badge get">GET</span>
