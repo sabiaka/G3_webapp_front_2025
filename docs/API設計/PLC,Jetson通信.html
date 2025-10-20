@@ -304,8 +304,8 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                         <p class="font-bold">ファイル名はサーバーが自動でつけちゃう！</p>
                         <p class="text-sm mt-1">Jetsonから送られてきた画像は、サーバー側でルールに沿った名前にリネームして保存するよ。ファイル名でどの製品のどのカメラの写真か一発でわかるようになってて、マジ便利✨</p>
                         <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
-                            <strong>フォーマット:</strong> {lot_id}_{camera_id}-{shot_seq}.jpg<br>
-                            <strong>保存例:</strong> /imageDB/MAT-00123_B-spring01-1.jpg
+                            <strong>フォーマット:</strong> {lot_id}_{camera_id}_{shot_seq}.jpg<br>
+                            <strong>保存例:</strong> /imageDB/MAT-00123_B-spring01_1.jpg
                         </p>
                         <p class="text-xs mt-2">このファイルパスが、DBの`inspection_camera_shots`テーブルにある`image_path`カラムに保存されるってわけ！</p>
                     </div>
@@ -431,6 +431,76 @@ print("レスポンス:", response.json())
                     <pre><code class="language-plaintext">http://your-server.com/imageDB/A-102-002.jpg</code></pre>
                 </div>
             </section>
+
+                        <!-- 8. 未検査ロットIDと画像ファイルパスの取得（読み取り専用・最小） -->
+                        <section id="get-uninspected-lot-ids">
+                            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">8. 未検査ロットIDと画像ファイルパスの取得（Jetson用／副作用なし）</h2>
+                            <div class="bg-white p-6 rounded-lg shadow-md">
+                                <div class="flex items-center space-x-4 mb-4">
+                                    <span class="method-badge get">GET</span>
+                                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/uninspected-lot-ids</span>
+                                    <span class="bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-bold">最小仕様（ID + ファイルパス）</span>
+                                </div>
+
+                                <p class="mb-4">Jetson に <strong>未検査の lot_id と、そのロットに紐づく画像ファイルパス</strong> を返します。読み取り専用で、予約・ロック・状態変更などの副作用は一切ありません。</p>
+
+                                <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th class="border-b-2 p-2">パラメータ</th>
+                                            <th class="border-b-2 p-2">説明</th>
+                                            <th class="border-b-2 p-2">例</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="border-b p-2 font-mono">section（必須）</td>
+                                            <td class="border-b p-2">検査セクション（内部コード）。例: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                            <td class="border-b p-2 font-mono">?section=spring</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス</h3>
+                                <p class="text-sm mb-2">200 OK（最小構成） — 各ロットごとに <code>lot_id</code> とそのロットに紐づく画像ファイルパス配列を返します。</p>
+                                <pre><code class="language-json">{
+    "lots": [
+    {
+        "lot_id": "MAT-00123",
+        "image_paths": [
+        "/imageDB/MAT-00123_B-spring01_1.jpg",
+        "/imageDB/MAT-00123_B-spring02_1.jpg"
+        ]
+    },
+    {
+        "lot_id": "MAT-00124",
+        "image_paths": [
+        "/imageDB/MAT-00124_B-spring01_1.jpg"
+        ]
+    }
+    ]
+}</code></pre>
+
+                                <p class="text-sm mt-4 mb-1">400 Bad Request（<code>section</code> が指定されていない場合）</p>
+                                <pre><code class="language-json">{
+    "error": "Bad Request",
+    "details": [
+    "クエリパラメータ 'section' は必須です。"
+    ]
+}</code></pre>
+
+                                <h3 class="text-lg font-semibold mt-6 mb-2">返却ポリシー</h3>
+                                <ul class="list-disc list-inside text-sm space-y-1">
+                                    <li>読み取り専用。サーバー側で予約・ロック・状態変更は行いません。</li>
+                                    <li>返却される情報はサーバーが把握する「未検査」状態のスナップショットです（ID とファイルパス）。</li>
+                                    <li>各エントリはオブジェクト形式で、<code>lot_id</code> と <code>image_paths</code>（配列）を含みます。画像がない場合は空配列になります。</li>
+                                    <li>並び順は作成日時の昇順（古い未検査から）。</li>
+                                    <li>返却されるファイルパスはサーバーの公開パス（相対パスまたは絶対URL）。Jetson 側でアクセスする場合、<code>NEXT_PUBLIC_BASE_PATH</code> 相当の接頭辞が必要な場合があります — 配置環境に合わせて利用してください。</li>
+                                    <li><code>section</code> は必須。指定セクションのみを返します。</li>
+                                </ul>
+                            </div>
+                        </section>
         </div>
 
         <footer class="text-center text-slate-500 mt-12 py-4">
