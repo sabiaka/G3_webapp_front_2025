@@ -320,38 +320,58 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     </ul>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <p class="text-sm mb-2">サーバーがロットIDを採番するのに必要な、最低限の情報を入れてね！</p>
+                    <p class="text-sm mb-2">1ロットに関する全カメラショットの情報を、shots配列にまとめて入れてね！</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-json">{
     "section_code": "spring",
-    "camera_id": "B-spring01",
-    "shot_seq": 1,
-    "captured_at": "2025-09-12T05:09:02Z"
+    "shots": [
+        {
+            "camera_id": "B-spring01",
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:02Z"
+        },
+        {
+            "camera_id": "B-spring02",
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:04Z"
+        }
+    ]
 }</code></pre>
                     </div>
                     
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
                     <div class="code-block-wrapper">
                         <pre><code class="language-python">
+
 import requests
 import json
 import datetime
 
 url = "http://your-server.com/api/ingress/inspection"
-image_path = '/path/to/source_image.jpg'
 
 # 送信するメタデータを作成
 metadata = {
     "section_code": "spring",
-    "camera_id": "B-spring01",
-    "shot_seq": 1,
-    "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    "shots": [
+        {
+            "camera_id": "B-spring01",
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:02Z"
+        },
+        {
+            "camera_id": "B-spring02",
+            "shot_seq": 1,
+            "captured_at": "2025-09-12T05:09:04Z"
+        }
+    ]
 }
 
-# 送信するファイルを準備
+# 送信するファイル一式を準備
+# metadataのcamera_idをキーにして画像をセットするのがポイント！
 files = {
     'metadata': (None, json.dumps(metadata), 'application/json'),
-    'image': ('source_image.jpg', open(image_path, 'rb'), 'image/jpeg')
+    'B-spring01': ('B-spring01.jpg', open('/path/to/B-spring01.jpg', 'rb'), 'image/jpeg'),
+    'B-spring02': ('B-spring02.jpg', open('/path/to/B-spring02.jpg', 'rb'), 'image/jpeg')
 }
 
 response = requests.post(url, files=files)
