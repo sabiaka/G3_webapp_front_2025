@@ -69,3 +69,18 @@ export function toOffsetIso(input) {
     const tzm = pad(abs % 60)
     return `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}${sign}${tzh}:${tzm}`
 }
+
+// ISO文字列やDate等からローカルタイムゾーンのYYYY-MM-DDに変換
+export function toLocalYmd(input) {
+    if (!input) return ''
+    let d
+    if (typeof input === 'string') {
+        // すでに YYYY-MM-DD ならそのまま返す
+        if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input
+        d = new Date(input)
+    } else {
+        d = new Date(input)
+    }
+    if (isNaN(d.getTime())) return ''
+    return formatLocalYmd(d)
+}

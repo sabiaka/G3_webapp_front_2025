@@ -534,7 +534,7 @@ return;
                         console.error('部品の格納に失敗', err);
                         alert('格納に失敗しました。スロットが空か、サーバーの状態をご確認ください。');
                     }
-                });
+                }, { confirmLabel: '格納' });
                 break;
             case 'move':
                 isMoveMode = true;
