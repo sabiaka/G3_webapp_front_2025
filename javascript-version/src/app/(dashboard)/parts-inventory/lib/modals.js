@@ -374,7 +374,7 @@ return;
 }
 
 // Store new part (form only, caller supplies callback)
-export function showStorePartModal(callback) {
+export function showStorePartModal(callback, { confirmLabel = '棚をスキャンして格納' } = {}) {
   openModalWithBridge({
     title: '新しい部品の情報を入力',
     html: `
@@ -387,7 +387,7 @@ export function showStorePartModal(callback) {
       </div>
       <div class="p-4 bg-gray-100 flex justify-end space-x-2 rounded-b-xl">
         <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
-        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">棚をスキャンして格納</button>
+        <button id="confirm-store-btn" type="submit" form="store-form" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">${s(confirmLabel)}</button>
       </div>`,
     onOpen: () => {
       document.getElementById('store-form').onsubmit = e => {
