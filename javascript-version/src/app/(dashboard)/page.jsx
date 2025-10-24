@@ -99,72 +99,69 @@ const DashboardPage = () => {
       {/* 今日のお知らせ + クイックボタン行（先頭） */}
       <Grid item xs={12}>
         <Grid container spacing={4} alignItems="stretch">
-          {/* /* お知らせカード */ }
-                <Grid item xs={12} md={6} lg={6}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardHeader
-                  title="今日のお知らせ"
-                  action={
-                    <Button variant="outlined" size="small" startIcon={<CreateOutlinedIcon />} onClick={handleOpenEdit}>
+          {/* /* お知らせカード */}
+          <Grid item xs={12} md={6} lg={6}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardHeader
+                title="今日のお知らせ"
+                action={
+                  <Button variant="outlined" size="small" startIcon={<CreateOutlinedIcon />} onClick={handleOpenEdit}>
                     編集
-                    </Button>
-                  }
-                  />
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-                    この内容はブラウザのローカルに保存されます（全員共通のお知らせにする場合はAPI保存に切替えてください）。
-                  </Typography>
-                  </CardContent>
-                </Card>
-                </Grid>
+                  </Button>
+                }
+              />
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
-                {/* クイックボタン：製造出荷指示 */}
-                <Grid item xs={12} sm={4} md={2} lg={2}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
-                    <Box sx={{ bgcolor: 'warning.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* クイックボタン：製造出荷指示 */}
+          <Grid item xs={12} sm={4} md={2} lg={2}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                  <Box sx={{ bgcolor: 'warning.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ListAltOutlinedIcon sx={{ fontSize: 36 }} />
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>製造出荷指示周知</Typography>
-                  </CardContent>
-                  </CardActionArea>
-                </Card>
-                </Grid>
+                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>製造出荷指示周知</Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
 
-                {/* クイックボタン：日報システム */}
-                <Grid item xs={12} sm={4} md={2} lg={2}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardActionArea component={Link} href="/daily-reports" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
-                    <Box sx={{ bgcolor: 'info.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* クイックボタン：日報システム */}
+          <Grid item xs={12} sm={4} md={2} lg={2}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardActionArea component={Link} href="/daily-reports" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                  <Box sx={{ bgcolor: 'info.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CreateOutlinedIcon sx={{ fontSize: 36 }} />
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>日報一覧</Typography>
-                  </CardContent>
-                  </CardActionArea>
-                </Card>
-                </Grid>
+                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>日報一覧</Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
 
-                {/* クイックボタン：部品在庫管理 */}
-                <Grid item xs={12} sm={4} md={2} lg={2}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardActionArea component={Link} href="/parts-inventory" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
-                    <Box sx={{ bgcolor: 'success.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* クイックボタン：部品在庫管理 */}
+          <Grid item xs={12} sm={4} md={2} lg={2}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardActionArea component={Link} href="/parts-inventory" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                  <Box sx={{ bgcolor: 'success.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Inventory2OutlinedIcon sx={{ fontSize: 36 }} />
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>部品在庫管理</Typography>
-                  </CardContent>
-                  </CardActionArea>
-                </Card>
-                </Grid>
-              </Grid>
-              </Grid>
-              {/* KPIセクション */}
+                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>部品在庫管理</Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+        </Grid>
+      </Grid>
+      {/* KPIセクション */}
       <Grid item xs={12}>
         <Grid container spacing={4}>
           {/* 生産進捗 */}
@@ -274,7 +271,7 @@ const DashboardPage = () => {
         </Grid>
       </Grid>
 
-      
+
 
       {/* 生産目標/管理者メニュー */}
       <Grid item xs={12}>
