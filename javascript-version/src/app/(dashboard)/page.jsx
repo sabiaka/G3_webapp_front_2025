@@ -1,5 +1,8 @@
 "use client";
 
+// React Imports
+import { useEffect, useState } from "react";
+
 // Next Imports
 import Link from "@/components/Link";
 
@@ -16,6 +19,11 @@ import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
 
 // Icons (MUI)
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -43,12 +51,120 @@ const DashboardPage = () => {
     { id: 3, time: "2025-10-24 08:12", level: "info", message: "メンテナンスモード解除" }
   ];
 
+  // 今日のお知らせ（ローカル保存）
+  const STORAGE_KEY = "dashboard_notice_v1";
+  const [notice, setNotice] = useState(
+    "本日の安全第一。午後は来客予定があります。\n17:00 までに作業場の整理整頓をお願いします。"
+  );
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  // 初期ロードで localStorage から復元
+  useEffect(() => {
+    try {
+      const saved = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+      if (saved && saved.trim().length > 0) {
+        setNotice(saved);
+      }
+    } catch (e) {
+      // noop: ストレージ未許可などの例外は握りつぶす
+    }
+  }, []);
+
+  const handleOpenEdit = () => {
+    setDraft(notice);
+    setIsEditOpen(true);
+  };
+
+  const handleCloseEdit = () => setIsEditOpen(false);
+
+  const handleSaveEdit = () => {
+    const value = draft?.trim() ?? "";
+    setNotice(value);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, value);
+      }
+    } catch (e) {
+      // ストレージ書き込みに失敗しても動作継続
+    }
+    setIsEditOpen(false);
+  };
+
   // KPIカードのヘッダー高さを揃えるための最小高さ（エラーログに合わせる）
   const headerMinHeight = 80;
 
   return (
     <Grid container spacing={6} sx={{ mt: 0 }}>
-      {/* KPIセクション */}
+      {/* 今日のお知らせ + クイックボタン行（先頭） */}
+      <Grid item xs={12}>
+        <Grid container spacing={4} alignItems="stretch">
+          {/* /* お知らせカード */ }
+                <Grid item xs={12} md={6} lg={6}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardHeader
+                  title="今日のお知らせ"
+                  action={
+                    <Button variant="outlined" size="small" startIcon={<CreateOutlinedIcon />} onClick={handleOpenEdit}>
+                    編集
+                    </Button>
+                  }
+                  />
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                    {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+                    この内容はブラウザのローカルに保存されます（全員共通のお知らせにする場合はAPI保存に切替えてください）。
+                  </Typography>
+                  </CardContent>
+                </Card>
+                </Grid>
+
+                {/* クイックボタン：製造出荷指示 */}
+                <Grid item xs={12} sm={4} md={2} lg={2}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                    <Box sx={{ bgcolor: 'warning.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ListAltOutlinedIcon sx={{ fontSize: 36 }} />
+                    </Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>製造出荷指示周知</Typography>
+                  </CardContent>
+                  </CardActionArea>
+                </Card>
+                </Grid>
+
+                {/* クイックボタン：日報システム */}
+                <Grid item xs={12} sm={4} md={2} lg={2}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardActionArea component={Link} href="/daily-reports" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                    <Box sx={{ bgcolor: 'info.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CreateOutlinedIcon sx={{ fontSize: 36 }} />
+                    </Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>日報一覧</Typography>
+                  </CardContent>
+                  </CardActionArea>
+                </Card>
+                </Grid>
+
+                {/* クイックボタン：部品在庫管理 */}
+                <Grid item xs={12} sm={4} md={2} lg={2}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardActionArea component={Link} href="/parts-inventory" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 3 }}>
+                    <Box sx={{ bgcolor: 'success.main', color: 'common.white', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Inventory2OutlinedIcon sx={{ fontSize: 36 }} />
+                    </Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>部品在庫管理</Typography>
+                  </CardContent>
+                  </CardActionArea>
+                </Card>
+                </Grid>
+              </Grid>
+              </Grid>
+              {/* KPIセクション */}
       <Grid item xs={12}>
         <Grid container spacing={4}>
           {/* 生産進捗 */}
@@ -158,56 +274,7 @@ const DashboardPage = () => {
         </Grid>
       </Grid>
 
-      {/* 機能メニュー */}
-      <Grid item xs={12}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={4}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ bgcolor: 'warning.main', color: 'common.white', p: 1.5, borderRadius: 3 }}>
-                    <ListAltOutlinedIcon fontSize="large" />
-                  </Box>
-                  <Box>
-                    <Typography variant="h6">製造出荷指示</Typography>
-                    <Typography variant="body2" color="text.secondary">本日の製造・出荷指示を確認</Typography>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardActionArea component={Link} href="/daily-reports" sx={{ height: '100%' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ bgcolor: 'info.main', color: 'common.white', p: 1.5, borderRadius: 3 }}>
-                    <CreateOutlinedIcon fontSize="large" />
-                  </Box>
-                  <Box>
-                    <Typography variant="h6">日報システム</Typography>
-                    <Typography variant="body2" color="text.secondary">作業記録の入力・確認</Typography>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardActionArea component={Link} href="/parts-inventory" sx={{ height: '100%' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ bgcolor: 'success.main', color: 'common.white', p: 1.5, borderRadius: 3 }}>
-                    <Inventory2OutlinedIcon fontSize="large" />
-                  </Box>
-                  <Box>
-                    <Typography variant="h6">部品在庫管理</Typography>
-                    <Typography variant="body2" color="text.secondary">QRコードで入出庫</Typography>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
-        </Grid>
-      </Grid>
+      
 
       {/* 生産目標/管理者メニュー */}
       <Grid item xs={12}>
@@ -288,6 +355,26 @@ const DashboardPage = () => {
           </Grid>
         </Grid>
       </Grid>
+
+      {/* 編集モーダル */}
+      <Dialog open={isEditOpen} onClose={handleCloseEdit} fullWidth maxWidth="sm">
+        <DialogTitle>お知らせの編集</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={6}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="例）午後は来客あり。14時からラインBの点検を実施します。"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEdit} color="inherit">キャンセル</Button>
+          <Button onClick={handleSaveEdit} variant="contained">保存</Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 };
