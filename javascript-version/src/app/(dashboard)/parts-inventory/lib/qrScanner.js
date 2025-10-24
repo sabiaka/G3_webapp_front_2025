@@ -14,7 +14,7 @@ import jsQR from 'jsqr';
  * - onError: (Error) => void (エラー時に呼ばれる)
  * - constraints: MediaStreamConstraints.video (任意)
  */
-export function startQrScanner({ videoEl, canvasEl, onDecode, onError, constraints } = {}) {
+export function startQrScanner({ videoEl, canvasEl, onDecode, onError, constraints, roi } = {}) {
     // 必須チェックと環境チェック
     if (!videoEl) throw new Error('videoEl is required');
     if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) {
@@ -39,6 +39,28 @@ export function startQrScanner({ videoEl, canvasEl, onDecode, onError, constrain
         if (rafId) try { cancelAnimationFrame(rafId); } catch { }
         if (stream) try { stream.getTracks().forEach(t => t.stop()); } catch { }
         try { videoEl.srcObject = null; } catch { }
+    }
+
+    // ROI（検知範囲）をビデオピクセル座標に変換
+    function calcScanRect(w, h) {
+        // roi は 0..1 の正規化座標 { x, y, width, height }
+        if (roi && typeof roi === 'object') {
+            const nx = Math.max(0, Math.min(1, Number(roi.x ?? 0)));
+            const ny = Math.max(0, Math.min(1, Number(roi.y ?? 0)));
+            const nw = Math.max(0, Math.min(1 - nx, Number(roi.width ?? 1)));
+            const nh = Math.max(0, Math.min(1 - ny, Number(roi.height ?? 1)));
+            const x = Math.floor(nx * w);
+            const y = Math.floor(ny * h);
+            const ww = Math.max(1, Math.floor(nw * w));
+            const hh = Math.max(1, Math.floor(nh * h));
+            return { x, y, width: ww, height: hh };
+        }
+
+        // 既定: 画面中央の正方形（短辺の80%）
+        const size = Math.floor(Math.min(w, h) * 0.8);
+        const x = Math.floor((w - size) / 2);
+        const y = Math.floor((h - size) / 2);
+        return { x, y, width: size, height: size };
     }
 
     // 起動処理：カメラ取得→再生→ループでフレームを取り出してデコード
@@ -66,18 +88,18 @@ export function startQrScanner({ videoEl, canvasEl, onDecode, onError, constrain
 
                     let imageData = null;
                     try {
-                        // ピクセルデータを取得（セキュリティやクロスオリジンで失敗する可能性がある）
-                        imageData = ctx.getImageData(0, 0, w, h);
+                        // 検知範囲（ROI）のみをデコード対象にする
+                        const rect = calcScanRect(w, h);
+                        imageData = ctx.getImageData(rect.x, rect.y, rect.width, rect.height);
                     } catch { /* 取得失敗時は次フレームへ */ }
 
                     if (imageData) {
                         // jsQR でデコードを試みる
-                        const code = jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' });
+                        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
                         if (code && code.data) {
                             // デコード成功時はコールバックを呼んで停止
                             try {
                                 onDecode && onDecode(code.data);
-                                console.log(code.data);
                             } finally {
                                 stop();
 

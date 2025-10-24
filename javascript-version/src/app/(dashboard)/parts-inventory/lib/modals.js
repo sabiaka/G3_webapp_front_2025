@@ -60,7 +60,9 @@ export function showQrScannerModal(title, instruction, onScan) {
           onError: err => {
             console.error('QRスキャナ初期化エラー', err);
             showErr('カメラの起動に失敗しました。権限や接続状態をご確認ください。');
-          }
+          },
+          // 画面中央80%の正方形を検知範囲に設定（画面外や端の誤検知を低減）
+          roi: { x: 0.1, y: 0.1, width: 0.8, height: 0.8 }
         });
       } catch (e) {
         console.error('QRスキャナ起動失敗', e);
