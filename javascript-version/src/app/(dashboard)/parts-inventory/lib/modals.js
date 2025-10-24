@@ -1,5 +1,6 @@
 // Modal helpers (bridged via ModalBridge React component)
 import { s, getRackNumericId } from './utils';
+import { startQrScanner } from './qrScanner';
 
 export function openModalWithBridge({ title = '', html = '', actions = [], maxWidth = 'sm', onOpen = null } = {}) {
   if (typeof window !== 'undefined' && typeof window.__pi_openModal === 'function') {
@@ -19,14 +20,16 @@ export function showQrScannerModal(title, instruction, onScan) {
     title,
     html: `
       <div class="p-6 text-center">
-        <div class="grid grid-cols-2 gap-4 items-center">
-          <div class="text-center">
-            <ion-icon name="grid-outline" class="text-6xl text-gray-400 mx-auto"></ion-icon>
+        <div class="grid grid-cols-2 gap-4 items-start">
+          <div class="text-left">
+            <ion-icon name="grid-outline" class="text-6xl text-gray-400"></ion-icon>
             <p class="mt-2 font-semibold">${s(instruction)}</p>
+            <p id="qr-error" class="mt-2 text-sm text-red-600 hidden"></p>
           </div>
-          <div class="bg-black aspect-square rounded-lg flex items-center justify-center relative overflow-hidden">
-            <p class="text-gray-500">カメラ入力</p>
-            <div class="scanner-line absolute left-0 h-1 bg-red-500 w-full"></div>
+          <div class="relative rounded-lg overflow-hidden bg-black aspect-square">
+            <video id="qr-video" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+            <canvas id="qr-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-0"></canvas>
+            <div class="scanner-line absolute left-0 h-1 bg-red-500 w-full animate-pulse" style="top: 10%"></div>
           </div>
         </div>
       </div>
@@ -34,8 +37,40 @@ export function showQrScannerModal(title, instruction, onScan) {
         <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">キャンセル</button>
       </div>` ,
     onOpen: () => {
-      setTimeout(() => onScan(), 2000);
-      document.getElementById('cancel-btn').onclick = closeModal;
+      const video = document.getElementById('qr-video');
+      const canvas = document.getElementById('qr-canvas');
+      const errEl = document.getElementById('qr-error');
+
+      function showErr(msg) { if (!errEl) return; errEl.textContent = msg; errEl.classList.remove('hidden'); }
+
+      let stopScanner = null;
+
+      try {
+        stopScanner = startQrScanner({
+          videoEl: video,
+          canvasEl: canvas,
+          onDecode: data => {
+            let payload = null;
+            try { payload = JSON.parse(data); } catch { payload = { raw: data }; }
+            // 停止とクローズ後にコールバック
+            try { stopScanner && stopScanner(); } catch {}
+            closeModal();
+            try { onScan && onScan(payload); } catch (e) { console.warn('onScan callback error', e); }
+          },
+          onError: err => {
+            console.error('QRスキャナ初期化エラー', err);
+            showErr('カメラの起動に失敗しました。権限や接続状態をご確認ください。');
+          }
+        });
+      } catch (e) {
+        console.error('QRスキャナ起動失敗', e);
+        showErr('QRスキャナを開始できませんでした。');
+      }
+
+      document.getElementById('cancel-btn').onclick = () => {
+        try { stopScanner && stopScanner(); } catch {}
+        closeModal();
+      };
     }
   });
 }
