@@ -122,8 +122,8 @@
         setTimeout(function () { alertScreen.classList.add('hidden'); }, 5000);
     }
 
-    function addErrorLog(code, message, type) {
-        const now = updateClock();
+    function addErrorLog(code, message, type, timeOverride) {
+        const now = timeOverride || updateClock();
         let bg, accent, titleCls;
         if (type === 'error') {
             bg = 'bg-red-900/50'; accent = 'text-red-400'; titleCls = 'text-red-300';
@@ -221,6 +221,242 @@
         for (var i = 1; i <= 4; i++) setTileStatus(i, 'PASS');
         setOverallInspectionStatus('PASS');
     })();
+
+    // ---------- Machine logs (API) ----------
+    function isoToHMS(iso) {
+        if (!iso) return '--:--:--';
+        try {
+            var d = new Date(iso);
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mm = String(d.getMinutes()).padStart(2, '0');
+            var ss = String(d.getSeconds()).padStart(2, '0');
+            return hh + ':' + mm + ':' + ss;
+        } catch (e) {
+            return '--:--:--';
+        }
+    }
+
+    function setMachineStatusBadge(kind) {
+        if (!machineStatus) return;
+        if (kind === 'error') {
+            machineStatus.textContent = 'エラー';
+            machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-red-500 text-red-900';
+        } else if (kind === 'warning') {
+            machineStatus.textContent = '警告';
+            machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-yellow-500 text-yellow-900';
+        } else {
+            machineStatus.textContent = '正常';
+            machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900';
+        }
+    }
+
+    function resetToNormalFromStandby() {
+        // 機械バッジと検査全体/各タイルを正常化
+        setMachineStatusBadge('info');
+        setOverallInspectionStatus('PASS');
+        for (var i = 1; i <= 4; i++) setTileStatus(i, 'PASS');
+    }
+
+    function renderLogs(logs) {
+        if (!errorLogList) return;
+        // 既存をクリアし、API順序（最新→古い）を維持して描画
+        errorLogList.innerHTML = '';
+        for (var i = 0; i < logs.length; i++) {
+            var lg = logs[i] || {};
+            var type = lg.log_type || 'info';
+            var title = lg.title || '';
+            var msg = lg.message || '';
+            var ts = isoToHMS(lg.timestamp);
+            // 末尾に追加して順序を保つ
+            let bg, accent, titleCls;
+            if (type === 'error') {
+                bg = 'bg-red-900/50'; accent = 'text-red-400'; titleCls = 'text-red-300';
+            } else if (type === 'warning') {
+                bg = 'bg-yellow-900/50'; accent = 'text-yellow-400'; titleCls = 'text-yellow-300';
+            } else {
+                bg = 'bg-gray-900'; accent = 'text-gray-400'; titleCls = 'text-gray-300';
+            }
+            var row = '\n<div class="flex justify-between items-center ' + bg + ' p-3 rounded-md">\n' +
+                '  <div>\n' +
+                '    <p class="font-semibold ' + titleCls + '">' + title + '</p>\n' +
+                (msg ? ('    <p class="text-sm ' + accent + '">' + msg + '</p>') : '') +
+                '  </div>\n' +
+                '  <span class="text-sm text-gray-400 whitespace-nowrap">' + ts + '</span>\n' +
+                '</div>';
+            errorLogList.insertAdjacentHTML('beforeend', row);
+        }
+
+        // 先頭ログの種類に応じてバッジ更新
+        var top = logs && logs[0];
+        if (top) {
+            var t = (top.log_type || 'info').toLowerCase();
+            // I-002: PLC スタンバイが先頭に来たら即リセット
+            if (t === 'info' && typeof top.title === 'string' && top.title.trim().indexOf('I-002') === 0) {
+                resetToNormalFromStandby();
+            } else {
+                setMachineStatusBadge(t);
+            }
+        }
+    }
+
+    if (window.MachineAPI && typeof window.MachineAPI.getMachineLogs === 'function') {
+        window.MachineAPI.getMachineLogs(1, { page: 1, limit: 10, timeoutMs: 5000 })
+            .then(function (resp) {
+                if (!resp || !Array.isArray(resp.logs)) return;
+                renderLogs(resp.logs);
+            })
+            .catch(function (err) {
+                console.warn('Machine logs fetch failed:', err && (err.message || err));
+                try {
+                    var list = $('error-log-list');
+                    if (list) {
+                        var now = new Date();
+                        var ts = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+                        list.insertAdjacentHTML('afterbegin',
+                            '<div class="flex justify-between items-center bg-yellow-900/50 p-3 rounded-md">' +
+                            '<div><p class="font-semibold text-yellow-300">W-API: ログの取得に失敗</p>' +
+                            '<p class="text-sm text-yellow-400">' + (err && err.code === 'TIMEOUT' ? 'タイムアウトしました。' : 'ネットワーク/サーバーエラー。') + '</p></div>' +
+                            '<span class="text-sm text-gray-400 whitespace-nowrap">' + ts + '</span></div>'
+                        );
+                    }
+                } catch (e) { /* noop */ }
+            });
+    }
+
+    // ---------- Inspection (images & results) API ----------
+    // Camera order and mapping (DOM id cam1..4 <-> camera_id)
+    var CAMERA_IDS = ['B-spring01', 'B-spring02', 'B-spring03', 'B-spring04'];
+    var CAMERA_ID_TO_INDEX = (function () {
+        var m = {};
+        for (var i = 0; i < CAMERA_IDS.length; i++) m[CAMERA_IDS[i]] = i + 1;
+        return m;
+    })();
+
+    function ensureReasonBadge(index) {
+        var cam = $('cam' + index);
+        if (!cam) return null;
+        var id = 'cam' + index + '-reason';
+        var el = $(id);
+        if (!el) {
+            el = document.createElement('span');
+            el.id = id;
+            el.className = 'absolute bottom-3 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-red-500 text-red-900 text-xs font-bold shadow-lg';
+            el.style.maxWidth = '75%';
+            el.style.whiteSpace = 'nowrap';
+            el.style.textOverflow = 'ellipsis';
+            el.style.overflow = 'hidden';
+            cam.appendChild(el);
+        }
+        return el;
+    }
+
+    function hideReasonBadge(index) {
+        var el = $('cam' + index + '-reason');
+        if (el) el.remove();
+    }
+
+    function setTileImage(index, url) {
+        var cam = $('cam' + index);
+        if (!cam) return;
+        if (url) {
+            cam.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
+            cam.style.backgroundSize = 'cover';
+            cam.style.backgroundPosition = 'center';
+            cam.style.backgroundRepeat = 'no-repeat';
+        } else {
+            cam.style.backgroundImage = '';
+        }
+    }
+
+    function buildInspectionImageUrl(imagePath) {
+        if (!imagePath) return '';
+        // NOTE: サーバー側の画像公開パスに合わせて必要なら調整
+        // 仮: /api/inspections/images/{image_path}
+        return '/api/inspections/images/' + encodeURIComponent(String(imagePath));
+    }
+
+    function applyShots(lotId, shots) {
+        // 最新ショット（同じ camera_id は最後の要素を「最新」とみなす）
+        var latest = {};
+        for (var i = 0; i < shots.length; i++) {
+            var s = shots[i] || {};
+            if (!s.camera_id) continue;
+            latest[s.camera_id] = s;
+        }
+
+        var allPass = true;
+        for (var j = 0; j < CAMERA_IDS.length; j++) {
+            var camId = CAMERA_IDS[j];
+            var idx = j + 1;
+            var entry = latest[camId];
+            if (!entry) continue; // 情報なしは変更しない
+
+            var status = String(entry.status || 'PASS').toUpperCase();
+            var imageUrl = buildInspectionImageUrl(entry.image_path);
+            var details = entry.details || '';
+
+            setTileImage(idx, imageUrl);
+            setTileStatus(idx, status);
+
+            if (status === 'FAIL') {
+                allPass = false;
+                if (details) {
+                    var badge = ensureReasonBadge(idx);
+                    if (badge) badge.textContent = details;
+                } else {
+                    hideReasonBadge(idx);
+                }
+            } else {
+                hideReasonBadge(idx);
+            }
+        }
+
+        setOverallInspectionStatus(allPass ? 'PASS' : 'FAIL');
+        // rot_id と 時刻を更新
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2, '0');
+        var mm = String(now.getMinutes()).padStart(2, '0');
+        var ss = String(now.getSeconds()).padStart(2, '0');
+        updateInspectionInfo(lotId || '', hh + ':' + mm + ':' + ss);
+    }
+
+    function loadInspectionCurrent() {
+        if (!(window.MachineAPI && typeof window.MachineAPI.getCurrentLot === 'function' && typeof window.MachineAPI.getLotShots === 'function')) {
+            return;
+        }
+        window.MachineAPI.getCurrentLot({ timeoutMs: 5000 })
+            .then(function (res) {
+                if (!res || !res.lot_id) throw new Error('No lot_id');
+                var lotId = res.lot_id;
+                return window.MachineAPI.getLotShots(lotId, { timeoutMs: 5000 })
+                    .then(function (detail) { return { lotId: lotId, detail: detail }; });
+            })
+            .then(function (bundle) {
+                var lotId = bundle.lotId;
+                var detail = bundle.detail || {};
+                var shots = Array.isArray(detail.shots) ? detail.shots : [];
+                applyShots(lotId, shots);
+            })
+            .catch(function (err) {
+                console.warn('Inspection data fetch failed:', err && (err.message || err));
+                try {
+                    var list = $('error-log-list');
+                    if (list) {
+                        var now = new Date();
+                        var ts = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+                        list.insertAdjacentHTML('afterbegin',
+                            '<div class="flex justify-between items-center bg-yellow-900/50 p-3 rounded-md">' +
+                            '<div><p class="font-semibold text-yellow-300">W-API: 検査情報の取得に失敗</p>' +
+                            '<p class="text-sm text-yellow-400">' + (err && err.code === 'TIMEOUT' ? 'タイムアウトしました。' : 'ネットワーク/サーバーエラー。') + '</p></div>' +
+                            '<span class="text-sm text-gray-400 whitespace-nowrap">' + ts + '</span></div>'
+                        );
+                    }
+                } catch (e) { /* noop */ }
+            });
+    }
+
+    // 初回読み込み
+    loadInspectionCurrent();
 
     // expose small API for future integration
     window.Signage = {
