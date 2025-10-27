@@ -375,7 +375,7 @@
         return '/api/inspections/images/' + encodeURIComponent(String(imagePath));
     }
 
-    function applyShots(lotId, shots) {
+    function applyShots(lotId, shots, capturedAtIso) {
         // 最新ショット（同じ camera_id は最後の要素を「最新」とみなす）
         var latest = {};
         for (var i = 0; i < shots.length; i++) {
@@ -412,12 +412,18 @@
         }
 
         setOverallInspectionStatus(allPass ? 'PASS' : 'FAIL');
-        // rot_id と 時刻を更新
-        var now = new Date();
-        var hh = String(now.getHours()).padStart(2, '0');
-        var mm = String(now.getMinutes()).padStart(2, '0');
-        var ss = String(now.getSeconds()).padStart(2, '0');
-        updateInspectionInfo(lotId || '', hh + ':' + mm + ':' + ss);
+        // rot_id と 時刻を更新（APIの captured_at を優先的に使用）
+        var timeStr;
+        if (capturedAtIso) {
+            timeStr = isoToHMS(capturedAtIso);
+        } else {
+            var now = new Date();
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            timeStr = hh + ':' + mm + ':' + ss;
+        }
+        updateInspectionInfo(lotId || '', timeStr);
     }
 
     function loadInspectionCurrent() {
@@ -435,7 +441,8 @@
                 var lotId = bundle.lotId;
                 var detail = bundle.detail || {};
                 var shots = Array.isArray(detail.shots) ? detail.shots : [];
-                applyShots(lotId, shots);
+                var capturedAt = detail.captured_at; // 仕様変更で追加
+                applyShots(lotId, shots, capturedAt);
             })
             .catch(function (err) {
                 console.warn('Inspection data fetch failed:', err && (err.message || err));

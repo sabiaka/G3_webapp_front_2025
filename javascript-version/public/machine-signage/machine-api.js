@@ -132,7 +132,11 @@
 
     /**
      * Get lot shots detail
-     * returns: { lot_id: string, shots: Array<{ camera_id:string, status:string, details?:string|null, image_path?:string }>} 
+     * returns: {
+     *   lot_id: string,
+     *   captured_at?: string, // ISO-8601 タイムスタンプ (仕様追加)
+     *   shots: Array<{ camera_id:string, status:string, details?:string|null, image_path?:string }>
+     * }
      */
     function getLotShots(lotId, opts) {
         opts = opts || {};
