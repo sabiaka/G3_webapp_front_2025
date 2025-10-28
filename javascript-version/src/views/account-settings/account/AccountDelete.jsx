@@ -9,11 +9,11 @@ import Button from '@mui/material/Button'
 const AccountDelete = () => {
   return (
     <Card>
-      <CardHeader title='Delete Account' />
+      <CardHeader title='アカウントの削除' />
       <CardContent className='flex flex-col items-start gap-6'>
-        <FormControlLabel control={<Checkbox />} label='I confirm my account deactivation' />
+        <FormControlLabel control={<Checkbox />} label='アカウントの無効化に同意します' />
         <Button variant='contained' color='error' type='submit'>
-          Deactivate Account
+          アカウントを無効化
         </Button>
       </CardContent>
     </Card>

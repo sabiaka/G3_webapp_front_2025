@@ -32,14 +32,14 @@ const initialData = {
   currency: 'usd'
 }
 
-const languageData = ['English', 'Arabic', 'French', 'German', 'Portuguese']
+const languageData = ['英語', 'アラビア語', 'フランス語', 'ドイツ語', 'ポルトガル語']
 
 const AccountDetails = () => {
   // States
   const [formData, setFormData] = useState(initialData)
   const [fileInput, setFileInput] = useState('')
   const [imgSrc, setImgSrc] = useState('/images/avatars/1.png')
-  const [language, setLanguage] = useState(['English'])
+  const [language, setLanguage] = useState(['英語'])
 
   const handleDelete = value => {
     setLanguage(current => current.filter(item => item !== value))
@@ -76,11 +76,11 @@ const AccountDetails = () => {
     <Card>
       <CardContent className='mbe-5'>
         <div className='flex max-sm:flex-col items-center gap-6'>
-          <img height={100} width={100} className='rounded' src={imgSrc} alt='Profile' />
+          <img height={100} width={100} className='rounded' src={imgSrc} alt='プロフィール' />
           <div className='flex flex-grow flex-col gap-4'>
             <div className='flex flex-col sm:flex-row gap-4'>
               <Button component='label' size='small' variant='contained' htmlFor='account-settings-upload-image'>
-                Upload New Photo
+                新しい写真をアップロード
                 <input
                   hidden
                   type='file'
@@ -91,10 +91,10 @@ const AccountDetails = () => {
                 />
               </Button>
               <Button size='small' variant='outlined' color='error' onClick={handleFileInputReset}>
-                Reset
+                リセット
               </Button>
             </div>
-            <Typography>Allowed JPG, GIF or PNG. Max size of 800K</Typography>
+            <Typography>JPG・GIF・PNG が使用可能です。最大サイズは 800KB です。</Typography>
           </div>
         </div>
       </CardContent>
@@ -104,7 +104,7 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='First Name'
+                label='名'
                 value={formData.firstName}
                 placeholder='John'
                 onChange={e => handleFormChange('firstName', e.target.value)}
@@ -113,7 +113,7 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Last Name'
+                label='姓'
                 value={formData.lastName}
                 placeholder='Doe'
                 onChange={e => handleFormChange('lastName', e.target.value)}
@@ -122,7 +122,7 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Email'
+                label='メールアドレス'
                 value={formData.email}
                 placeholder='john.doe@gmail.com'
                 onChange={e => handleFormChange('email', e.target.value)}
@@ -131,7 +131,7 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Organization'
+                label='所属/組織'
                 value={formData.organization}
                 placeholder='ThemeSelection'
                 onChange={e => handleFormChange('organization', e.target.value)}
@@ -140,7 +140,7 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Phone Number'
+                label='電話番号'
                 value={formData.phoneNumber}
                 placeholder='+1 (234) 567-8901'
                 onChange={e => handleFormChange('phoneNumber', e.target.value)}
@@ -149,18 +149,18 @@ const AccountDetails = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Address'
+                label='住所'
                 value={formData.address}
-                placeholder='Address'
+                placeholder='住所'
                 onChange={e => handleFormChange('address', e.target.value)}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='State'
+                label='州/都道府県'
                 value={formData.state}
-                placeholder='New York'
+                placeholder='ニューヨーク'
                 onChange={e => handleFormChange('state', e.target.value)}
               />
             </Grid>
@@ -168,7 +168,7 @@ const AccountDetails = () => {
               <TextField
                 fullWidth
                 type='number'
-                label='Zip Code'
+                label='郵便番号'
                 value={formData.zipCode}
                 placeholder='123456'
                 onChange={e => handleFormChange('zipCode', e.target.value)}
@@ -176,25 +176,25 @@ const AccountDetails = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Country</InputLabel>
+                <InputLabel>国</InputLabel>
                 <Select
-                  label='Country'
+                  label='国'
                   value={formData.country}
                   onChange={e => handleFormChange('country', e.target.value)}
                 >
-                  <MenuItem value='usa'>USA</MenuItem>
-                  <MenuItem value='uk'>UK</MenuItem>
-                  <MenuItem value='australia'>Australia</MenuItem>
-                  <MenuItem value='germany'>Germany</MenuItem>
+                  <MenuItem value='usa'>アメリカ合衆国</MenuItem>
+                  <MenuItem value='uk'>イギリス</MenuItem>
+                  <MenuItem value='australia'>オーストラリア</MenuItem>
+                  <MenuItem value='germany'>ドイツ</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Language</InputLabel>
+                <InputLabel>言語</InputLabel>
                 <Select
                   multiple
-                  label='Language'
+                  label='言語'
                   value={language}
                   onChange={handleChange}
                   renderValue={selected => (
@@ -224,54 +224,54 @@ const AccountDetails = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>TimeZone</InputLabel>
+                <InputLabel>タイムゾーン</InputLabel>
                 <Select
-                  label='TimeZone'
+                  label='タイムゾーン'
                   value={formData.timezone}
                   onChange={e => handleFormChange('timezone', e.target.value)}
                   MenuProps={{ PaperProps: { style: { maxHeight: 250 } } }}
                 >
-                  <MenuItem value='gmt-12'>(GMT-12:00) International Date Line West</MenuItem>
-                  <MenuItem value='gmt-11'>(GMT-11:00) Midway Island, Samoa</MenuItem>
-                  <MenuItem value='gmt-10'>(GMT-10:00) Hawaii</MenuItem>
-                  <MenuItem value='gmt-09'>(GMT-09:00) Alaska</MenuItem>
-                  <MenuItem value='gmt-08'>(GMT-08:00) Pacific Time (US & Canada)</MenuItem>
-                  <MenuItem value='gmt-08-baja'>(GMT-08:00) Tijuana, Baja California</MenuItem>
-                  <MenuItem value='gmt-07'>(GMT-07:00) Chihuahua, La Paz, Mazatlan</MenuItem>
-                  <MenuItem value='gmt-07-mt'>(GMT-07:00) Mountain Time (US & Canada)</MenuItem>
-                  <MenuItem value='gmt-06'>(GMT-06:00) Central America</MenuItem>
-                  <MenuItem value='gmt-06-ct'>(GMT-06:00) Central Time (US & Canada)</MenuItem>
-                  <MenuItem value='gmt-06-mc'>(GMT-06:00) Guadalajara, Mexico City, Monterrey</MenuItem>
-                  <MenuItem value='gmt-06-sk'>(GMT-06:00) Saskatchewan</MenuItem>
-                  <MenuItem value='gmt-05'>(GMT-05:00) Bogota, Lima, Quito, Rio Branco</MenuItem>
-                  <MenuItem value='gmt-05-et'>(GMT-05:00) Eastern Time (US & Canada)</MenuItem>
-                  <MenuItem value='gmt-05-ind'>(GMT-05:00) Indiana (East)</MenuItem>
-                  <MenuItem value='gmt-04'>(GMT-04:00) Atlantic Time (Canada)</MenuItem>
-                  <MenuItem value='gmt-04-clp'>(GMT-04:00) Caracas, La Paz</MenuItem>
+                  <MenuItem value='gmt-12'>(GMT-12:00) 国際日付変更線 西側</MenuItem>
+                  <MenuItem value='gmt-11'>(GMT-11:00) ミッドウェー島、サモア</MenuItem>
+                  <MenuItem value='gmt-10'>(GMT-10:00) ハワイ</MenuItem>
+                  <MenuItem value='gmt-09'>(GMT-09:00) アラスカ</MenuItem>
+                  <MenuItem value='gmt-08'>(GMT-08:00) 太平洋標準時（米国およびカナダ）</MenuItem>
+                  <MenuItem value='gmt-08-baja'>(GMT-08:00) ティフアナ、バハ・カリフォルニア</MenuItem>
+                  <MenuItem value='gmt-07'>(GMT-07:00) チワワ、ラパス、マサトラン</MenuItem>
+                  <MenuItem value='gmt-07-mt'>(GMT-07:00) 山岳部標準時（米国およびカナダ）</MenuItem>
+                  <MenuItem value='gmt-06'>(GMT-06:00) 中米</MenuItem>
+                  <MenuItem value='gmt-06-ct'>(GMT-06:00) 中部標準時（米国およびカナダ）</MenuItem>
+                  <MenuItem value='gmt-06-mc'>(GMT-06:00) グアダラハラ、メキシコシティ、モンテレイ</MenuItem>
+                  <MenuItem value='gmt-06-sk'>(GMT-06:00) サスカチュワン</MenuItem>
+                  <MenuItem value='gmt-05'>(GMT-05:00) ボゴタ、リマ、キト、リオブランコ</MenuItem>
+                  <MenuItem value='gmt-05-et'>(GMT-05:00) 東部標準時（米国およびカナダ）</MenuItem>
+                  <MenuItem value='gmt-05-ind'>(GMT-05:00) インディアナ（東部）</MenuItem>
+                  <MenuItem value='gmt-04'>(GMT-04:00) 大西洋標準時（カナダ）</MenuItem>
+                  <MenuItem value='gmt-04-clp'>(GMT-04:00) カラカス、ラパス</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Currency</InputLabel>
+                <InputLabel>通貨</InputLabel>
                 <Select
-                  label='Currency'
+                  label='通貨'
                   value={formData.currency}
                   onChange={e => handleFormChange('currency', e.target.value)}
                 >
-                  <MenuItem value='usd'>USD</MenuItem>
-                  <MenuItem value='euro'>EUR</MenuItem>
-                  <MenuItem value='pound'>Pound</MenuItem>
-                  <MenuItem value='bitcoin'>Bitcoin</MenuItem>
+                  <MenuItem value='usd'>米ドル</MenuItem>
+                  <MenuItem value='euro'>ユーロ</MenuItem>
+                  <MenuItem value='pound'>英ポンド</MenuItem>
+                  <MenuItem value='bitcoin'>ビットコイン</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} className='flex gap-4 flex-wrap'>
               <Button variant='contained' type='submit'>
-                Save Changes
+                変更を保存
               </Button>
               <Button variant='outlined' type='reset' color='secondary' onClick={() => setFormData(initialData)}>
-                Reset
+                リセット
               </Button>
             </Grid>
           </Grid>
