@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography'
 import TabContext from '@mui/lab/TabContext'
 import TabList from '@mui/lab/TabList'
 import TabPanel from '@mui/lab/TabPanel'
+import DisplaySettings from './display'
 
 const AccountSettings = ({ tabContentList }) => {
   // States
@@ -25,6 +26,7 @@ const AccountSettings = ({ tabContentList }) => {
         <Grid item xs={12}>
           <TabList onChange={handleChange} variant='scrollable'>
             <Tab label='アカウント' icon={<i className='ri-user-3-line' />} iconPosition='start' value='account' />
+            <Tab label='表示設定' icon={<i className='ri-eye-line' />} iconPosition='start' value='display' />
             <Tab
               label='通知'
               icon={<i className='ri-notification-3-line' />}
@@ -40,7 +42,7 @@ const AccountSettings = ({ tabContentList }) => {
         </Grid>
         <Grid item xs={12}>
           <TabPanel value={activeTab} className='p-0'>
-            {tabContentList[activeTab]}
+            {activeTab === 'display' ? <DisplaySettings /> : tabContentList[activeTab]}
           </TabPanel>
         </Grid>
       </Grid>
