@@ -334,66 +334,48 @@ return true;
     // FAB: ラック作成
     document.getElementById('add-rack-btn')?.addEventListener('click', () => showAddRackModal(getCtx()));
 
-    // FAB: QR入庫
+    // FAB: QR入庫（スキャンした棚に格納）
     document.getElementById('qr-stock-in-btn')?.addEventListener('click', () => {
         showStorePartModal(newPart => {
-            showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', async () => {
-                const currentRack = racks.find(r => r.id === currentRackId);
-
-                if (!currentRack) {
-                    console.error('対象のラックが見つかりません。');
-                    closeModal();
-                    
-return;
-                }
-
-                let emptySlot = null;
-
-                for (let r = 1; r <= currentRack.rows; r++) {
-                    const rowChar = String.fromCharCode(64 + r);
-
-                    for (let c = 1; c <= currentRack.cols; c++) {
-                        const slotId = `${rowChar}-${c}`;
-
-                        if (!currentRack.slots[slotId]) {
-                            emptySlot = slotId;
-                            break;
-                        }
+            showQrScannerModal('QR入庫', '棚QRコードを読み取ってください', async payload => {
+                try {
+                    const { type, rack_id, slot_identifier } = payload || {};
+                    if (type !== 'rack_slot' || !rack_id || !slot_identifier) {
+                        alert('無効なQRコードです。棚QRコードを読み取ってください。');
+                        return;
                     }
 
-                    if (emptySlot) break;
-                }
+                    const targetRack = racks.find(r => getRackNumericId(r) === Number(rack_id));
+                    if (!targetRack) { alert('該当のラックが見つかりません。'); return; }
 
-                if (!emptySlot) {
-                    closeModal();
-                    console.error('現在のラックに空きがありません。');
-                    
-return;
-                }
+                    if (targetRack.slots[slot_identifier]) {
+                        alert('この棚はすでに使用中です。別の棚を読み取ってください。');
+                        return;
+                    }
 
-                const rackNumericId = getRackNumericId(currentRack);
+                    const rackNumericId = getRackNumericId(targetRack);
+                    if (!Number.isFinite(rackNumericId)) { alert('ラックIDの解決に失敗しました'); return; }
 
-                if (!Number.isFinite(rackNumericId)) {
-                    alert('ラックIDの解決に失敗しました');
-                    
-return;
-                }
+                    const body = {
+                        part_name: newPart.partName,
+                        part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
+                        quantity: newPart.quantity,
+                        color_code: (newPart.color || '').toString().replace(/^#/, '') || null
+                    };
 
-                const body = {
-                    part_name: newPart.partName,
-                    part_model_number: (newPart.partModelNumber || '').toString().trim() || null,
-                    quantity: newPart.quantity,
-                    color_code: (newPart.color || '').toString().replace(/^#/, '') || null
-                };
-
-                try {
-                    const res = await api.createSlot(rackNumericId, emptySlot, body);
+                    const res = await api.createSlot(rackNumericId, slot_identifier, body);
                     const saved = (res && res.slot) ? res.slot : body;
 
-                    currentRack.slots[emptySlot] = mapApiSlotToAppPart(saved);
+                    targetRack.slots[slot_identifier] = mapApiSlotToAppPart(saved);
                     await refreshCurrentRackFromApi();
-                    closeModal();
-                    setTimeout(() => updateDetails(emptySlot), 0);
+
+                    if (currentRackId !== targetRack.id) {
+                        currentRackId = targetRack.id;
+                        setLastRackId(currentRackId);
+                        renderApp();
+                    }
+
+                    setTimeout(() => updateDetails(slot_identifier), 0);
                 } catch (err) {
                     console.error('部品の格納に失敗', err);
                     alert('格納に失敗しました。サーバーの状態を確認してください。');
@@ -402,49 +384,43 @@ return;
         });
     });
 
-    // FAB: QR出庫
+    // FAB: QR出庫（スキャンした棚から使用）
     document.getElementById('qr-stock-out-btn')?.addEventListener('click', () => {
-        showQrScannerModal('QR出庫', '出庫する棚QRコードを読み取ってください', async () => {
-            const currentRack = racks.find(r => r.id === currentRackId);
-
-            if (!currentRack) {
-                console.error('対象のラックが見つかりません。');
-                closeModal();
-                
-return;
-            }
-
-            let targetSlot = null;
-
-            outer: for (let r = 1; r <= currentRack.rows; r++) {
-                const rowChar = String.fromCharCode(64 + r);
-
-                for (let c = 1; c <= currentRack.cols; c++) {
-                    const slotId = `${rowChar}-${c}`;
-
-                    if (currentRack.slots[slotId]) {
-                        targetSlot = slotId;
-                        break outer;
-                    }
+        showQrScannerModal('QR出庫', '出庫する棚QRコードを読み取ってください', async payload => {
+            try {
+                const { type, rack_id, slot_identifier } = payload || {};
+                if (type !== 'rack_slot' || !rack_id || !slot_identifier) {
+                    alert('無効なQRコードです。棚QRコードを読み取ってください。');
+                    return;
                 }
+
+                const targetRack = racks.find(r => getRackNumericId(r) === Number(rack_id));
+                if (!targetRack) { alert('該当のラックが見つかりません。'); return; }
+
+                if (!targetRack.slots[slot_identifier]) {
+                    alert('この棚には出庫できる部品がありません。');
+                    return;
+                }
+
+                if (currentRackId !== targetRack.id) {
+                    currentRackId = targetRack.id;
+                    setLastRackId(currentRackId);
+                    renderApp();
+                }
+
+                updateDetails(slot_identifier);
+
+                (async () => {
+                    await refreshCurrentRackFromApi();
+                    const currentRack = racks.find(r => r.id === currentRackId);
+                    const part = currentRack?.slots?.[slot_identifier];
+                    if (!currentRack || !part) return;
+                    showUsePartModal(getCtx(), slot_identifier, currentRack, part);
+                })();
+            } catch (err) {
+                console.error('QR出庫処理に失敗', err);
+                alert('出庫処理に失敗しました。サーバーの状態を確認してください。');
             }
-
-            closeModal();
-
-            if (!targetSlot) {
-                alert('このラックに出庫可能な部品が見つかりません。');
-                
-return;
-            }
-
-            updateDetails(targetSlot);
-
-            (async () => {
-                const { currentRack, part } = await ensurePartInSlot(targetSlot);
-
-                if (!currentRack || !part) return;
-                showUsePartModal(getCtx(), targetSlot, currentRack, part);
-            })();
         });
     });
 

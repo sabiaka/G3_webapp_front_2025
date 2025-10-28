@@ -287,7 +287,7 @@ return (
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e, '/account-settings')}>
                     <i className='ri-user-3-line' />
                     <Typography color='text.primary'>マイプロフィール</Typography>
                   </MenuItem>
