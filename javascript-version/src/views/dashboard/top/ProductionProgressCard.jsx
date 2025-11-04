@@ -1,3 +1,5 @@
+// 生産進捗カード: KPI達成率のドーナツグラフ表示
+
 "use client";
 
 import Card from "@mui/material/Card";

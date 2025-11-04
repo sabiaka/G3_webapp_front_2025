@@ -1,3 +1,5 @@
+// 画像検査ステータスカード: 良品率の円グラフ表示
+
 "use client";
 
 import Card from "@mui/material/Card";

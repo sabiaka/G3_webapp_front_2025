@@ -1,3 +1,5 @@
+// クイックリンク行: 3つのショートカットカードを横並びで表示
+
 "use client";
 
 import Grid from "@mui/material/Grid";

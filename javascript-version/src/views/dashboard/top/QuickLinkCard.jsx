@@ -1,3 +1,5 @@
+// クイックリンクカード: ダッシュボード上部のショートカットボタン用
+
 "use client";
 
 import Card from "@mui/material/Card";

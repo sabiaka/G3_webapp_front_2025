@@ -1,3 +1,5 @@
+// 機械エラーログカード: 直近のエラー・警告・情報をリスト表示
+
 "use client";
 
 import Card from "@mui/material/Card";

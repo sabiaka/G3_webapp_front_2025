@@ -1,3 +1,4 @@
+// 今日のお知らせカード: ダッシュボード先頭に表示されるお知らせ・連絡欄
 "use client";
 
 // React
@@ -20,7 +21,7 @@ import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
 
 const STORAGE_KEY = "dashboard_notice_v1";
 
-const NoticeCard = () => {
+const NoticeCard = ({ height = 160 }) => {
   const [notice, setNotice] = useState(
     "本日の安全第一。午後は来客予定があります。\n17:00 までに作業場の整理整頓をお願いします。"
   );
@@ -52,7 +53,7 @@ const NoticeCard = () => {
 
   return (
     <>
-      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card sx={{ height, display: 'flex', flexDirection: 'column' }}>
         <CardHeader
           title="今日のお知らせ"
           action={
@@ -61,7 +62,7 @@ const NoticeCard = () => {
             </Button>
           }
         />
-        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <CardContent sx={{ flexGrow: 1, overflow: 'auto' }}>
           <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
             {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
           </Typography>

@@ -1,3 +1,5 @@
+// 管理者メニューカード: ダッシュボード右側の管理者向け操作ボタン
+
 "use client";
 
 import Card from "@mui/material/Card";
