@@ -86,9 +86,10 @@
                     <pre><code class="language-sql">CREATE TABLE today_message (
     message_id INT PRIMARY KEY DEFAULT 1,       -- 常にID=1のレコードだけを使う
     content TEXT,                               -- お知らせの本文
+    priority INT DEFAULT 1,                       -- 重要度 (1:低い, 2:普通, 3:高い)
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 最終更新日時
 );</code></pre>
-                    <p class="mt-3 text-sm text-slate-600">※フロントエンド側は、このテーブルの <code>message_id = 1</code> のレコードのみを対象にGETとPUTを行います。</p>
+                    <p class="mt-3 text-sm text-slate-600">※DBには数値(INT)で保存し、APIがレスポンスする際に「低い」などの文字列に変換します。</p>
                     <p class="mt-2 text-sm text-slate-600">※サーバー起動時やAPI側で、ID=1のレコードが存在しない場合のみ作成（INSERT）する処理を推奨します。</p>
                 </div>
             </section>
@@ -109,9 +110,10 @@
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
     "content": "qwer",
+    "priority": "低い",
     "updated_at": "2025-10-27T15:00:00+09:00"
 }</code></pre>
-                </div>
+                    </div>
             </section>
 
             <section id="update-notification">
@@ -125,17 +127,19 @@
                     <p class="mb-4">お知らせの内容を更新（上書き）するAPI。リソースが「ID=1」で固定されているため、PUTでまるっと更新するのがシンプル。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
+                    <p class="text-sm mb-2">※リクエスト（送信）時は、数値（1:低い, 2:普通, 3:高い）で送ることを推奨します。</p>
                     <pre><code class="language-json">{
-    "content": "新しいお知らせのテキストです。"
+    "content": "新しいお知らせのテキストです。",
+    "priority": 3
 }</code></pre>
-
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <p class="text-sm mb-2">更新が成功したら、最新のデータが返ってくるよ。</p>
                     <pre><code class="language-json">{
     "content": "新しいお知らせのテキストです。",
+    "priority": "高い",
     "updated_at": "2025-10-27T15:05:00+09:00"
 }</code></pre>
-                </div>
+                    </div>
             </section>
 
         </div>
