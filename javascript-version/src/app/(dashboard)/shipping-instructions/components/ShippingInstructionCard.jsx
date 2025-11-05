@@ -5,6 +5,8 @@ import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
 import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
+import Chip from '@mui/material/Chip'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
@@ -17,26 +19,36 @@ import EventIcon from '@mui/icons-material/Event'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import NotesIcon from '@mui/icons-material/Notes'
 import useAuthMe from '@core/hooks/useAuthMe'
+import SurfaceBox from '@/components/surface/SurfaceBox'
 
 import SpringIcon from './icons/SpringIcon'
 
 const cardMinHeight = 260
 
-const lineAccent = {
-  'マット': '#06b6d4',
-  'ボトム': '#f97316',
-  'その他': '#9ca3af'
-}
+const lineAccentKey = line => (line === 'マット' ? 'info' : line === 'ボトム' ? 'warning' : 'default')
 
-const LineChip = ({ line }) => {
-  const chipStyles = {
-    'マット': { backgroundColor: '#cffafe', color: '#0e7490' },
-    'ボトム': { backgroundColor: '#ffedd5', color: '#9a3412' },
-    'その他': { backgroundColor: '#e5e7eb', color: '#374151' },
-  }
-
-  return <span className='px-3 py-1 text-sm font-semibold rounded-full' style={chipStyles[line] || chipStyles['その他']}>{line}</span>
-}
+const LineChip = ({ line }) => (
+  <Chip
+    size='small'
+    label={line}
+    sx={{
+      px: 1.25,
+      fontWeight: 700,
+      bgcolor: theme => {
+        const key = lineAccentKey(line)
+        if (key === 'info') return 'var(--mui-palette-info-lightOpacity)'
+        if (key === 'warning') return 'var(--mui-palette-warning-lightOpacity)'
+        return theme.palette.action.hover
+      },
+      color: theme => {
+        const key = lineAccentKey(line)
+        if (key === 'info') return theme.palette.info.dark
+        if (key === 'warning') return theme.palette.warning.dark
+        return theme.palette.text.primary
+      }
+    }}
+  />
+)
 
 function splitTitle(title, line) {
   if (!title) return { main: line, sub: '' }
@@ -69,8 +81,8 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
         borderRadius: '12px',
         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         opacity: instruction.completed ? 0.95 : 1,
-        border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb',
-        backgroundColor: instruction.completed ? '#f0fdf4' : '#ffffff',
+        border: theme => `1px solid ${instruction.completed ? theme.palette.success.main : theme.palette.divider}`,
+        backgroundColor: theme => (instruction.completed ? 'var(--mui-palette-success-lightOpacity)' : theme.palette.background.paper),
         minHeight: cardMinHeight,
         height: '100%',
         width: '100%',
@@ -89,7 +101,16 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
           width: '6px',
           borderTopLeftRadius: '12px',
           borderBottomLeftRadius: '12px',
-          backgroundColor: instruction.completed ? '#22c55e' : (lineAccent[instruction.line] || lineAccent['その他'])
+          backgroundColor: theme => (
+            instruction.completed
+              ? theme.palette.success.main
+              : (() => {
+                  const key = lineAccentKey(instruction.line)
+                  if (key === 'info') return theme.palette.info.main
+                  if (key === 'warning') return theme.palette.warning.main
+                  return theme.palette.divider
+                })()
+          )
         },
         '&:hover': {
           boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
@@ -103,19 +124,19 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
     >
       {instruction.completed && (
         <div className='absolute inset-0 pointer-events-none flex items-center justify-center'>
-          <CheckCircleIcon sx={{ fontSize: 140, color: 'rgba(34,197,94,0.12)' }} />
+          <CheckCircleIcon sx={{ fontSize: 140, color: 'var(--mui-palette-success-lightOpacity)' }} />
         </div>
       )}
 
-      <div className='p-5 border-b border-gray-200 flex justify-between items-start'>
-        <div>
+      <Box sx={{ p: 5, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
           <LineChip line={instruction.line} />
           <Typography
             variant='h3'
             sx={{
               fontWeight: 800,
               fontSize: 20,
-              color: '#111827',
+              color: 'text.primary',
               mt: 1.5,
               lineHeight: 1.3,
               wordBreak: 'break-word',
@@ -124,18 +145,18 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
             }}
           >
             {instruction.productName || main}
-            <Typography component='span' sx={{ fontSize: 15, color: '#4b5563', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <Typography component='span' sx={{ fontSize: 15, color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               {instruction.size || sub}
             </Typography>
           </Typography>
-        </div>
-        <div className='text-right flex-shrink-0 flex items-start gap-3'>
+        </Box>
+        <Box sx={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 3 }}>
           <span
             className='px-2.5 py-1 rounded-full text-xs font-bold select-none'
             style={{
-              backgroundColor: instruction.completed ? '#dcfce7' : '#f3f4f6',
-              color: instruction.completed ? '#166534' : '#374151',
-              border: instruction.completed ? '1px solid #86efac' : '1px solid #e5e7eb'
+              backgroundColor: instruction.completed ? 'var(--mui-palette-success-lightOpacity)' : 'transparent',
+              color: instruction.completed ? 'var(--mui-palette-success-dark)' : 'inherit',
+              border: instruction.completed ? '1px solid var(--mui-palette-success-main)' : '1px solid var(--mui-palette-divider)'
             }}
           >
             {instruction.completed ? '完了' : '未完了'}
@@ -146,64 +167,88 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
             onChange={() => { }}
             icon={<RadioButtonUncheckedIcon />}
             checkedIcon={<CheckCircleIcon />}
-            sx={{ p: 0, '&.Mui-checked': { color: '#16a34a' } }}
+            sx={{ p: 0, '&.Mui-checked': { color: 'success.main' } }}
             inputProps={{ 'aria-label': '完了' }}
           />
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div
-        className='p-5 flex-grow space-y-3 text-sm'
-        style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}
-      >
-        <div>
-          <h4 className='font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider'>仕様</h4>
-          <div className='space-y-1 text-gray-700'>
-            <div className='flex items-center'><PaletteIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>カラー:</p><p className='font-medium'>{instruction.color || '-'}</p></div>
-            <div className='flex items-center'><SquareFootIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>サイズ:</p><p className='font-medium'>{instruction.size || '-'}</p></div>
-            <div className='flex items-center'><SpringIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>スプリング:</p><p className='font-medium'>{instruction.springType || '-'}</p></div>
-            <div className='flex items-center'><Inventory2Icon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>同梱物:</p><p className='font-medium'>{instruction.includedItems || instruction.note || '-'}</p></div>
-            <div className='flex items-center'><NotesIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>備考:</p><p className='font-medium'>{instruction.remarks || '-'}</p></div>
-          </div>
-        </div>
-        <div>
-          <h4 className='font-bold text-gray-500 mb-1.5 text-xs uppercase tracking-wider'>配送情報</h4>
-          <div className='space-y-1 text-gray-700'>
-            <div className='flex items-center'><LocalShippingIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>配送方法:</p><p className='font-medium'>{instruction.shippingMethod || '-'}</p></div>
-            <div className='flex items-center'><PlaceIcon sx={{ mr: 1, color: '#6b7280', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>配送先:</p><p className='font-medium'>{instruction.destination || '-'}</p></div>
-            {instruction.remarks && <div className='flex items-center'><EventIcon sx={{ mr: 1, color: '#ef4444', fontSize: 18 }} /><p className='w-20 text-gray-500 shrink-0'>特記:</p><p className='font-bold text-red-600'>{instruction.remarks}</p></div>}
-            {instruction.createdAt && (
-              <div className='flex items-center text-sm text-gray-500'><EventIcon sx={{ mr: 1, fontSize: 18 }} />{new Date(instruction.createdAt).toLocaleString()}</div>
+      <Box sx={{ p: 5, flexGrow: 1 }} style={{ textDecoration: instruction.completed ? 'line-through' : 'none' }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant='overline' sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>仕様</Typography>
+          <Box sx={{ mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PaletteIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>カラー:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.color || '-'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <SquareFootIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>サイズ:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.size || '-'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <SpringIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>スプリング:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.springType || '-'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <Inventory2Icon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>同梱物:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.includedItems || instruction.note || '-'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <NotesIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>備考:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.remarks || '-'}</Typography>
+            </Box>
+          </Box>
+        </Box>
+        <Box>
+          <Typography variant='overline' sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>配送情報</Typography>
+          <Box sx={{ mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LocalShippingIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>配送方法:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.shippingMethod || '-'}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <PlaceIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+              <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>配送先:</Typography>
+              <Typography component='span' variant='body2' sx={{ fontWeight: 500 }}>{instruction.destination || '-'}</Typography>
+            </Box>
+            {instruction.remarks && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <EventIcon sx={{ color: 'error.main', fontSize: 18 }} />
+                <Typography component='span' variant='body2' color='text.secondary' sx={{ width: 80, flexShrink: 0 }}>特記:</Typography>
+                <Typography component='span' variant='body2' sx={{ fontWeight: 700, color: 'error.main' }}>{instruction.remarks}</Typography>
+              </Box>
             )}
-          </div>
-        </div>
-      </div>
+            {instruction.createdAt && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <EventIcon sx={{ fontSize: 18 }} />
+                <Typography variant='body2' color='text.secondary'>{new Date(instruction.createdAt).toLocaleString()}</Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Box>
 
-      <div className='p-4 bg-gray-50 rounded-b-xl flex justify-between items-center'>
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: instruction.completed ? 'line-through' : 'none' }}>
-          <span style={{
-            marginLeft: 8,
-            color: '#9ca3af',
-            fontSize: 12,
-            fontWeight: 700,
-            lineHeight: 1
-          }}>数量:</span>
-          <span style={{
-            marginLeft: 5,
-            marginBottom: 3,
-            color: instruction.completed ? '#16a34a' : '#4f46e5',
-            fontSize: 25,
-            fontWeight: 800,
-          }}>{instruction.quantity ?? '-'}</span>
-        </div>
+      <SurfaceBox variant='soft' sx={{ p: 4, borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', textDecoration: instruction.completed ? 'line-through' : 'none' }}>
+          <Typography component='span' sx={{ ml: 1, color: 'text.secondary', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>数量:</Typography>
+          <Typography component='span' sx={{ ml: 0.75, mb: 0.375, color: instruction.completed ? 'success.main' : 'primary.main', fontSize: 25, fontWeight: 800 }}>
+            {instruction.quantity ?? '-'}
+          </Typography>
+        </Box>
         {isAdmin && (
-          <div className='flex items-center gap-1'>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Button
               variant='text'
               size='small'
               onClick={e => { e.stopPropagation(); onEdit(instruction) }}
               startIcon={<EditOutlinedIcon />}
-              sx={{ color: '#4f46e5', fontWeight: 600 }}
+              sx={{ color: 'primary.main', fontWeight: 600 }}
             >
               編集
             </Button>
@@ -213,14 +258,14 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
                 size='small'
                 onClick={e => { e.stopPropagation(); onDelete(instruction) }}
                 startIcon={<DeleteOutlineIcon />}
-                sx={{ color: '#dc2626', fontWeight: 600 }}
+                sx={{ color: 'error.main', fontWeight: 600 }}
               >
                 削除
               </Button>
             )}
-          </div>
+          </Box>
         )}
-      </div>
+      </SurfaceBox>
     </Card>
   )
 }
