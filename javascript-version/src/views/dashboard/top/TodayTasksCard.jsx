@@ -8,6 +8,7 @@ import CardContent from "@mui/material/CardContent";
 import CardActionArea from "@mui/material/CardActionArea";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
+import SurfaceBox from "@/components/surface/SurfaceBox";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 
@@ -21,7 +22,15 @@ const TodayTasksCard = () => {
         <CardContent>
           <Grid container spacing={3} alignItems="stretch">
             <Grid item xs={12} md={6}>
-              <Box bgcolor="grey.50" p={3} borderRadius={2} display="flex" justifyContent="space-between" alignItems="flex-end" sx={{ height: '100%' }}>
+              <SurfaceBox
+                p={3}
+                borderRadius={2}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="flex-end"
+                sx={{ height: '100%' }}
+                variant="soft"
+              >
                 <Box>
                   <Chip label="マット" color="info" size="small" />
                   <Typography fontWeight={700} mt={1}>
@@ -33,10 +42,18 @@ const TodayTasksCard = () => {
                   <Typography variant="body2" color="text.secondary">数量</Typography>
                   <Typography variant="h4" color="primary.main" fontWeight={700}>1</Typography>
                 </Box>
-              </Box>
+              </SurfaceBox>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box bgcolor="grey.50" p={3} borderRadius={2} display="flex" justifyContent="space-between" alignItems="flex-end" sx={{ height: '100%' }}>
+              <SurfaceBox
+                p={3}
+                borderRadius={2}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="flex-end"
+                sx={{ height: '100%' }}
+                variant="soft"
+              >
                 <Box>
                   <Chip label="ボトム" color="warning" size="small" />
                   <Typography fontWeight={700} mt={1}>
@@ -48,7 +65,7 @@ const TodayTasksCard = () => {
                   <Typography variant="body2" color="text.secondary">数量</Typography>
                   <Typography variant="h4" color="primary.main" fontWeight={700}>1</Typography>
                 </Box>
-              </Box>
+              </SurfaceBox>
             </Grid>
           </Grid>
         </CardContent>

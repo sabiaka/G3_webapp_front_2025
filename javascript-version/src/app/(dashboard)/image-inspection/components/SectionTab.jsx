@@ -28,6 +28,7 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
+import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
   section,
@@ -123,7 +124,7 @@ return <DonutChart percentage={statsLatest.passRate} />
                 </Box>
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
-                    <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
+                    <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">ロット総数</Typography>
                       {(() => {
                         const latest = getLatestLot(section)
@@ -133,10 +134,10 @@ return <DonutChart percentage={statsLatest.passRate} />
                         
 return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
                       })()}
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                   <Grid item xs={4}>
-                    <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
+                    <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">良品</Typography>
                       {(() => {
                         const latest = getLatestLot(section)
@@ -146,10 +147,10 @@ return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typograph
                         
 return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
                       })()}
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                   <Grid item xs={4}>
-                    <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, textAlign: 'center' }}>
+                    <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign:  'center' }}>
                       <Typography variant="body2" color="text.secondary">不良品</Typography>
                       {(() => {
                         const latest = getLatestLot(section)
@@ -159,7 +160,7 @@ return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLat
                         
 return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
                       })()}
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                 </Grid>
               </Box>
@@ -295,7 +296,7 @@ return (
                           </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell colSpan={5} sx={{ p: 0, bgcolor: 'grey.50' }}>
+                          <TableCell colSpan={5} sx={{ p: 0, bgcolor: 'action.hover' }}>
                             <Collapse in={isOpen} timeout="auto" unmountOnExit>
                               <Box sx={{ px: 3, py: 2 }}>
                                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -328,7 +329,7 @@ return (
                                                 {s.image_path}
                                               </Typography>
                                               <Box
-                                                sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900', cursor: 'pointer' }}
+                                                sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
                                                 onClick={() => {
                                                   const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
 
