@@ -9,7 +9,7 @@ export function ErrorLogList({ logs, maxHeight, emptyMessage = '該当するロ�
         <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0, ...(maxHeight ? { maxHeight } : {}) }}>
             {logs.length === 0 ? (
                 <Box textAlign='center' py={6} color='text.secondary'>
-                    <span className='material-icons' style={{ fontSize: 48, color: '#bdbdbd' }}>sentiment_dissatisfied</span>
+                    <Box component='span' className='material-icons' sx={{ fontSize: 48, color: 'text.disabled' }}>sentiment_dissatisfied</Box>
                     <Typography variant='body1' mt={2}>{emptyMessage}</Typography>
                 </Box>
             ) : (
@@ -19,11 +19,17 @@ export function ErrorLogList({ logs, maxHeight, emptyMessage = '該当するロ�
                         display='flex'
                         alignItems={{ xs: 'flex-start', sm: 'center' }}
                         justifyContent='space-between'
-                        bgcolor={
-                            log.color === 'error' ? 'error.lighter' :
-                                log.color === 'warning' ? 'warning.lighter' :
-                                    log.color === 'default' ? 'grey.100' : 'info.lighter'
-                        }
+                        sx={{
+                          bgcolor: (theme) => (
+                            log.color === 'error'
+                              ? 'var(--mui-palette-error-lightOpacity)'
+                              : log.color === 'warning'
+                              ? 'var(--mui-palette-warning-lightOpacity)'
+                              : log.color === 'info'
+                              ? 'var(--mui-palette-info-lightOpacity)'
+                              : theme.palette.action.hover
+                          )
+                        }}
                         borderRadius={2}
                         px={2}
                         py={1.5}

@@ -5,7 +5,9 @@ const nextConfig = {
     NEXT_PUBLIC_PRO_URL: process.env.NEXT_PUBLIC_PRO_URL || 'https://themeselection.com',
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || 'https://demos.themeselection.com',
   NEXT_PUBLIC_REPO_NAME: process.env.NEXT_PUBLIC_REPO_NAME || 'materio-mui-react-nextjs-admin-template-free',
-  NEXT_PUBLIC_BASE_PATH: process.env.BASEPATH || ''
+  NEXT_PUBLIC_BASE_PATH: process.env.BASEPATH || '',
+  // プロキシ環境での外部フォント取得を抑止（必要時は true を明示設定）
+  NEXT_PUBLIC_ENABLE_GOOGLE_FONTS: process.env.NEXT_PUBLIC_ENABLE_GOOGLE_FONTS || 'false'
   },
   async rewrites() {
     return [

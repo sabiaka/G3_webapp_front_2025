@@ -1,39 +1,71 @@
 "use client";
 
-// このページは既存の静的HTML (public/parts-inventory/部品在庫管理.html) をそのまま iframe で表示します。
-// もし将来 React 化したい場合は、この iframe を外し HTML/JS をコンポーネントへ段階移行してください。
+// MUI Imports
+import Grid from "@mui/material/Grid";
 
-const IframePage = () => {
-    // レイアウト側で付与されている上部パディング/マージンを打ち消して余白を詰める
-    // (必要に応じて値を微調整: -24px -> -16px など)
-    return (
-        <div
-            style={{
-                height: '90%',
-                minHeight: '100vh', // 以前の calc(1vh - 2rem) は 1vh になっていたため修正
-                display: 'flex',
-                flexDirection: 'column',
-                marginTop: '-24px', // 上余白を詰める
-            }}
-        >
-            <div
-                style={{
-                    flex: 1,
-                    borderRadius: 0,
-                    overflow: 'hidden',
-                }}
-            >
-                                {/* allow-forms を追加し、iframe サンドボックス内での form submit (onsubmit ハンドラ含む) を許可
-                                        これが無いと sandbox 制約で submit がブロックされ、モーダル内の「作成」「保存」等ボタンが無反応に見える */}
-                                <iframe
-                                    title="トップページ"
-                                    src="/top/トップページ.html"
-                                    style={{ width: '100%', height: '100%', border: 0 }}
-                                    sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
-                                />
-            </div>
-        </div>
-    );
+// View Components (top dashboard)
+import NoticeCard from "@/views/dashboard/top/NoticeCard";
+import QuickLinksRow from "@/views/dashboard/top/QuickLinksRow";
+import ProductionProgressCard from "@/views/dashboard/top/ProductionProgressCard";
+import MachineErrorLogsCard from "@/views/dashboard/top/MachineErrorLogsCard";
+import ImageInspectionStatusCard from "@/views/dashboard/top/ImageInspectionStatusCard";
+import TodayTasksCard from "@/views/dashboard/top/TodayTasksCard";
+import AdminMenuCard from "@/views/dashboard/top/AdminMenuCard";
+
+// ダッシュボード（Materio + MUI 構成）
+const DashboardPage = () => {
+  return (
+    <Grid container spacing={6} sx={{ mt: 0 }}>
+      {/* 今日のお知らせ + クイックボタン行（先頭） */}
+      <Grid item xs={12}>
+        <Grid container spacing={4} alignItems="stretch">
+          {/* お知らせカード */}
+          <Grid item xs={12} md={6} lg={6}>
+            <NoticeCard />
+          </Grid>
+
+          {/* クイックリンク3枚 */}
+          <QuickLinksRow />
+        </Grid>
+      </Grid>
+      {/* KPIセクション */}
+      <Grid item xs={12}>
+        <Grid container spacing={4}>
+          {/* 生産進捗 */}
+          <Grid item xs={12} md={4}>
+            <ProductionProgressCard />
+          </Grid>
+
+          {/* 機械稼働ステータス */}
+          <Grid item xs={12} md={4}>
+            <MachineErrorLogsCard />
+          </Grid>
+
+          {/* 画像検査ステータス */}
+          <Grid item xs={12} md={4}>
+            <ImageInspectionStatusCard />
+          </Grid>
+        </Grid>
+      </Grid>
+
+
+
+      {/* 生産目標/管理者メニュー */}
+      <Grid item xs={12}>
+        <Grid container spacing={4}>
+          {/* 本日のタスク */}
+          <Grid item xs={12} lg={8}>
+            <TodayTasksCard />
+          </Grid>
+
+          {/* 管理者メニュー */}
+          <Grid item xs={12} lg={4}>
+            <AdminMenuCard />
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  );
 };
 
-export default IframePage;
+export default DashboardPage;

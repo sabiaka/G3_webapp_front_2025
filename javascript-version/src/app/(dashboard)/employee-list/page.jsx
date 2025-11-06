@@ -12,6 +12,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
+
 import useAuthMe from '@core/hooks/useAuthMe'
 
 import EmployeeCard from './components/EmployeeCard'
@@ -29,8 +30,10 @@ const statusOptions = [
 const getDisplayName = (ln, fn) => {
   const l = String(ln || '').trim()
   const f = String(fn || '').trim()
+
   if (!l && !f) return ''
-  return f ? `${l} ${f}` : l
+  
+return f ? `${l} ${f}` : l
 }
 
 const EmployeeList = () => {
@@ -111,6 +114,7 @@ const EmployeeList = () => {
 
   const openEditModal = () => {
     if (!isAdmin) return
+
     if (selectedEmployee) {
       // 氏名を姓/名に分割（最初のスペースで分割）
       const name = String(selectedEmployee.name || '').trim()
@@ -144,8 +148,10 @@ const EmployeeList = () => {
   // フォーム
   const handleFormChange = e => {
     const { name, value } = e.target
+
     if (name === 'roleId' || name === 'lineId') {
       const v = value === '' ? '' : (typeof value === 'number' ? value : Number(value))
+
       setForm(prev => ({ ...prev, [name]: v }))
     } else {
       setForm(prev => ({ ...prev, [name]: value }))
@@ -155,27 +161,33 @@ const EmployeeList = () => {
   // 保存
   const handleSave = async () => {
     if (!isAdmin) return
+
     // 最小バリデーション
     const requiredOk = form.employeeUserId && form.lastName && form.firstName
     const rolesOk = roles.length > 0 ? (form.roleId !== '' && form.roleId !== null && form.roleId !== undefined) : true
+
     if (!requiredOk || !rolesOk) return
 
     const displayName = getDisplayName(form.lastName, form.firstName)
+
     const payload = {
       employee_name: displayName,
       employee_user_id: form.employeeUserId,
       password: form.password ? form.password : (editingEmployeeId ? null : ''),
       role_id: form.roleId,
+
       // line_id は未選択時は送らない
       ...(form.lineId === '' ? {} : { line_id: form.lineId }),
       color_code: stripHash(form.iconColor || '#FF8800'),
       special_notes: form.specialNotes || '',
+
       // 在籍状況
       ...(typeof form.status === 'string' ? { is_active: form.status === '在籍中' } : {})
     }
 
     try {
       const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() }
+
       if (editingEmployeeId) {
         // 更新（PUT）
         const res = await fetch(`${apiBase}/api/employees/${editingEmployeeId}`, {
@@ -183,17 +195,22 @@ const EmployeeList = () => {
           headers,
           body: JSON.stringify(payload)
         })
+
         if (!res.ok) throw new Error(`PUT /employees/${editingEmployeeId} ${res.status}`)
       } else {
         // 追加（POST）: password 必須
         if (!form.password) throw new Error('パスワードを入力してください')
+
         const res = await fetch(`${apiBase}/api/employees`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payload)
         })
+
         if (!res.ok) throw new Error(`POST /employees ${res.status}`)
       }
+
+
       // 再取得
       await fetchEmployees()
       setModalOpen(false)
@@ -201,6 +218,7 @@ const EmployeeList = () => {
     } catch (e) {
       console.error(e)
       const msg = e?.message || String(e)
+
       showSnack(`保存に失敗しました: ${msg}`, 'error')
     }
   }
@@ -209,15 +227,18 @@ const EmployeeList = () => {
   const handleDelete = async () => {
     if (!isAdmin) return
     if (!selectedEmployee?.employeeId) return
+
     try {
       const headers = { ...getAuthHeaders() }
       const res = await fetch(`${apiBase}/api/employees/${selectedEmployee.employeeId}`, { method: 'DELETE', headers })
+
       if (!res.ok && res.status !== 204) throw new Error(`DELETE /employees/${selectedEmployee.employeeId} ${res.status}`)
       await fetchEmployees()
       showSnack('従業員を削除しました', 'success')
     } catch (e) {
       console.error(e)
       const msg = e?.message || String(e)
+
       showSnack(`削除に失敗しました: ${msg}`, 'error')
     } finally {
       handleMenuClose()
@@ -229,6 +250,7 @@ const EmployeeList = () => {
   // マスタ取得（ロール／ライン）
   useEffect(() => {
     const ac = new AbortController()
+
     const headers = { ...getAuthHeaders() }
 
       // Roles
@@ -236,16 +258,22 @@ const EmployeeList = () => {
         try {
           setLoadingRoles(true)
           const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal, headers })
+
           if (res.ok) {
             const data = await res.json()
             const list = Array.isArray(data) ? data : (Array.isArray(data?.roles) ? data.roles : [])
+
             setRoles(list)
+
             // 既存選択を優先し、なければ「一般」→先頭→空
             setForm(prev => {
               const keep = prev.roleId
+
               if ((keep || keep === 0) && list.some(r => r?.role_id === keep)) return prev
               const general = list.find(r => r?.role_name === '一般')?.role_id
-              return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
+
+              
+return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
             })
           } else {
             setRoles([])
@@ -262,15 +290,20 @@ const EmployeeList = () => {
         try {
           setLoadingLines(true)
           const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal, headers })
+
           if (res.ok) {
             const data = await res.json()
             const list = Array.isArray(data) ? data : (Array.isArray(data?.lines) ? data.lines : [])
+
             setLines(list)
+
             // 既存選択がリストにない場合は空
             setForm(prev => {
               const keep = prev.lineId
+
               if ((keep || keep === 0) && list.some(l => l?.line_id === keep)) return prev
-              return { ...prev, lineId: '' }
+              
+return { ...prev, lineId: '' }
             })
           } else {
             setLines([])
@@ -288,10 +321,12 @@ const EmployeeList = () => {
   // 部署（ライン）フィルタの選択肢
   const departmentOptions = useMemo(() => {
     const opts = [{ value: 'all', label: 'すべて' }]
+
     lines.forEach(l => {
       if (l?.line_name) opts.push({ value: l.line_name, label: l.line_name })
     })
-    return opts
+    
+return opts
   }, [lines])
 
   // APIレスポンスをUI表示用に整形
@@ -311,19 +346,24 @@ const EmployeeList = () => {
   const fetchEmployees = async () => {
     const headers = { ...getAuthHeaders() }
     const sp = new URLSearchParams()
+
     if (search?.trim()) sp.set('name_like', search.trim())
     if (department !== 'all') sp.set('line_name', department)
     if (status !== 'all') sp.set('is_active', String(status === '在籍中'))
     const url = `${apiBase}/api/employees${sp.toString() ? `?${sp.toString()}` : ''}`
+
     try {
       setEmployeesLoading(true)
       setEmployeesError(null)
       const res = await fetch(url, { headers })
+
       if (!res.ok) throw new Error(`GET /employees ${res.status}`)
       const data = await res.json()
+
       const list = Array.isArray(data)
         ? data
         : (Array.isArray(data?.employees) ? data.employees : [])
+
       setEmployees(list.map(mapEmployee))
     } catch (e) {
       console.error(e)
@@ -341,7 +381,9 @@ const EmployeeList = () => {
     debounceTimer.current = setTimeout(() => {
       fetchEmployees()
     }, 350)
-    return () => {
+
+    
+return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

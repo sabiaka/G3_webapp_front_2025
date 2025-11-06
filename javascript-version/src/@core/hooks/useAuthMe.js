@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { fetchMeCached } from '@/utils/auth/meClient'
 
 // 認証ユーザー情報を取得し、is_admin を返す共通フック
 // 戻り値: { user, isAdmin, loading, error, refresh }
@@ -11,34 +12,27 @@ export default function useAuthMe() {
     const refresh = useCallback(() => setTick(t => t + 1), [])
 
     useEffect(() => {
-        const ac = new AbortController()
         const run = async () => {
             setLoading(true)
             setError(null)
+
             try {
-                const token = (typeof window !== 'undefined' && (window.localStorage.getItem('access_token') || window.sessionStorage.getItem('access_token'))) || ''
-                if (!token) {
-                    setUser(null)
-                    return
-                }
-                const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
-                const res = await fetch(`${apiBase}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` }, signal: ac.signal })
-                if (res.ok) {
-                    const data = await res.json()
-                    setUser(data || null)
-                } else if (res.status === 401) {
+                const data = await fetchMeCached({ timeoutMs: 5000, force: tick > 0 })
+                setUser(data || null)
+            } catch (e) {
+                if (e && e.status === 401) {
                     setUser(null)
                 } else {
-                    setError(new Error(`HTTP ${res.status}`))
+                    setError(e)
                 }
-            } catch (e) {
-                if (e?.name !== 'AbortError') setError(e)
             } finally {
                 setLoading(false)
             }
         }
+
         run()
-        return () => ac.abort()
+        
+        return () => {}
     }, [tick])
 
     const isAdmin = !!user?.is_admin

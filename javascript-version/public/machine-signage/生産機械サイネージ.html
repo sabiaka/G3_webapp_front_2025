@@ -75,27 +75,27 @@
             <h2 class="text-4xl font-bold mb-4 flex-shrink-0">機械状況</h2>
             <div class="flex-grow flex flex-col space-y-6">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-3xl font-bold">自動表層バネどめ機</h3>
+                    <h3 id="machine-name" class="text-3xl font-bold">自動表層バネどめ機</h3>
                     <span id="machine-status"
                         class="px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900">正常</span>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-center">
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">本日の稼働時間</p>
-                        <p class="text-5xl font-black">8<span class="text-3xl">h</span> 25<span
+                        <p id="today-uptime" class="text-5xl font-black">8<span class="text-3xl">h</span> 25<span
                                 class="text-3xl">m</span></p>
                     </div>
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">本日の生産数</p>
-                        <p class="text-5xl font-black">1,520</p>
+                        <p id="today-production-count" class="text-5xl font-black">1,520</p>
                     </div>
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">最終点検日</p>
-                        <p class="text-4xl font-bold">2024/06/15</p>
+                        <p id="last-inspection-date" class="text-4xl font-bold">2024/06/15</p>
                     </div>
                     <div class="bg-gray-900 p-4 rounded-lg">
                         <p class="text-lg text-gray-400">次回点検日</p>
-                        <p class="text-4xl font-bold">2024/09/15</p>
+                        <p id="next-inspection-date" class="text-4xl font-bold">2024/09/15</p>
                     </div>
                 </div>
                 <div class="flex-grow flex flex-col overflow-hidden">
@@ -114,44 +114,52 @@
         <div class="flex flex-col overflow-hidden bg-gray-800 rounded-2xl p-6">
             <h2 class="text-4xl font-bold mb-4 flex-shrink-0">画像検査</h2>
             <div class="flex-grow flex flex-col space-y-6">
+                <!-- 全体判定（PASS/FAIL） -->
                 <div class="text-center">
-                    <p class="text-2xl text-green-400 font-bold">システム正常</p>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
-                        <div class="bg-green-500 h-2.5 rounded-full" style="width:100%"></div>
+                    <p id="inspection-status" class="text-5xl font-black text-green-400">PASS</p>
+                </div>
+
+                <!-- 4分割カメラ表示 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div id="cam1" class="bg-black rounded-lg aspect-video relative overflow-hidden">
+                        <span class="absolute top-3 left-4 text-lg font-semibold text-gray-300">B-spring01</span>
+                        <span id="cam1-badge" class="absolute top-3 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-green-500 text-green-900 text-sm font-bold">
+                            <ion-icon name="checkmark-circle" class="text-xl"></ion-icon>
+                            PASS
+                        </span>
+                    </div>
+                    <div id="cam2" class="bg-black rounded-lg aspect-video relative overflow-hidden">
+                        <span class="absolute top-3 left-4 text-lg font-semibold text-gray-300">B-spring02</span>
+                        <span id="cam2-badge" class="absolute top-3 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-green-500 text-green-900 text-sm font-bold">
+                            <ion-icon name="checkmark-circle" class="text-xl"></ion-icon>
+                            PASS
+                        </span>
+                    </div>
+                    <div id="cam3" class="bg-black rounded-lg aspect-video relative overflow-hidden">
+                        <span class="absolute top-3 left-4 text-lg font-semibold text-gray-300">B-spring03</span>
+                        <span id="cam3-badge" class="absolute top-3 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-green-500 text-green-900 text-sm font-bold">
+                            <ion-icon name="checkmark-circle" class="text-xl"></ion-icon>
+                            PASS
+                        </span>
+                    </div>
+                    <div id="cam4" class="bg-black rounded-lg aspect-video relative overflow-hidden">
+                        <span class="absolute top-3 left-4 text-lg font-semibold text-gray-300">B-spring04</span>
+                        <span id="cam4-badge" class="absolute top-3 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-green-500 text-green-900 text-sm font-bold">
+                            <ion-icon name="checkmark-circle" class="text-xl"></ion-icon>
+                            PASS
+                        </span>
                     </div>
                 </div>
-                <div class="bg-black rounded-lg aspect-video flex items-center justify-center">
-                    <p class="text-gray-500 text-lg">LIVE CAMERA FEED</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="bg-gray-900 p-4 rounded-lg">
-                        <p class="text-lg text-gray-400">良品率</p>
-                        <p class="text-5xl font-black text-green-400">99.8%</p>
+
+                <!-- rot_id と 検査時間 -->
+                <div class="mt-2 bg-gray-900 p-4 rounded-lg grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <p class="text-lg text-gray-400">rot_id</p>
+                        <p id="rot-id" class="text-4xl font-bold">MAT-10025</p>
                     </div>
-                    <div class="bg-gray-900 p-4 rounded-lg">
-                        <p class="text-lg text-gray-400">検査総数</p>
-                        <p class="text-5xl font-black">1,250</p>
-                    </div>
-                </div>
-                <div class="flex-grow overflow-y-auto">
-                    <h3 class="text-2xl font-bold mb-2">最新検査ログ</h3>
-                    <div class="space-y-2 text-lg">
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
-                            <p>ID: A-102-1250</p>
-                            <p>11:55:12</p><span class="font-bold text-green-400">PASS</span>
-                        </div>
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
-                            <p>ID: A-102-1249</p>
-                            <p>11:55:08</p><span class="font-bold text-green-400">PASS</span>
-                        </div>
-                        <div class="flex justify-between items-center bg-red-900/50 p-3 rounded-md">
-                            <p>ID: A-102-1248</p>
-                            <p>11:55:04</p><span class="font-bold text-red-400">FAIL</span>
-                        </div>
-                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-md">
-                            <p>ID: A-102-1247</p>
-                            <p>11:55:01</p><span class="font-bold text-green-400">PASS</span>
-                        </div>
+                    <div>
+                        <p class="text-lg text-gray-400">検査時間</p>
+                        <p id="inspection-time" class="text-4xl font-bold">--:--:--</p>
                     </div>
                 </div>
             </div>
@@ -168,9 +176,11 @@
             </div>
         </div>
     </div>
-    <script>
-        function updateClock() { const n = new Date, t = document.getElementById('time'), e = document.getElementById('date'), o = String(n.getHours()).padStart(2, '0'), a = String(n.getMinutes()).padStart(2, '0'), s = String(n.getSeconds()).padStart(2, '0'), r = n.getFullYear(), c = String(n.getMonth() + 1).padStart(2, '0'), l = String(n.getDate()).padStart(2, '0'), d = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][n.getDay()]; t.textContent = `${o}:${a}`; e.textContent = `${r}/${c}/${l} (${d})`; return `${o}:${a}:${s}` } setInterval(updateClock, 1000); updateClock(); const alertScreen = document.getElementById('evangelion-alert'), alertErrorCode = document.getElementById('alert-error-code'), alertErrorMessage = document.getElementById('alert-error-message'), errorLogList = document.getElementById('error-log-list'), machineStatus = document.getElementById('machine-status'); function showErrorAlert(t, e) { alertErrorCode.textContent = t, alertErrorMessage.textContent = e, alertScreen.classList.remove('hidden'), setTimeout(() => { alertScreen.classList.add('hidden') }, 5e3) } function addErrorLog(t, e, o) { const a = updateClock(); let s, r, c; "error" === o ? (s = 'bg-red-900/50', r = 'text-red-400', c = 'text-red-300') : "warning" === o ? (s = 'bg-yellow-900/50', r = 'text-yellow-400', c = 'text-yellow-300') : (s = 'bg-gray-900', r = 'text-gray-400', c = 'text-gray-300'); const l = `\n                <div class=\"flex justify-between items-center ${s} p-3 rounded-md\">\n                    <div>\n                        <p class=\"font-semibold ${c}\">${t}</p>\n                        ${e ? `<p class=\"text-sm ${r}\">${e}</p>` : ''}\n                    </div>\n                    <span class=\"text-sm text-gray-400 whitespace-nowrap\">${a}</span>\n                </div>\n            `; errorLogList.insertAdjacentHTML('afterbegin', l) } const sampleErrors = [{ code: 'モータートルク異常', message: 'モーターの負荷が規定値を超えました。', type: 'error' }, { code: 'フェンス内異物検知', message: '安全フェンス内で異物を検知しました。', type: 'error' }, { code: '非常停止ボタン取り扱い', message: '非常停止ボタンが押されました。', type: 'warning' }], debugErrorBtn = document.getElementById('debug-error-btn'), debugWarningBtn = document.getElementById('debug-warning-btn'), debugNormalBtn = document.getElementById('debug-normal-btn'); debugErrorBtn.addEventListener('click', () => { const t = sampleErrors.filter(t => 'error' === t.type)[Math.floor(2 * Math.random())]; t && (machineStatus.textContent = 'エラー', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-red-500 text-red-900', addErrorLog(t.code, t.message, t.type), showErrorAlert(t.code, t.message)) }), debugWarningBtn.addEventListener('click', () => { const t = sampleErrors.find(t => 'warning' === t.type); t && (machineStatus.textContent = '警告', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-yellow-500 text-yellow-900', addErrorLog(t.code, t.message, t.type)) }), debugNormalBtn.addEventListener('click', () => { machineStatus.textContent = '正常', machineStatus.className = 'px-4 py-2 text-xl font-semibold rounded-full bg-green-500 text-green-900', addErrorLog('I-003: 状態リセット', '手動で正常状態に復帰しました。', 'info') });
-    </script>
+
+
+    <!-- API client (relative path to support basePath) -->
+    <script src="machine-api.js"></script>
+    <script src="signage.js"></script>
 </body>
 
 </html>

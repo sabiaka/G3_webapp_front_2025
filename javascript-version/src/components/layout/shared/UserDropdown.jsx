@@ -2,6 +2,7 @@
 
 // React Imports
 import { useEffect, useRef, useState } from 'react'
+import { fetchMeCached, invalidateMeCache } from '@/utils/auth/meClient'
 
 // Next Imports
 import { useRouter } from 'next/navigation'
@@ -155,32 +156,19 @@ return (
     const fetchMe = async () => {
       setLoading(true)
       const token = getStoredToken()
-
       if (!token) {
         setLoading(false)
-        
-return
+        return
       }
 
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BASE_PATH || ''
-
-        const res = await fetch(`${apiBase}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include'
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-
-          if (isMounted) setUser(data)
-        } else if (res.status === 401) {
-          clearStoredAuth()
-
-          // ここでは即リダイレクトはしない。メニューからログイン導線に誘導する想定
-        }
+        const data = await fetchMeCached({ timeoutMs: 5000 })
+        if (isMounted) setUser(data)
       } catch (e) {
-        // ネットワークエラーは黙って無視（UIはゲスト表示）
+        if (e && e.status === 401) {
+          clearStoredAuth()
+        }
+        // その他のネットワーク/タイムアウトなどは無視（UIはゲスト表示）
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -223,6 +211,7 @@ return () => {
     }
 
     clearStoredAuth()
+    invalidateMeCache()
 
     router.replace('/login')
   }
@@ -298,7 +287,7 @@ return (
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e, '/account-settings')}>
                     <i className='ri-user-3-line' />
                     <Typography color='text.primary'>マイプロフィール</Typography>
                   </MenuItem>
