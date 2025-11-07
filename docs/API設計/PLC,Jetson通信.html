@@ -257,156 +257,158 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 
             <!-- 5. 生産数をインクリメント -->
             <section id="increment-production">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 生産数をインクリメント</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">5. 生産数をインクリメント（lot_idも加算）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production</span>
+                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production?section={section}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて累計生産数をプラス1する。</p>
+                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて <strong>機械の当日累計</strong> を +1 します。<br>追加で、<strong>指定した検査セクション（section）</strong>で現在生産中の <code>lot_id</code> の <strong>lot_id</strong> も +1 します。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">section（必須）</td>
+                                <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2 font-mono">?section=spring / ?section=alayer</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
-    "today_production_count": 1521
+    "today_production_count": 1521,
+    "lot_id": "MAT-00123",
 }</code></pre>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
+                    <p class="text-sm mb-1">400 Bad Request（<code>section</code> が未指定または不正な値）</p>
+                    <pre><code class="language-json">{
+    "error": "Bad Request",
+    "details": [
+        "クエリパラメータ 'section' は必須です（spring または alayer を指定してください）。"
+    ]
+}</code></pre>
+                    <p class="text-sm mb-1">404 Not Found（指定された <code>id</code> の機械が存在しない）</p>
                     <pre><code class="language-json">{
     "error": "Machine not found"
+}</code></pre>
+                    <p class="text-sm mb-1">409 Conflict（指定セクションに現在生産中のロットが存在しない）</p>
+                    <pre><code class="language-json">{
+    "error": "No active lot",
+    "details": "指定セクションに現在生産中のロットがありません。"
 }</code></pre>
                 </div>
             </section>
 
             <!-- 6. 検査前画像の送信 -->
             <section id="post-before-inspection-image">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】初期データと画像の登録 (Jetson →
-                    サーバー)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】画像アップロード（lot_id指定・単発）(A層検査用)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
-                        Jetsonから検査前の画像と、それがどの製品に関するものか分かる最低限の初期データを送るためのAPIだよ。<br>
-                        この情報をもとに、サーバー側でロットIDを採番して、DBに最初のレコードを作るってわけ！
+                        Jetson から <strong>1枚の検査前画像</strong> をアップロードします。<br>
+                        <strong>lot_id はサーバー側で採番</strong> されます。検査機は <code>/api/ingress/inspection/current-lot?section={section}</code> で取得した lot_id を本APIの <strong>パスパラメータ</strong> <code>{lot_id}</code> に指定してください。
                     </p>
 
-                    <h3 class="text-lg font-semibold mt-6 mb-2">lot_idのルールについて</h3>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">lot_id のルールについて</h3>
                     <div class="p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg mb-4">
                         <p class="font-bold">ロットIDの命名規則</p>
-                        <p class="text-sm mt-1">サーバーは <code>metadata</code> に入ってる <code>section_code</code>
-                            を見て、どっちのIDをつけるか判断するよ</p>
+                        <p class="text-sm mt-1">lot_id はサーバー側で採番されます（生産数インクリメントのフローで作成/更新）。検査機は <code>current-lot</code> API で参照して利用してください。</p>
                         <ul class="list-disc list-inside mt-2 text-sm font-mono">
-                            <li><code>section_code</code> が <strong>"バネ留め"</strong> の場合 → <code>MAT-00001</code>,
-                                <code>MAT-00002</code>, ...
-                            </li>
-                            <li><code>section_code</code> が <strong>"A層検査"</strong> の場合 → <code>LOLL-00001</code>,
-                                <code>LOLL-00002</code>, ...
-                            </li>
+                            <li><code>spring</code>（バネ留め）系 → 例: <code>MAT-00001</code>, <code>MAT-00002</code>, ...</li>
+                            <li><code>alayer</code>（A層検査）系 → 例: <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...</li>
                         </ul>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
                     <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
-                        <p class="font-bold">ファイル名はサーバーが自動でつけちゃう！</p>
+                        <p class="font-bold">ファイル名はサーバーが自動で決定します</p>
                         <p class="text-sm mt-1">
-                            サーバーは受け取ったメタデータと、新しく採番した<code>lot_id</code>を元に、ファイル名を自動生成するよ！後で結果を更新するときに、このファイル名がキーになるからマジ重要！
+                            受け取った <code>lot_id</code>（パス）とメタデータ（<code>camera_id</code>・<code>4K_seq</code>・<code>FHD_seq</code>）からファイル名を生成します。検査後更新のキーとして利用します。
                         </p>
                         <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
-                            <strong>フォーマット:</strong> {lot_id}_{camera_id}_{shot_seq}.jpg<br>
+                            <strong>フォーマット:</strong> {lot_id}_{camera_id}_{4K_seq}_{FHD_seq}.png<br>
                             <strong>保存先フォルダ:</strong> /imageDB/beforeTest/<br>
-                            <strong>保存例:</strong> /imageDB/beforeTest/MAT-00125_B-spring01_1.jpg
+                            <strong>保存例:</strong> /imageDB/beforeTest/MAT-00125_B-spring01_A-4_D-5.png
                         </p>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
-                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってください（<strong>単発アップロード</strong>）。</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
-                        <li>パート1: <code>metadata</code> というキーで、検査の初期情報のJSONを送る。</li>
-                        <li>パート2: <code>image</code> というキーで、検査前の画像ファイルを送る。</li>
+                        <li>パート1: <code>metadata</code> — JSON（<code>camera_id</code>, <code>section_code</code>, <code>4K_seq</code>, <code>FHD_seq</code> など）</li>
+                        <li>パート2: <code>image</code> — 検査前の画像ファイル（PNG推奨）</li>
                     </ul>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <p class="text-sm mb-2">1ロットに関する全カメラショットの情報を、shots配列にまとめて入れてね！</p>
+                    <p class="text-sm mb-2">1回のアップロードにつき 1 ショット分の情報を送ります（<code>shot_seq</code> は廃止）。</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-json">{
     "section_code": "spring",
-    "shots": [
-        {
-            "camera_id": "B-spring01",
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:02Z"
-        },
-        {
-            "camera_id": "B-spring02",
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:04Z"
-        }
-    ]
+    "camera_id": "B-spring01",
+    "4K_seq": "A-4",
+    "FHD_seq": "D-5",
+    "captured_at": "2025-09-12T05:09:02Z"
 }</code></pre>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
                     <div class="code-block-wrapper">
                         <pre><code class="language-python">
-
 import requests
 import json
-import datetime
 
-url = "http://your-server.com/api/ingress/inspection"
+lot_id = "MAT-00125"
+url = f"http://10.100.54.170:3001/api/ingress/inspection/{lot_id}"
 
-# 送信するメタデータを作成
 metadata = {
     "section_code": "spring",
-    "shots": [
-        {
-            "camera_id": "B-spring01",
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:02Z"
-        },
-        {
-            "camera_id": "B-spring02",
-            "shot_seq": 1,
-            "captured_at": "2025-09-12T05:09:04Z"
-        }
-    ]
+    "camera_id": "B-spring01",
+    "4K_seq": "A-4",
+    "FHD_seq": "D-5",
+    "captured_at": "2025-09-12T05:09:02Z"
 }
 
-# 送信するファイル一式を準備
-# metadataのcamera_idをキーにして画像をセットするのがポイント！
 files = {
     'metadata': (None, json.dumps(metadata), 'application/json'),
-    'B-spring01': ('B-spring01.jpg', open('/path/to/B-spring01.jpg', 'rb'), 'image/jpeg'),
-    'B-spring02': ('B-spring02.jpg', open('/path/to/B-spring02.jpg', 'rb'), 'image/jpeg')
+    'image': ("before.png", open('/path/to/before.png', 'rb'), 'image/png')
 }
 
-response = requests.post(url, files=files)
-
-print(f"ステータスコード: {response.status_code}")
-print("レスポンス:", response.json())
+resp = requests.post(url, files=files, timeout=10)
+print(f"ステータスコード: {resp.status_code}")
+print("レスポンス:", resp.json())
 </code></pre>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
                     <p class="text-sm">
-                        データがちゃんと登録できたら、サーバーから新しい<code>lot_id</code>と、サーバー側でつけた<code>filename</code>が返ってくるよ！このファイル名は後で使うから、ちゃんと覚えといてね！
+                        登録に成功すると、サーバーから <code>lot_id</code> と生成された <code>filename</code>（検査前画像のファイル名）が返却されます。
                     </p>
                     <pre><code class="language-json">{
-    "message": "初期データ登録OK！ロットID採番しといたよ✌️",
+    "message": "検査前画像を登録しました",
     "lot_id": "MAT-00125",
-    "filename": "MAT-00125_B-spring01_1.jpg"
+    "filename": "MAT-00125_B-spring01_A-4_D-5.png"
 }</code></pre>
-
                 </div>
             </section>
 
             <!-- 7. 検査後データと画像の送信 -->
             <section id="put-after-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信 (Jetson → サーバー)
-                </h2>
+                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信（filename指定・単発）（A層検査用）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge put">PUT</span>
@@ -414,75 +416,63 @@ print("レスポンス:", response.json())
                         <span class="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">これも超重要！</span>
                     </div>
                     <p class="mb-4">
-                        さっき送った画像の検査が終わったら、その結果（OKかNGかとか）と、もしあれば検査後の画像をこのAPIで送るよ！<br>
-                        URLの <code>{filename}</code> の部分で、どの画像の検査結果なのかを指定するのがポイント！
+                        検査が完了したら、その結果（OK/NGなど）と、任意で <strong>検査後画像</strong> を単発で送信します。<br>
+                        対象は <strong>パスの {filename}</strong> で特定します（例: <code>MAT-00123_B-spring01_A-4_D-5.png</code>）。
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">画像ファイルの保存ルール</h3>
                     <div class="p-4 bg-sky-100 border-l-4 border-sky-500 text-sky-700 rounded-r-lg mb-4">
-                        <p class="font-bold">検査前と同じファイル名で別の場所に保存！</p>
+                        <p class="font-bold">検査前と同じファイル名（拡張子 .png）で別フォルダに保存</p>
                         <p class="text-sm mt-1">
-                            検査後の画像は、検査前の画像と同じファイル名で、専用のフォルダに保存するよ。これでビフォーアフターが分かりやすくなるってわけ！
+                            検査後の画像は検査前と同一の命名ルールで、別フォルダに保存します。ビフォーアフターの対応が明確になります。
                         </p>
                         <p class="text-sm mt-2 font-mono bg-sky-200 p-2 rounded">
                             <strong>保存先フォルダ:</strong> /imageDB/afterTest/<br>
-                            <strong>保存例:</strong> /imageDB/afterTest/MAT-00123_B-spring01_1.jpg
+                            <strong>保存例:</strong> /imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png
                         </p>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
                     <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
-                        <li>パート1: <code>metadata</code> というキーで、検査結果のJSONを送る。</li>
-                        <li>パート2: <code>image</code> というキーで、検査後の画像ファイルを送る (もしあれば)。</li>
+                        <li>パート1: <code>metadata</code> — 検査結果のJSON（<strong>必須: <code>status</code></strong>、任意: <code>details</code>, <code>captured_at</code>）</li>
+                        <li>パート2: <code>image</code> — 検査後の画像ファイル（任意、PNG推奨）</li>
                     </ul>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <p class="text-sm mb-2">検査結果の詳細をJSONでまとめてね！</p>
+                    <p class="text-sm mb-2">検査結果の詳細を JSON で送ります（<code>shot_seq</code> は廃止）。</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-json">{
-    "lot_id": "MAT-00123",
-    "section_code": "spring",
-    "camera_id": "B-spring01",
     "status": "FAIL",
     "details": "傷あり",
-    "shot_seq": 1
+    "captured_at": "2025-09-12T05:12:45Z"
 }</code></pre>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
                     <div class="code-block-wrapper">
-                        <pre><code class="language-python">
 <pre><code class="language-python">
 import requests
 import json
 import datetime
 
-filename = 'MAT-00123_B-spring01_1.jpg'
-url = f"http://your-server.com/api/ingress/inspection/result/{filename}"
+filename = 'MAT-00123_B-spring01_A-4_D-5.png'
+url = f"http://10.100.54.170:3001/api/ingress/inspection/result/{filename}"
 
-# 送信するメタデータを作成
 metadata = {
-    "lot_id": "MAT-00123",
-    "section_code": "spring",
-    "camera_id": "B-spring01",
     "status": "FAIL",
     "details": "傷あり",
-    "shot_seq": 1,
     "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
 }
 
-# 送信するファイル一式を準備
 files = {
     'metadata': (None, json.dumps(metadata), 'application/json'),
-    'image': (filename, open('/path/to/after_inspection_image.jpg', 'rb'), 'image/jpeg')
+    'image': ("after.png", open('/path/to/after.png', 'rb'), 'image/png')
 }
 
-response = requests.put(url, files=files)
-
-print(f"ステータスコード: {response.status_code}")
-print("レスポンス:", response.json())
-</code></pre>
+resp = requests.put(url, files=files, timeout=10)
+print(f"ステータスコード: {resp.status_code}")
+print("レスポンス:", resp.json())
                         </code></pre>
                     </div>
 
@@ -490,14 +480,14 @@ print("レスポンス:", response.json())
                     <p class="text-sm">データ更新が成功したら、サーバーから「おつかれ！」って感じの返事がくるよ。</p>
                     <pre><code class="language-json">{
     "message": "検査結果、更新しといたよ！🎉",
-    "filename": "MAT-00123_B-spring01_1.jpg"
+    "filename": "MAT-00123_B-spring01_A-4_D-5.png"
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
-                    <p class="text-sm">URLで指定したファイル名の画像が、検査前のフォルダに見つからない場合にこうなるよ。</p>
+                    <p class="text-sm">対象の検査前データが見つからない場合に返ります。</p>
                     <pre><code class="language-json">{
     "error": "Not Found",
-    "details": "指定されたファイル名の検査前データが見つかりません。"
+    "details": "指定された lot_id / camera_id / 4K_seq / FHD_seq に一致する検査前データが見つかりません。"
 }</code></pre>
                 </div>
             </section>
@@ -516,9 +506,9 @@ print("レスポンス:", response.json())
                         ディレクトリに保存されているため、パスを切り替えるだけで両方を確認できます。
                     </p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
-                    <p class="text-sm mb-2">ファイル名は <code>{lot_id}_{camera_id}_{shot_seq}.jpg</code> の形式です。</p>
-                    <pre><code class="language-plaintext">http://your-server.com/imageDB/beforeTest/MAT-00123_B-spring01_1.jpg
-http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_1.jpg</code></pre>
+                    <p class="text-sm mb-2">ファイル名は <code>{lot_id}_{camera_id}_{4K_seq}_{FHD_seq}.png</code> の形式です。</p>
+                    <pre><code class="language-plaintext">http://10.100.54.170:3001/imageDB/beforeTest/MAT-00123_B-spring01_A-4_D-5.png
+http://10.100.54.170:3001/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</code></pre>
                 </div>
             </section>
 
@@ -564,14 +554,14 @@ http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_1.jpg</code></pre>
     {
         "lot_id": "MAT-00123",
         "image_paths": [
-        "/imageDB/MAT-00123_B-spring01_1.jpg",
-        "/imageDB/MAT-00123_B-spring02_1.jpg"
+        "/imageDB/MAT-00123_B-spring01_A-4_D-5.png",
+        "/imageDB/MAT-00123_B-spring02_A-4_D-5.png"
         ]
     },
     {
         "lot_id": "MAT-00124",
         "image_paths": [
-        "/imageDB/MAT-00124_B-spring01_1.jpg"
+        "/imageDB/MAT-00124_B-spring01_A-7_D-3.png"
         ]
     }
     ]
@@ -599,13 +589,13 @@ http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_1.jpg</code></pre>
                 </div>
             </section>
 
-            <!-- 10. 検査結果一括登録 -->
+            <!-- 10. 検査結果一括登録(ばねどめ検査用) -->
             <section id="post-before-inspection-image">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">10. 検査結果一括登録</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">10. 検査結果一括登録(ばねどめ検査用)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/batch/{lot_id}</span>
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
@@ -641,7 +631,7 @@ import json
 import datetime
 
 lot_id = "MAT-00123"
-url = f"http://your-server.com/api/ingress/inspection/{lot_id}"
+url = f"http://10.100.54.170:3001/api/ingress/inspection/{lot_id}"
 
 # 送信するメタデータを作成（ロット全体のショット配列）
 metadata = {
@@ -691,29 +681,57 @@ except Exception:
 
         <!-- 11. 現在生産中の lot_id を取得（最小） -->
         <section id="get-current-lot-id">
-            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">11. 現在生産中の lot_id を取得（最小）</h2>
+            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">11. 現在生産中の lot_id を取得</h2>
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="flex items-center space-x-4 mb-4">
                     <span class="method-badge get">GET</span>
-                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/current-lot</span>
+                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/current-lot?section={section}</span>
                     <span class="bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-bold">最小仕様</span>
                 </div>
 
-                <p class="mb-4">生産機械での現在生産中（進行中）のロットIDを <strong>1 件だけ</strong> 返します。読み取り専用で副作用はありません。</p>
+                <p class="mb-4">生産機械での現在生産中（進行中）のロットIDを <strong>1 件だけ</strong> 返します。<strong>指定した検査セクション（section）</strong>ごとに検索します。読み取り専用で副作用はありません。</p>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="border-b-2 p-2">パラメータ</th>
+                            <th class="border-b-2 p-2">説明</th>
+                            <th class="border-b-2 p-2">例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border-b p-2 font-mono">section（必須）</td>
+                            <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                            <td class="border-b p-2 font-mono">?section=spring / ?section=alayer</td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス</h3>
-                <p class="text-sm mb-2">200 OK — 現在生産中のロットがある場合</p>
+                <p class="text-sm mb-2">200 OK — 指定セクションで現在生産中のロットがある場合</p>
                 <pre><code class="language-json">{
     "lot_id": "MAT-00123"
 }</code></pre>
 
-                <p class="text-sm mb-2">204 NG — 現在生産中のロットがない場合</p>
+                <p class="text-sm mb-2">204 NG — 指定セクションに現在生産中のロットがない場合</p>
                 <pre><code class="language-json">{
     "message": "現在生産しているロットはありません｡"
 }</code></pre>
+
+                <p class="text-sm mt-4 mb-1">400 Bad Request（<code>section</code> が未指定または不正な値の場合）</p>
+                <pre><code class="language-json">{
+    "error": "Bad Request",
+    "details": [
+        "クエリパラメータ 'section' は必須です（spring または alayer を指定してください）。"
+    ]
+}</code></pre>
+
                 <h3 class="text-lg font-semibold mt-6 mb-2">備考</h3>
                 <ul class="list-disc list-inside text-sm space-y-1">
                     <li>読み取り専用。サーバー側で予約・ロック・状態変更は行いません。</li>
+                    <li><code>section</code> は必須。指定セクションのみを対象にします（許可: <code>spring</code>, <code>alayer</code>）。</li>
                     <li>戻り値は最小限で <code>lot_id</code> のみです（追加情報は将来拡張）。</li>
                 </ul>
             </div>
