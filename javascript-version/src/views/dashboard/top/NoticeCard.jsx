@@ -27,8 +27,45 @@ import useAuthMe from "@core/hooks/useAuthMe";
 // Icons
 import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
 
-const STORAGE_KEY = "dashboard_notice_v1"; // 旧: テキストのみ
-const STORAGE_KEY_V2 = "dashboard_notice_v2"; // 新: { text, priority }
+// --- ▼ API・UI マッピング関数 ▼ ---
+
+/**
+ * APIレスポンス ( "高い" ) を UI内部状態 ( "important" ) に変換
+ * @param {string} apiPriority "低い" | "普通" | "高い"
+ * @returns {string} "normal" | "warning" | "important"
+ */
+const apiPriorityToUiPriority = (apiPriority) => {
+  switch (apiPriority) {
+    case "高い":
+      return "important";
+    case "普通":
+      return "warning";
+    case "低い":
+    default:
+      return "normal";
+  }
+};
+
+/**
+ * UI内部状態 ( "important" ) を APIリクエスト ( 3 ) に変換
+ * (API設計書: 1:低い, 2:普通, 3:高い)
+ * @param {string} uiPriority "normal" | "warning" | "important"
+ * @returns {number} 1 | 2 | 3
+ */
+const uiPriorityToApiPriority = (uiPriority) => {
+  switch (uiPriority) {
+    case "important":
+      return 3; // 高い
+    case "warning":
+      return 2; // 普通
+    case "normal":
+    default:
+      return 1; // 低い
+  }
+};
+
+// --- ▲ API・UI マッピング関数 ▲ ---
+
 
 // UI表示に使う内部の優先度値
 const PRIORITIES = {
@@ -38,48 +75,49 @@ const PRIORITIES = {
 };
 
 const NoticeCard = ({ height = 160 }) => {
-  const [notice, setNotice] = useState(
-    "本日の安全第一。午後は来客予定があります。\n17:00 までに作業場の整理整頓をお願いします。"
-  );
+  // --- ▼ State 修正 ▼ ---
+  const [notice, setNotice] = useState(null); // APIから取得するため初期値 null
   const [priority, setPriority] = useState("normal"); // 'important' | 'warning' | 'normal'
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [draftPriority, setDraftPriority] = useState("normal");
   const [updatedAt, setUpdatedAt] = useState(null); // ISO string
+  const [isLoading, setIsLoading] = useState(true); // ★ローディング状態を追加
+  // --- ▲ State 修正 ▲ ---
   const theme = useTheme();
   const { isAdmin } = useAuthMe();
 
+  // --- ▼ useEffect 修正 (GET /api/message) ▼ ---
   useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-
-      // v2（JSON）の読み込みを優先
-      const savedV2 = window.localStorage.getItem(STORAGE_KEY_V2);
-      if (savedV2) {
-        try {
-          const parsed = JSON.parse(savedV2);
-          if (parsed && typeof parsed === "object") {
-            if (typeof parsed.text === "string") setNotice(parsed.text);
-            if (["important", "warning", "normal"].includes(parsed.priority)) setPriority(parsed.priority);
-            if (typeof parsed.updated_at === "string") setUpdatedAt(parsed.updated_at);
-            return;
-          }
-        } catch (_) {
-          // JSONでない場合は下のv1へフォールバック
+    // ページ読み込み時にAPIからデータを取得
+    const fetchNotice = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/message');
+        if (!res.ok) {
+          throw new Error('お知らせの取得に失敗しました');
         }
-      }
+        const data = await res.json();
 
-      // v1（テキストのみ）のフォールバック
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved && saved.trim().length > 0) {
-        setNotice(saved);
+        // 取得したデータで状態を更新
+        setNotice(data.content);
+        setPriority(apiPriorityToUiPriority(data.priority)); // マッピング関数を使用
+        setUpdatedAt(data.updated_at);
+
+      } catch (error) {
+        console.error(error);
+        // エラー時はデフォルト値を設定
+        setNotice("（お知らせの読み込みに失敗しました）");
         setPriority("normal");
         setUpdatedAt(null);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (_) {
-      // ignore storage errors
-    }
-  }, []);
+    };
+
+    fetchNotice();
+  }, []); // [] は空のまま (マウント時に1回だけ実行)
+  // --- ▲ useEffect 修正 ▲ ---
 
   const handleOpenEdit = () => {
     setDraft(notice);
@@ -87,21 +125,47 @@ const NoticeCard = ({ height = 160 }) => {
     setIsEditOpen(true);
   };
   const handleCloseEdit = () => setIsEditOpen(false);
-  const handleSaveEdit = () => {
+
+  // --- ▼ handleSaveEdit 修正 (PUT /api/message) ▼ ---
+  const handleSaveEdit = async () => { // ★ async を追加
     const value = draft?.trim() ?? "";
-    setNotice(value);
-    setPriority(draftPriority);
-    const nowIso = new Date().toISOString();
-    setUpdatedAt(nowIso);
+    const apiPriorityValue = uiPriorityToApiPriority(draftPriority); // ★マッピング関数を使用
+
     try {
-      if (typeof window !== "undefined") {
-        // v2形式で保存（v1キーは残すが参照は今後v2優先）
-        const payload = JSON.stringify({ text: value, priority: draftPriority, updated_at: nowIso });
-        window.localStorage.setItem(STORAGE_KEY_V2, payload);
+      const res = await fetch('/api/message', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: value,
+          priority: apiPriorityValue, // ★ 数値 (1, 2, 3) を送信
+        }),
+      });
+
+      if (!res.ok) {
+        // TODO: ユーザーにエラーを通知する (例: Snackbar)
+        console.error('更新失敗:', await res.text());
+        throw new Error('更新に失敗しました');
       }
-    } catch (_) {}
-    setIsEditOpen(false);
+
+      // APIからのレスポンス (更新後のデータ) を取得
+      const updatedData = await res.json();
+
+      // 画面の状態を更新
+      setNotice(updatedData.content);
+      setPriority(apiPriorityToUiPriority(updatedData.priority)); // マッピング関数を使用
+      setUpdatedAt(updatedData.updated_at);
+
+      setIsEditOpen(false); // ダイアログを閉じる
+
+    } catch (error) {
+      console.error(error);
+      // TODO: ユーザーにエラーを通知する
+      alert('更新に失敗しました。コンソールを確認してください。'); // alertの代わりにSnackbar推奨
+    }
   };
+  // --- ▲ handleSaveEdit 修正 ▲ ---
 
   // 重要度に応じてCardの見た目を切り替え
   const getStylesByPriority = () => {
@@ -158,11 +222,12 @@ const NoticeCard = ({ height = 160 }) => {
           bgcolor: styles.backgroundColor,
           position: 'relative',
           overflow: 'hidden',
-          cursor: 'pointer'
+          // 管理者以外はクリック（タップ）でモーダルが開く
+          cursor: isAdmin ? 'default' : 'pointer'
         }}
         role="button"
         aria-label="今日のお知らせを表示"
-        onClick={handleOpenEdit}
+        onClick={isAdmin ? undefined : handleOpenEdit} // 管理者はボタンのみ、他はカード全体
       >
         {/* 左端のストライプ */}
         <span
@@ -194,7 +259,13 @@ const NoticeCard = ({ height = 160 }) => {
         />
         <CardContent sx={{ flexGrow: 1, overflow: 'auto' }}>
           <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-            {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
+            {/* --- ▼ ローディング表示 修正 ▼ --- */}
+            {isLoading ? (
+              "読み込み中..."
+            ) : (
+              notice && notice.length > 0 ? notice : "（お知らせは未設定です）"
+            )}
+            {/* --- ▲ ローディング表示 修正 ▲ --- */}
           </Typography>
         </CardContent>
       </Card>
@@ -235,7 +306,7 @@ const NoticeCard = ({ height = 160 }) => {
                 <Chip size="small" label={PRIORITIES[priority]?.label ?? '通常'} color={styles.chipColor} variant={priority === 'normal' ? 'outlined' : 'filled'} />
               </div>
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                {notice && notice.length > 0 ? notice : "（お知らせは未設定です）"}
+                {isLoading ? "読み込み中..." : (notice && notice.length > 0 ? notice : "（お知らせは未設定です）")}
               </Typography>
             </>
           )}
