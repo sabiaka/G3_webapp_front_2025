@@ -312,16 +312,16 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 
             <!-- 6. 検査前画像の送信 -->
             <section id="post-before-inspection-image">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】画像アップロード（lot_id指定・単発）</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】画像アップロード（lot_id指定・単発）(A層検査用)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection?lot_id={lot_id}</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
                         Jetson から <strong>1枚の検査前画像</strong> をアップロードします。<br>
-                        <strong>lot_id はサーバー側で採番</strong> されます。検査機は <code>/api/ingress/inspection/current-lot?section={section}</code> で取得した lot_id を本APIの <code>lot_id</code> クエリに指定してください。
+                        <strong>lot_id はサーバー側で採番</strong> されます。検査機は <code>/api/ingress/inspection/current-lot?section={section}</code> で取得した lot_id を本APIの <strong>パスパラメータ</strong> <code>{lot_id}</code> に指定してください。
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">lot_id のルールについて</h3>
@@ -338,7 +338,7 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
                         <p class="font-bold">ファイル名はサーバーが自動で決定します</p>
                         <p class="text-sm mt-1">
-                            受け取った <code>lot_id</code>（クエリ）とメタデータ（<code>camera_id</code>・<code>4K_seq</code>・<code>FHD_seq</code>）からファイル名を生成します。検査後更新のキーとして利用します。
+                            受け取った <code>lot_id</code>（パス）とメタデータ（<code>camera_id</code>・<code>4K_seq</code>・<code>FHD_seq</code>）からファイル名を生成します。検査後更新のキーとして利用します。
                         </p>
                         <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
                             <strong>フォーマット:</strong> {lot_id}_{camera_id}_{4K_seq}_{FHD_seq}.png<br>
@@ -359,10 +359,10 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <div class="code-block-wrapper">
                         <pre><code class="language-json">{
     "section_code": "spring",
-            "camera_id": "B-spring01",
+    "camera_id": "B-spring01",
     "4K_seq": "A-4",
     "FHD_seq": "D-5",
-            "captured_at": "2025-09-12T05:09:02Z"
+    "captured_at": "2025-09-12T05:09:02Z"
 }</code></pre>
                     </div>
 
@@ -372,15 +372,15 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 import requests
 import json
 
-base = "http://your-server.com/api/ingress/inspection"
-params = {"lot_id": "MAT-00125"}
+lot_id = "MAT-00125"
+url = f"http://10.100.54.170:3001/api/ingress/inspection/{lot_id}"
 
 metadata = {
     "section_code": "spring",
-            "camera_id": "B-spring01",
+    "camera_id": "B-spring01",
     "4K_seq": "A-4",
     "FHD_seq": "D-5",
-            "captured_at": "2025-09-12T05:09:02Z"
+    "captured_at": "2025-09-12T05:09:02Z"
 }
 
 files = {
@@ -388,7 +388,7 @@ files = {
     'image': ("before.png", open('/path/to/before.png', 'rb'), 'image/png')
 }
 
-resp = requests.post(base, params=params, files=files, timeout=10)
+resp = requests.post(url, files=files, timeout=10)
 print(f"ステータスコード: {resp.status_code}")
 print("レスポンス:", resp.json())
 </code></pre>
@@ -408,7 +408,7 @@ print("レスポンス:", resp.json())
 
             <!-- 7. 検査後データと画像の送信 -->
             <section id="put-after-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信（filename指定・単発）</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信（filename指定・単発）（A層検査用）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge put">PUT</span>
@@ -457,7 +457,7 @@ import json
 import datetime
 
 filename = 'MAT-00123_B-spring01_A-4_D-5.png'
-url = f"http://your-server.com/api/ingress/inspection/result/{filename}"
+url = f"http://10.100.54.170:3001/api/ingress/inspection/result/{filename}"
 
 metadata = {
     "status": "FAIL",
@@ -507,8 +507,8 @@ print("レスポンス:", resp.json())
                     </p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">アクセスURLの例</h3>
                     <p class="text-sm mb-2">ファイル名は <code>{lot_id}_{camera_id}_{4K_seq}_{FHD_seq}.png</code> の形式です。</p>
-                    <pre><code class="language-plaintext">http://your-server.com/imageDB/beforeTest/MAT-00123_B-spring01_A-4_D-5.png
-http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</code></pre>
+                    <pre><code class="language-plaintext">http://10.100.54.170:3001/imageDB/beforeTest/MAT-00123_B-spring01_A-4_D-5.png
+http://10.100.54.170:3001/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</code></pre>
                 </div>
             </section>
 
@@ -595,7 +595,7 @@ http://your-server.com/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</code>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/batch/{lot_id}</span>
                         <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
                     </div>
                     <p class="mb-4">
@@ -631,7 +631,7 @@ import json
 import datetime
 
 lot_id = "MAT-00123"
-url = f"http://your-server.com/api/ingress/inspection/{lot_id}"
+url = f"http://10.100.54.170:3001/api/ingress/inspection/{lot_id}"
 
 # 送信するメタデータを作成（ロット全体のショット配列）
 metadata = {
