@@ -56,7 +56,7 @@ const getTodayDateString = () => {
 
 const TodayTasksCard = () => {
   // --- ▼ Stateを定義 ▼ ---
-  // APIから取得したタスク (最大2件) を格納
+  // APIから取得したタスクを格納
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,8 +79,10 @@ const TodayTasksCard = () => {
         
         const data = await res.json(); // APIは配列 ( [...] ) を返す
         
-        // ★要件: APIから全件取得し、フロントで「最大2件」に絞り込む★
-        setTasks(data.slice(0, 2));
+        // --- ▼ 変更点 ▼ ---
+        // ★変更: APIから取得したタスクを「すべて」表示する★
+        setTasks(data); // .slice(0, 2) を削除
+        // --- ▲ 変更点 ▲ ---
 
       } catch (err) {
         console.error(err);
@@ -120,7 +122,7 @@ const TodayTasksCard = () => {
       );
     }
 
-    // データ取得成功時の表示 (最大2件をマッピング)
+    // データ取得成功時の表示 (全件をマッピング)
     return (
       <Grid container spacing={3} alignItems="stretch">
         {tasks.map((task) => (
