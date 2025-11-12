@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import Box from '@mui/material/Box'
+import { alpha } from '@mui/material/styles'
 
 const pad2 = n => String(Math.max(0, Number(n) || 0)).padStart(2, '0')
 
@@ -36,8 +37,6 @@ export default function MachineStatusPanel({
   machineBadge,
   todayUptimeSec,
   todayProdCount,
-  lastInspectionDate,
-  nextInspectionDate,
   logs,
   formatNumber
 }) {
@@ -63,18 +62,6 @@ export default function MachineStatusPanel({
               <Typography variant='h3' fontWeight={900}>{formatNumber(todayProdCount)}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-              <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1.1rem' }}>最終点検日</Typography>
-              <Typography variant='h4' fontWeight={700}>{lastInspectionDate || '--/--/--'}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-              <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1.1rem' }}>次回点検日</Typography>
-              <Typography variant='h4' fontWeight={700}>{nextInspectionDate || '--/--/--'}</Typography>
-            </Box>
-          </Grid>
         </Grid>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0 }}>
@@ -88,19 +75,37 @@ export default function MachineStatusPanel({
             )}
             {(logs || []).map((lg, idx) => {
               const type = String(lg.log_type || 'info').toLowerCase()
-              const bg = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'default'
-              const bgColor = bg === 'error' ? 'error.dark' : bg === 'warning' ? 'warning.dark' : 'background.default'
-              const titleColor = bg === 'error' ? 'error.light' : bg === 'warning' ? 'warning.light' : 'text.primary'
-              const msgColor = bg === 'error' ? 'error.main' : bg === 'warning' ? 'warning.main' : 'text.secondary'
+              const isError = type === 'error'
+              const isWarning = type === 'warning'
+              const bgColor = isError
+                ? (theme) => alpha(theme.palette.error.main, 0.15)
+                : isWarning
+                  ? (theme) => alpha(theme.palette.warning.main, 0.18)
+                  : 'background.default'
+              const titleColor = isError ? 'error.main' : isWarning ? 'warning.dark' : 'text.primary'
+              const msgColor = isError ? 'error.dark' : isWarning ? 'warning.main' : 'text.secondary'
               let tsText = '--:--:--'
               try {
                 const d = new Date(lg.timestamp)
                 tsText = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
               } catch {}
               return (
-                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, bgcolor: bgColor, borderRadius: 1, mb: 1 }}>
+                <Box
+                  key={idx}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 1.5,
+                    bgcolor: bgColor,
+                    borderRadius: 1,
+                    mb: 1,
+                    border: '1px solid',
+                    borderColor: isError ? 'error.main' : isWarning ? 'warning.main' : 'divider'
+                  }}
+                >
                   <Box>
-                    <Typography variant='body1' fontWeight={600} color={titleColor}>{lg.title || ''}</Typography>
+                    <Typography variant='body1' fontWeight={700} color={titleColor}>{lg.title || ''}</Typography>
                     {lg.message ? <Typography variant='caption' color={msgColor}>{lg.message}</Typography> : null}
                   </Box>
                   <Typography variant='caption' color='text.secondary'>{tsText}</Typography>

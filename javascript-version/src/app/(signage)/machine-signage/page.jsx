@@ -33,19 +33,19 @@ const Page = () => {
       {/* Main */}
       <Box sx={{ px: 4, pb: 4, flexGrow: 1, minHeight: 0 }}>
         <Grid container spacing={4} sx={{ height: '100%' }}>
-          <Grid item xs={12} xl={6} sx={{ height: { xs: 'auto', xl: '100%' } }}>
+          {/* Machine status ~30% width on xl */}
+          <Grid item xs={12} xl={4} sx={{ height: { xs: 'auto', xl: '100%' } }}>
             <MachineStatusPanel
               machineName={data.machineName}
               machineBadge={data.machineBadge}
               todayUptimeSec={data.todayUptimeSec}
               todayProdCount={data.todayProdCount}
-              lastInspectionDate={data.lastInspectionDate}
-              nextInspectionDate={data.nextInspectionDate}
               logs={data.logs}
               formatNumber={data.formatNumber}
             />
           </Grid>
-          <Grid item xs={12} xl={6} sx={{ height: { xs: 'auto', xl: '100%' } }}>
+          {/* Inspection panel expanded to occupy remaining space */}
+          <Grid item xs={12} xl={8} sx={{ height: { xs: 'auto', xl: '100%' } }}>
             <Stack spacing={4} sx={{ height: '100%' }}>
               <InspectionPanel overallStatus={data.overallStatus} tiles={data.tiles} />
               <Grid container spacing={3}>
