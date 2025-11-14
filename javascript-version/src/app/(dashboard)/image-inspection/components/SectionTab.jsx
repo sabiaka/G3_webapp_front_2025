@@ -28,6 +28,7 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
+import { toImageUrl } from '../utils/imageUrl'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
@@ -331,13 +332,12 @@ return (
                                               <Box
                                                 sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
                                                 onClick={() => {
-                                                  const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
-
+                                                  const src = s.image_path ? toImageUrl(s.image_path) : `${basePath}/images/pages/CameraNotFound.png`
                                                   setLightbox({ open: true, src, alt: s.image_path || 'shot' })
                                                 }}
                                               >
                                                 <img
-                                                  src={s.image_path || FALLBACK_IMG}
+                                                  src={s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG}
                                                   alt={s.image_path || 'shot'}
                                                   onError={e => {
                                                     if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
