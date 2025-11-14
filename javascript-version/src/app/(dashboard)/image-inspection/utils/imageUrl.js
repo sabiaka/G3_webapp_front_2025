@@ -24,3 +24,26 @@ export const toImageUrl = (p) => {
 }
 
 export default toImageUrl
+
+// MISSING（画像未取得等）の場合に使用する beforeTest フォールバックURLを生成
+// 入力がパス/URLであっても末尾のファイル名だけを採用して
+//   http://{現在のホスト}:3001/imageDB/beforeTest/<filename>
+// を返します。ファイル名が取れない場合は空文字を返します。
+export const toBeforeTestUrl = (p) => {
+  const fname = (p || '').split('/').pop() || ''
+  if (!fname) return ''
+  const base = getImageBase()
+  console.log(`${base}/imageDB/beforeTest/${fname}`);
+  return `${base}/imageDB/beforeTest/${fname}`
+}
+
+// PASS/FAIL など検査完了時に使用する afterTest 側のURLを生成
+// 入力の末尾ファイル名を利用し、
+//   http://{現在のホスト}:3001/imageDB/afterTest/<filename>
+// を返します。ファイル名が取れない場合は空文字を返します。
+export const toAfterTestUrl = (p) => {
+  const fname = (p || '').split('/').pop() || ''
+  if (!fname) return ''
+  const base = getImageBase()
+  return `${base}/imageDB/afterTest/${fname}`
+}
