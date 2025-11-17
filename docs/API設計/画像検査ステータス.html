@@ -80,6 +80,7 @@
                         <li>リアルタイム更新: WebSocket → <strong>軽量GETポーリング</strong>に変更（サーバは直近イベントID/名前を公開。フロントは数秒おきに比較し、変化時のみデータAPIを再取得）。</li>
                         <li>DBスキーマ: 単一テーブルから <strong>ロット</strong>＋<strong>カメラショット</strong> の2層構造へ再設計。1ロット内の同一カメラの複数ショットを保存可能。</li>
                         <li>API整備: クエリは <code>section</code> と <code>date</code> を基本に統一。<code>summary</code> と <code>lots</code> を中核に、任意で <code>lot-shots</code> や <code>dates</code> を追加。</li>
+                        <li>ショット詳細: 4K / FHD ごとにエンドポイントを分割し、<code>4k_seq</code>（DB 列: <code>c4k_seq</code>）・<code>fhd_seq</code> で新たな撮影シーケンスを識別。</li>
                         <li>ステータス表記: サーバは <code>PASS/FAIL</code> を返却。フロントの UI 表示（OK/NG 等）はフロント側でマッピング。</li>
                         <li>画像命名: <code>{lot_id}_{camera_id}-{seq}.jpg</code> を推奨（例: <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
                     </ul>
@@ -215,15 +216,17 @@ CREATE TABLE inspection_camera_shots (
     id BIGSERIAL PRIMARY KEY,                                                   -- ショット内部ID（連番）
     lot_id_ref BIGINT NOT NULL REFERENCES inspection_lots(id) ON DELETE CASCADE,-- ロット参照ID
     camera_id VARCHAR(64) NOT NULL,                                             -- カメラID（例: 'B-spring01', 'A-main01'）
+    c4k_seq VARCHAR(32) NULL,                                                   -- 4K撮影シーケンスID（例: "A-4"｜JSONキー: "4k_seq"）
+    fhd_seq VARCHAR(32) NULL,                                                   -- FHD撮影シーケンスID（例: "D-5"）
     status VARCHAR(16) NOT NULL CHECK (status IN ('PASS','FAIL','MISSING')),    -- 判定ステータス
     details TEXT NULL,                                                          -- 不良理由等（PASS時はNULL推奨）
     image_path TEXT NULL,                                                       -- 画像パス（MISSING時はNULL可）
-    shot_seq INT NOT NULL DEFAULT 1,                                            -- 同一カメラ内の通番（1..n）
+    shot_seq INT NULL,                                                          -- 同一カメラ内の通番（1..n）※4K/FHD毎に任意
     captured_at TIMESTAMP WITH TIME ZONE NULL                                   -- ショット撮影時刻
 );
 </code></pre>
                     </div>
-                    <p class="mt-2 text-sm text-slate-600">備考: ロットの総合判定はビューやアプリ側で算出（<strong>同一camera_idで1つでもFAILがあればNG</strong> ルール）。必要ならマテリアライズドビューやトリガで日次集計を保持。</p>
+                    <p class="mt-2 text-sm text-slate-600">備考: ロットの総合判定はビューやアプリ側で算出（<strong>同一camera_idで1つでもFAILがあればNG</strong> ルール）。4K/FHD 系列は DB 上では <code>c4k_seq</code>・<code>fhd_seq</code> で保持し、API レイヤでは <code>4k_seq</code>・<code>fhd_seq</code> として返却します。必要ならマテリアライズドビューやトリガで日次集計を保持。</p>
                 </div>
             </section>
 
@@ -369,42 +372,123 @@ CREATE TABLE inspection_camera_shots (
                 </div>
             </section>
 
-            <!-- 3.1 ロット詳細（ショット一覧） -->
+            <!-- 3.1 ロット詳細（ショット一覧 4K / FHD） -->
             <section id="lot-shots">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3.1 ロット詳細（ショット一覧）</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <span class="method-badge get">GET</span>
-                        <span class="font-mono text-lg font-semibold">/api/inspections/lots/{lot_id}/shots</span>
-                        <span class="bg-slate-500 text-white px-3 py-1 rounded-full text-sm font-bold">任意</span>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">3.1 ロット詳細（ショット一覧: 4K / FHD）A層検査用</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md space-y-8">
+                    <p class="text-slate-600">ショット一覧は <strong>撮影種別（4K/FHD）ごとにエンドポイントを分離</strong> しました。UI では必要な種別のみリクエストし、各ショットの <code>4k_seq</code>（DB列: <code>c4k_seq</code>）/ <code>fhd_seq</code> を用いて表示順や紐付けを制御します。</p>
+
+                    <div>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <span class="method-badge get">GET</span>
+                            <span class="font-mono text-lg font-semibold">/api/inspections/lots/{lot_id}/shots/4K</span>
+                            <span class="bg-slate-500 text-white px-3 py-1 rounded-full text-sm font-bold">任意</span>
+                        </div>
+                        <p class="mb-4">指定ロットの 4K ショットのみを返却します。4K シーケンス（<code>4k_seq</code>）単位で <strong>重複を排除</strong> し、同一 <code>4k_seq</code> を持つ行が複数あっても API では 1 件として返却します（最新ショット等、実装側で優先順位を定義）。</p>
+                        <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="border-b-2 p-2">パラメータ</th>
+                                    <th class="border-b-2 p-2">説明</th>
+                                    <th class="border-b-2 p-2">例</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">lot_id</td>
+                                    <td class="border-b p-2">対象ロットID（パスで指定）</td>
+                                    <td class="border-b p-2 font-mono">/api/inspections/lots/MAT-10001/shots/4K</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス例</h3>
+                                                <pre><code class="language-json">{
+    "lot_id": "MAT-10001",
+    "shots": [
+        {
+            "camera_id": "B-spring01",
+            "4k_seq": "A-4",
+            "shot_seq": 2,
+            "status": "PASS",
+            "details": null,
+            "image_path": "MAT-10001_B-spring01-4k-02.jpg"
+        },
+        {
+            "camera_id": "B-spring01",
+            "4k_seq": "A-5",
+            "shot_seq": 1,
+            "status": "FAIL",
+            "details": "角度規定外",
+            "image_path": "MAT-10001_B-spring01-4k-03.jpg"
+        }
+    ]
+}</code></pre>
                     </div>
-                    <p class="mb-4">ロット内の全ショットを返却します（同一カメラ複数ショットあり）。詳細モーダル等で使用。</p>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr>
-                                <th class="border-b-2 p-2">パラメータ</th>
-                                <th class="border-b-2 p-2">説明</th>
-                                <th class="border-b-2 p-2">例</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border-b p-2 font-mono">lot_id</td>
-                                <td class="border-b p-2">対象ロットID（パスで指定）</td>
-                                <td class="border-b p-2 font-mono">/api/inspections/lots/MAT-10001/shots</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス</h3>
-                    <pre><code class="language-json">{
+
+                    <div>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <span class="method-badge get">GET</span>
+                            <span class="font-mono text-lg font-semibold">/api/inspections/lots/{lot_id}/shots/FHD/{4k_seq}</span>
+                            <span class="bg-slate-500 text-white px-3 py-1 rounded-full text-sm font-bold">任意</span>
+                        </div>
+                        <p class="mb-4">指定ロット内で、<strong>特定の <code>4k_seq</code> に紐づく FHD ショットのみ</strong> を返却します。4K 詳細ビューから FHD 連番を掘り下げる用途を想定しています。</p>
+                        <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="border-b-2 p-2">パラメータ</th>
+                                    <th class="border-b-2 p-2">説明</th>
+                                    <th class="border-b-2 p-2">例</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">lot_id</td>
+                                    <td class="border-b p-2">対象ロットID（パスで指定）</td>
+                                    <td class="border-b p-2 font-mono">/api/inspections/lots/MAT-10001/shots/FHD/A-4</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">4k_seq</td>
+                                    <td class="border-b p-2">連動させたい 4K シーケンスID。該当する FHD ショットのみを抽出。</td>
+                                    <td class="border-b p-2 font-mono">/api/inspections/lots/MAT-10001/shots/FHD/A-4</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス例</h3>
+                        <pre><code class="language-json">{
   "lot_id": "MAT-10001",
+  "4k_seq": "A-4",
   "shots": [
-    { "camera_id": "B-spring01", "status": "FAIL", "details": "角度規定外", "image_path": "MAT-10001_B-spring01-01.jpg" },
-    { "camera_id": "B-spring01", "status": "PASS", "details": null, "image_path": "MAT-10001_B-spring01-02.jpg" },
-    { "camera_id": "B-spring02", "status": "PASS", "details": null, "image_path": "MAT-10001_B-spring02-01.jpg" }
+    {
+      "camera_id": "B-spring02",
+      "fhd_seq": "D-5",
+      "shot_seq": null,
+      "status": "PASS",
+      "details": null,
+      "image_path": "MAT-10001_B-spring02-fhd-01.jpg"
+    },
+    {
+      "camera_id": "B-spring02",
+      "fhd_seq": "D-5",
+      "shot_seq": 2,
+      "status": "FAIL",
+      "details": "位置ずれ",
+      "image_path": "MAT-10001_B-spring02-fhd-02.jpg"
+    }
   ]
 }</code></pre>
+                    </div>
+
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <p>備考:</p>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li>4K シーケンスは DB 上は <code>c4k_seq</code>、API レスポンスでは <code>4k_seq</code> として返します。FHD シーケンスは <code>fhd_seq</code> のままです。該当しないショットでは NULL を返して構いません。</li>
+                            <li>4K エンドポイントは <code>4k_seq</code> ごとにユニークなショットのみ返却するため、クライアント側で重複除外を行う必要はありません。</li>
+                            <li><code>shot_seq</code> はカメラ＋種別の任意通番。旧 API 互換のため NULL 許容。</li>
+                            <li>4K/FHD を両方表示する UI は <code>/shots/4K</code> で候補を表示し、選択された <code>4k_seq</code> を使って <code>/shots/FHD/{4k_seq}</code> を呼び出す作りにすると整合を保ちやすいです。</li>
+                        </ul>
+                    </div>
                 </div>
             </section>
 
