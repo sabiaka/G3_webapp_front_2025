@@ -67,7 +67,7 @@ const ImageInspection = () => {
   const [openRows, setOpenRows] = useState({})
 
   // 画像拡大表示用ライトボックス状態
-  const [lightbox, setLightbox] = useState({ open: false, src: '', alt: '' })
+  const [lightbox, setLightbox] = useState({ open: false, src: '', fallback: '', alt: '' })
 
   // タブ切り替え時の処理
   const handleTabChange = (event, newValue) => {

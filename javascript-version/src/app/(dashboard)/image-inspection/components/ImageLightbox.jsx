@@ -13,7 +13,7 @@ import Box from '@mui/material/Box'
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
-const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
+const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
   const containerRef = useRef(null)
   const imgRef = useRef(null)
   const [scale, setScale] = useState(1) // 1: フィット, >1: 拡大
@@ -22,6 +22,7 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
   const [imgSrc, setImgSrc] = useState(src || FALLBACK_IMG)
   const [dragging, setDragging] = useState(false)
+  const [fallbackTried, setFallbackTried] = useState(false)
   const suppressClickRef = useRef(false)
   const moveRaf = useRef(0)
 
@@ -30,8 +31,9 @@ const ImageLightbox = ({ open, src, alt = 'image', onClose }) => {
       setScale(1)
       setOffset({ x: 0, y: 0 })
       setImgSrc(src || FALLBACK_IMG)
+      setFallbackTried(false)
     }
-  }, [open, src])
+  }, [open, src, fallbackSrc])
 
   useEffect(() => {
     const onKey = e => {
@@ -134,7 +136,12 @@ return
   }, [])
 
   const handleImgError = () => {
-    if (imgSrc !== FALLBACK_IMG) setImgSrc(FALLBACK_IMG)
+    if (fallbackSrc && !fallbackTried) {
+      setFallbackTried(true)
+      setImgSrc(fallbackSrc)
+    } else if (imgSrc !== FALLBACK_IMG) {
+      setImgSrc(FALLBACK_IMG)
+    }
   }
 
   if (!open) return null
