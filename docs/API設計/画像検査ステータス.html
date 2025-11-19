@@ -438,8 +438,10 @@ CREATE TABLE inspection_camera_shots (
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
                     <p class="mb-4">
-                        ロット単位で検査結果を取得。各ロットはセクション内の全カメラ結果（同一カメラの複数ショットを含み得る）を内包し、<strong>同一camera_idで1つでもFAILがあればロットNG</strong>
-                        とします。ページネーション対応。</p>
+                        ロット単位で検査結果を取得。各ロットはセクション内の全撮影結果を内包し、ページネーション対応。セクションに応じて集約単位が変わります。
+                        <strong>spring</strong> など従来通りのセクションはカメラ単位で <code>cameras</code> を返し、<strong>同一camera_idで1つでもFAILがあればロットNG</strong>。<br>
+                        <strong>alayer</strong> セクションは代わりに 4K シーケンス単位で <code>four_k_sequences</code> を返し、<strong>同一<code>4k_seq</code>のいずれかがFAILならそのシーケンス全体をFAIL</strong>、シーケンスに1つでも FAIL があればロットも FAIL です。<br>
+                        さらに <strong>代表ファイルパス</strong>（通常はそのロットで最初に撮れた画像）をフルパスで返却し、フロントはカードや一覧のサムネイルとして利用できます。パスは検査後画像が存在するかで切り替え:<code>/imageDB/afterTest//{fileName}</code>（検査後あり）/<code>/imageDB/beforeTest//{fileName}</code>（検査前のみ）。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ</h3>
                     <table class="w-full text-left border-collapse">
@@ -482,9 +484,10 @@ CREATE TABLE inspection_camera_shots (
     "lots": [
         {
             "lot_id": "MAT-10001",                      // ロットID（製品ID等に相当）
-            "section": "バネ留め",                       // セクション名
+            "section": "spring",                        // spring 系は従来どおり camera 単位
             "captured_at": "2025-10-01T17:47:53.427Z",  // 代表時刻（最初/最後のいずれかでOK）
-            "pass": false,                              // 全カメラ PASS のときのみ true
+            "pass": false,                               // 全カメラ PASS のときのみ true
+            "representative_image": "/imageDB/beforeTest//MAT-10001_B-spring01_A-1_A-1.png", // 検査前のみ存在時のフルパス
             "cameras": [
                 { "camera_id": "B-spring01", "status": "FAIL"},
                 { "camera_id": "B-spring02", "status": "FAIL"},
@@ -494,18 +497,13 @@ CREATE TABLE inspection_camera_shots (
         },
         {
             "lot_id": "LOLL-10001",                      // ロットID（製品ID等に相当）
-            "section": "A層検査",                        // セクション名
-            "captured_at": "2025-10-01T17:47:53.427Z",  // 代表時刻（最初/最後のいずれかでOK）
-            "pass": false,                              // 全カメラ PASS のときのみ true
-            "cameras": [
-                { "camera_id": "A-main01", "status": "FAIL"},
-                { "camera_id": "A-main01", "status": "FAIL"},
-                { "camera_id": "A-main01", "status": "PASS"},
-                { "camera_id": "A-main01", "status": "PASS"},
-                { "camera_id": "A-stitch01", "status": "PASS"},
-                { "camera_id": "A-stitch01", "status": "FAIL"},
-                { "camera_id": "A-stitch02", "status": "PASS"},
-                { "camera_id": "A-stitch02", "status": "PASS"}
+            "section": "alayer",                        // alayer は 4K シーケンス単位
+            "captured_at": "2025-10-01T17:47:53.427Z",
+            "pass": false,                               // 4K シーケンスのいずれかが FAIL なら false
+            "representative_image": "/imageDB/afterTest//LOLL-10001_A-main01_A-1_A-1.png", // 検査後画像がある場合
+            "four_k_sequences": [
+                { "4k_seq": "A-1", "status": "FAIL" },
+                { "4k_seq": "A-2", "status": "PASS" }
             ]
         }
     ]
@@ -514,8 +512,11 @@ CREATE TABLE inspection_camera_shots (
                     <div class="mt-4 text-sm text-slate-600 space-y-2">
                         <p>備考:</p>
                         <ul class="list-disc pl-6 space-y-1">
-                            <li>フロントは <code>camera_id</code> をそのまま表示（別名は不要）。</li>
+                            <li>spring 系セクションなどは従来どおり <code>cameras</code> 配列を返す。<code>alayer</code> は <code>four_k_sequences</code> 配列のみ返し、シーケンス単位の FAIL を判定する。</li>
+                            <li>シーケンスの判定は同一 <code>4k_seq</code> 内に FAIL が1つでもあれば当該シーケンスを FAIL とみなす。<code>alayer</code> ロットの <code>pass</code> は配列中に FAIL が存在するかで決まる。</li>
+                            <li>フロントは <code>camera_id</code> や <code>4k_seq</code> をそのまま表示（別名は不要）。</li>
                             <li>ステータスは <code>PASS/FAIL</code> を返す。UI上の <code>OK/NG</code> などはフロント側で変換。</li>
+                            <li><code>representative_image</code> は指定ロット内の最初に撮影されたショットのフルパス（該当なしは <code>null</code>）を返す。検査後画像があるときは <code>/imageDB/afterTest//</code> ルート、検査前しか無い場合は <code>/imageDB/beforeTest//</code> ルートを必ず使用する。</li>
                             <li>画像ファイル名は <strong>lot_id</strong> と <strong>camera_id</strong> を含め、通番を付与する形式を推奨:
                                 <code>{lot_id}_{camera_id}-{seq}.jpg</code>（例:
                                 <code>MAT-10001_B-spring01-02.jpg</code>）。</li>
