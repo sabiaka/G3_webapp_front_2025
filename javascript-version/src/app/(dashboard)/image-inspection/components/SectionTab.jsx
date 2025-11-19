@@ -1,3 +1,4 @@
+// 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
 import { Fragment, useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
