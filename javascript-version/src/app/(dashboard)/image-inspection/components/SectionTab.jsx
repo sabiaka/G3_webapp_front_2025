@@ -28,6 +28,7 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
+import { toImageUrl, toBeforeTestUrl, toAfterTestUrl } from '../utils/imageUrl'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
@@ -324,20 +325,28 @@ return (
                                             {s.details || '-'}
                                           </TableCell>
                                           <TableCell align="right" sx={{ width: 220 }}>
-                                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                              <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}>
                                                 {s.image_path}
                                               </Typography>
                                               <Box
                                                 sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
                                                 onClick={() => {
-                                                  const src = s.image_path ? `${basePath}/${s.image_path}` : `${basePath}/images/pages/CameraNotFound.png`
-
+                                                  const srcMissing = s.status === 'MISSING' ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG) : null
+                                                  const isDone = s.status === 'PASS' || s.status === 'FAIL'
+                                                  const srcAfter = isDone ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG) : null
+                                                  const src = srcMissing || srcAfter || (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG)
                                                   setLightbox({ open: true, src, alt: s.image_path || 'shot' })
                                                 }}
                                               >
                                                 <img
-                                                  src={s.image_path || FALLBACK_IMG}
+                                                  src={
+                                                    (s.status === 'MISSING')
+                                                      ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG)
+                                                      : ((s.status === 'PASS' || s.status === 'FAIL')
+                                                          ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG)
+                                                          : (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG))
+                                                  }
                                                   alt={s.image_path || 'shot'}
                                                   onError={e => {
                                                     if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
