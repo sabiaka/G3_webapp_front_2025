@@ -18,8 +18,9 @@ import CameraTile from './CameraTile'
  */
 
 const CameraGrid = ({ cameraNames, statusByName }) => {
+    const isSingleCamera = cameraNames.length === 1
     // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
-    const needsDummy = cameraNames.length === 3
+    const needsDummy = !isSingleCamera && cameraNames.length === 3
     const items = needsDummy ? [...cameraNames, '__dummy__'] : cameraNames
     const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定
 
@@ -29,7 +30,13 @@ const CameraGrid = ({ cameraNames, statusByName }) => {
     return (
         <Grid container spacing={2} sx={{ mb: 2 }}>
             {items.map((name, i) => (
-                <Grid item xs={12} sm={6} md={isTwoCols ? 6 : 4} key={i}>
+                <Grid
+                    item
+                    xs={12}
+                    sm={isSingleCamera ? 12 : 6}
+                    md={isSingleCamera ? 12 : isTwoCols ? 6 : 4}
+                    key={i}
+                >
                     {name === '__dummy__' ? (
                         <Box
                             sx={{
@@ -49,7 +56,7 @@ const CameraGrid = ({ cameraNames, statusByName }) => {
                             />
                         </Box>
                     ) : (
-                        <CameraTile name={name} status={statusByName[name] || 'OK'} />
+                        <CameraTile name={name} status={statusByName[name] || 'OK'} isSingle={isSingleCamera} />
                     )}
                 </Grid>
             ))}
