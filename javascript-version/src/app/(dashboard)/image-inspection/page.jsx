@@ -52,7 +52,6 @@ const ImageInspection = () => {
 
   // 検査ロット関連のデータ取得・操作関数
   const {
-    lotsData,
     getSectionLots,
     getLotStatus,
     getSectionStats,
@@ -67,7 +66,7 @@ const ImageInspection = () => {
   const [openRows, setOpenRows] = useState({})
 
   // 画像拡大表示用ライトボックス状態
-  const [lightbox, setLightbox] = useState({ open: false, src: '', alt: '' })
+  const [lightbox, setLightbox] = useState({ open: false, src: '', fallback: '', alt: '' })
 
   // タブ切り替え時の処理
   const handleTabChange = (event, newValue) => {
@@ -75,71 +74,55 @@ const ImageInspection = () => {
   }
 
   // 「全体表示」タブの内容
-  const renderOverviewTab = () => (
-    <Grid container spacing={3}>
-      {/* バネ留め検査のリアルタイム監視カード */}
-      <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
-        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              リアルタイム監視: バネ留め検査（4カメラ）
-            </Typography>
-            {/* カメラごとの状態表示 */}
-            <CameraGrid
-              cameraNames={SECTION_CONFIG['バネ留め'].cameras}
-              statusByName={Object.fromEntries(
-                (getLatestLot('バネ留め')?.cameras || []).map(c => [c.name, c.status])
-              )}
-            />
-            {/* 最新ロット判定のサマリー表示 */}
-            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                最新のロット判定
+  const renderOverviewTab = () => {
+    const renderRealtimeCard = sectionKey => {
+      const latest = getLatestLot(sectionKey)
+      const lotStatus = latest ? getLotStatus(latest) : undefined
+      const dynamicNames = Array.from(new Set((latest?.cameras || []).map(cam => cam?.name).filter(Boolean)))
+      const fallbackNames = SECTION_CONFIG[sectionKey]?.cameras || []
+      const cameraNames = dynamicNames.length ? dynamicNames : fallbackNames
+      const statusByName = Object.fromEntries((latest?.cameras || []).filter(cam => cam?.name).map(cam => [cam.name, cam.status]))
+      const cameraCount = cameraNames.length
+      const title = `${sectionKey}検査`
+
+      return (
+        <Grid item xs={12} lg={6} sx={{ display: 'flex' }} key={sectionKey}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                リアルタイム監視: {title}（{cameraCount}カメラ）
               </Typography>
-              <SectionSummary
-                latestLot={getLatestLot('バネ留め')}
-                lotStatus={getLatestLot('バネ留め') ? getLotStatus(getLatestLot('バネ留め')) : undefined}
-              />
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-      {/* A層検査のリアルタイム監視カード */}
-      <Grid item xs={12} lg={6} sx={{ display: 'flex' }}>
-        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              リアルタイム監視: A層検査（3カメラ）
-            </Typography>
-            {/* カメラごとの状態表示 */}
-            <CameraGrid
-              cameraNames={SECTION_CONFIG['A層'].cameras}
-              statusByName={Object.fromEntries(
-                (getLatestLot('A層')?.cameras || []).map(c => [c.name, c.status])
+              {cameraNames.length === 0 ? (
+                <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
+              ) : (
+                <CameraGrid
+                  cameraNames={cameraNames}
+                  statusByName={statusByName}
+                />
               )}
-            />
-            {/* 最新ロット判定のサマリー表示 */}
-            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                最新のロット判定
-              </Typography>
-              <SectionSummary
-                latestLot={getLatestLot('A層')}
-                lotStatus={getLatestLot('A層') ? getLotStatus(getLatestLot('A層')) : undefined}
-              />
-            </Box>
-          </CardContent>
-        </Card>
+              <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                  最新のロット判定
+                </Typography>
+                <SectionSummary latestLot={latest} lotStatus={lotStatus} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      )
+    }
+
+    return (
+      <Grid container spacing={3}>
+        {['バネ留め', 'A層'].map(renderRealtimeCard)}
       </Grid>
-    </Grid>
-  )
+    )
+  }
 
   // 各セクションタブの内容（propsで必要な関数や状態を渡す）
   const renderSectionTab = (section) => (
     <SectionTab
       section={section}
-      stats={getSectionStats(section)}
-      failReasons={getFailReasons(section)}
       getSectionLots={getSectionLots}
       getLotStatus={getLotStatus}
       getLotShotsByCamera={getLotShotsByCamera}

@@ -14,10 +14,25 @@ const SECTION_TO_CODE = {
     'A層': 'alayer'
 }
 
+const CODE_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_CODE).map(([display, code]) => [code, display]))
+
 const todayYMD = () => {
     const d = new Date()
     const pad = n => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+const normalizeImagePath = path => {
+    if (!path) return null
+    const trimmed = String(path).trim()
+    if (!trimmed) return null
+    if (/^https?:\/\//i.test(trimmed)) {
+        const [protocol, rest] = trimmed.split('://')
+        if (!rest) return trimmed
+        return `${protocol}://${rest.replace(/\/{2,}/g, '/')}`
+    }
+    const cleaned = trimmed.replace(/\/{2,}/g, '/')
+    return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
 }
 
 export const useLotsData = () => {
@@ -81,19 +96,16 @@ export const useLotsData = () => {
 
     // ---- アダプト層：APIデータ => 既存UI互換データ ----
     const normalizeSection = section => {
-        // 末尾の「検査」を取り除く（例: "A層検査" => "A層"）
         if (!section) return section
-        
-return section.replace(/検査$/, '')
+        const mapped = CODE_TO_SECTION[section] || section
+        return mapped.replace(/検査$/, '')
     }
 
     const toHHMMSS = iso => {
         try {
             const d = new Date(iso)
             const pad = n => String(n).padStart(2, '0')
-
-            
-return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+            return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
         } catch {
             return ''
         }
@@ -103,57 +115,84 @@ return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
         try {
             const d = new Date(iso)
             const pad = n => String(n).padStart(2, '0')
-
-            
-return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
         } catch {
             return ''
         }
     }
 
-    const mapStatusApiToUi = s => (s === 'PASS' ? 'OK' : 'NG')
+    const mapStatusApiToUi = status => {
+        const normalized = (status || '').toString().trim().toUpperCase()
+        if (!normalized) return '-'
+        if (normalized === 'PASS' || normalized === 'OK') return 'OK'
+        if (normalized === 'FAIL' || normalized === 'NG') return 'NG'
+        return normalized
+    }
 
     // 同一 camera_id が複数ある場合はワースト優先（FAILが1つでもあればNG）
     const aggregateCameras = cameras => {
         const byId = new Map()
 
-        for (const c of cameras || []) {
-            const prev = byId.get(c.camera_id)
+        for (const raw of cameras || []) {
+            const cameraId = raw?.camera_id || raw?.cameraId || raw?.name
+            if (!cameraId) continue
+            const statusUi = mapStatusApiToUi(raw?.status)
+            const details = raw?.details ?? '-'
+            const imagePath = raw?.image_path || null
+            const prev = byId.get(cameraId)
 
             if (!prev) {
-                byId.set(c.camera_id, {
-                    name: c.camera_id,
-                    status: mapStatusApiToUi(c.status),
-                    details: c.details ?? '-',
-                    image_path: c.image_path || null,
+                byId.set(cameraId, {
+                    name: cameraId,
+                    status: statusUi,
+                    rawStatus: raw?.status ?? '',
+                    details,
+                    image_path: imagePath,
+                    type: 'camera',
                 })
             } else {
-                // 既存がOKで新しいのがNGならNGへ、detailsもFAIL側を保持
-                const nextIsFail = c.status === 'FAIL'
+                const nextIsFail = statusUi !== 'OK'
                 const prevIsFail = prev.status !== 'OK'
 
                 if (nextIsFail && !prevIsFail) {
-                    prev.status = 'NG'
-                    prev.details = c.details ?? prev.details
-                    prev.image_path = c.image_path || prev.image_path
+                    prev.status = statusUi
+                    prev.rawStatus = raw?.status ?? prev.rawStatus
+                    prev.details = details
+                    prev.image_path = imagePath || prev.image_path
                 }
             }
         }
 
-        
-return Array.from(byId.values())
+        return Array.from(byId.values())
     }
 
-    const adaptLotToUi = lot => ({
-        time: toHHMMSS(lot.captured_at),
-        date: toYMD(lot.captured_at),
-        timestamp: new Date(lot.captured_at).getTime(),
-        section: normalizeSection(lot.section),
-        lotId: lot.lot_id,
-        cameras: aggregateCameras(lot.cameras),
+    const mapFourKSequences = sequences => (sequences || []).map(seq => ({
+        name: seq?.['4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? '-',
+        status: mapStatusApiToUi(seq?.status),
+        rawStatus: seq?.status ?? '',
+        details: seq?.details ?? '-',
+        type: 'sequence',
+    }))
 
-        // 参考: 総合判定は既存関数 getLotStatus で算出
-    })
+    const adaptLotToUi = lot => {
+        const sectionDisplay = normalizeSection(lot.section)
+        const overallStatus = typeof lot.pass === 'boolean' ? (lot.pass ? 'PASS' : 'FAIL') : undefined
+        const cameraLikeItems = Array.isArray(lot.four_k_sequences) && lot.four_k_sequences.length > 0
+            ? mapFourKSequences(lot.four_k_sequences)
+            : aggregateCameras(lot.cameras)
+
+        return {
+            time: toHHMMSS(lot.captured_at),
+            date: toYMD(lot.captured_at),
+            timestamp: new Date(lot.captured_at).getTime(),
+            section: sectionDisplay,
+            sectionCode: typeof lot.section === 'string' ? lot.section : undefined,
+            lotId: lot.lot_id,
+            cameras: cameraLikeItems,
+            overallStatus,
+            representativeImage: normalizeImagePath(lot.representative_image),
+        }
+    }
 
     // セクションごとに時刻降順で整形したUI向けロット配列（サンプルデータベース）
     const uiLots = useMemo(() => {
@@ -182,9 +221,9 @@ return Array.from(byId.values())
         const ymd = date || todayYMD()
         const cacheKeyRaw = `${sectionCode}|${ymd}`
         const cacheKeyUi = `${sectionDisplayName}|${ymd}`
-    if (lotsRawCache[cacheKeyRaw] && lotsUiCache[cacheKeyUi]) return lotsUiCache[cacheKeyUi]
-    if (inFlightLotsRef.current.has(cacheKeyRaw)) return undefined
-    inFlightLotsRef.current.add(cacheKeyRaw)
+        if (lotsRawCache[cacheKeyRaw] && lotsUiCache[cacheKeyUi]) return lotsUiCache[cacheKeyUi]
+        if (inFlightLotsRef.current.has(cacheKeyRaw)) return undefined
+        inFlightLotsRef.current.add(cacheKeyRaw)
 
         const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
         let page = 1
@@ -201,7 +240,7 @@ return Array.from(byId.values())
             if (Array.isArray(data.lots)) allLots.push(...data.lots)
         }
 
-    const rawJoined = { total_pages: totalPages, current_page: 1, lots: allLots }
+        const rawJoined = { total_pages: totalPages, current_page: 1, lots: allLots }
         setLotsRawCache(prev => ({ ...prev, [cacheKeyRaw]: rawJoined }))
 
         // インデックス更新
@@ -255,7 +294,11 @@ return Array.from(byId.values())
         return filtered.filter(l => l.date === ymd)
     }
 
-    const getLotStatus = lot => (lot.cameras.every(c => c.status === 'OK') ? 'PASS' : 'FAIL')
+    const getLotStatus = lot => {
+        if (!lot) return 'UNKNOWN'
+        if (lot.overallStatus) return lot.overallStatus
+        return (lot.cameras || []).every(c => c.status === 'OK') ? 'PASS' : 'FAIL'
+    }
 
     // 同期API: UI互換のため、最新取得済みのAPI値を返却し、未取得ならリクエストを発火してローカル計算をフォールバック
     const [latestSummary, setLatestSummary] = useState({}) // key: `${section}|${date}` -> { total_count, pass_count, ... }
@@ -375,14 +418,13 @@ return Array.from(byId.values())
         const shots = getLotShots(lotId)
 
         const grouped = shots.reduce((acc, s) => {
-            if (!acc[s.camera_id]) acc[s.camera_id] = []
-            acc[s.camera_id].push(s)
-            
-return acc
+            const key = s?.camera_id || s?.cameraId || s?.['4k_seq'] || s?.four_k_seq || 'unknown'
+            if (!acc[key]) acc[key] = []
+            acc[key].push(s)
+            return acc
         }, {})
 
-        
-return grouped
+        return grouped
     }
 
     // 初期プリフェッチ（APIモード時）: セクションごと最新日を先読み

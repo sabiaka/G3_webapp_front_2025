@@ -1,10 +1,11 @@
+// 最新ロットの結果と各カメラの判定をまとめて表示するサマリー行コンポーネント
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 
 const SectionSummary = ({ latestLot, lotStatus }) => {
     if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
-    const failedCams = latestLot.cameras.filter(c => c.status !== 'OK')
+    const failedCams = (latestLot.cameras || []).filter(c => c.status !== 'OK')
 
     
 return (
@@ -35,7 +36,7 @@ return (
                     {lotStatus}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: '100%' }}>
-                    {latestLot.cameras.map((c, i) => (
+                    {(latestLot.cameras || []).map((c, i) => (
                         <Chip key={i} label={`${c.name}: ${c.status}`} size="small" color={c.status === 'OK' ? 'success' : 'error'} />
                     ))}
                 </Box>

@@ -1,3 +1,4 @@
+// カメラごとのプレビューと状態をグリッドで並べるレイアウトコンポーネント
 import Grid from '@mui/material/Grid'
 import Box from '@mui/material/Box'
 
@@ -16,10 +17,12 @@ import CameraTile from './CameraTile'
  * @returns {JSX.Element} グリッドレイアウトでカメラタイルを表示するReact要素
  */
 
-const CameraGrid = ({ cameraNames, statusByName }) => {
+const CameraGrid = ({ cameraNames = [], statusByName }) => {
+    const uniqueNames = Array.from(new Set((cameraNames || []).filter(Boolean)))
+    const isSingleCamera = uniqueNames.length === 1
     // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
-    const needsDummy = cameraNames.length === 3
-    const items = needsDummy ? [...cameraNames, '__dummy__'] : cameraNames
+    const needsDummy = !isSingleCamera && uniqueNames.length === 3
+    const items = needsDummy ? [...uniqueNames, '__dummy__'] : uniqueNames
     const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定
 
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -28,7 +31,13 @@ const CameraGrid = ({ cameraNames, statusByName }) => {
     return (
         <Grid container spacing={2} sx={{ mb: 2 }}>
             {items.map((name, i) => (
-                <Grid item xs={12} sm={6} md={isTwoCols ? 6 : 4} key={i}>
+                <Grid
+                    item
+                    xs={12}
+                    sm={isSingleCamera ? 12 : 6}
+                    md={isSingleCamera ? 12 : isTwoCols ? 6 : 4}
+                    key={i}
+                >
                     {name === '__dummy__' ? (
                         <Box
                             sx={{
@@ -48,7 +57,7 @@ const CameraGrid = ({ cameraNames, statusByName }) => {
                             />
                         </Box>
                     ) : (
-                        <CameraTile name={name} status={statusByName[name] || 'OK'} />
+                        <CameraTile name={name} status={statusByName?.[name] || 'OK'} isSingle={isSingleCamera} />
                     )}
                 </Grid>
             ))}

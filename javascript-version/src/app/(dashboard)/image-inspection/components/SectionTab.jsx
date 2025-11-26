@@ -1,25 +1,15 @@
-import { Fragment, useMemo, useState } from 'react'
+// 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
+import { useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import Paper from '@mui/material/Paper'
-import Chip from '@mui/material/Chip'
 import Box from '@mui/material/Box'
 import LinearProgress from '@mui/material/LinearProgress'
 import IconButton from '@mui/material/IconButton'
-import Collapse from '@mui/material/Collapse'
-import Divider from '@mui/material/Divider'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import TextField from '@mui/material/TextField'
+
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
@@ -27,14 +17,12 @@ import DonutChart from './DonutChart'
 import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
+import LotCard from './LotCard'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
-import { toImageUrl, toBeforeTestUrl, toAfterTestUrl } from '../utils/imageUrl'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
   section,
-  stats,
-  failReasons,
   getSectionLots,
   getLotStatus,
   getLotShotsByCamera,
@@ -67,24 +55,35 @@ const SectionTab = ({
   const canGoPrev = selectedDateIndex < (availableDates.length - 1)
   const canGoNext = selectedDateIndex > 0
 
+  const latestLotForSection = getLatestLot(section)
+  const latestLotStatus = latestLotForSection ? getLotStatus(latestLotForSection) : undefined
+  const latestDate = latestLotForSection?.date
+  const statsLatest = getSectionStats(section, latestDate)
+  const failReasonsLatest = getFailReasons(section, latestDate)
 
-  // 最新ロット概要
-  const renderLatestLotSummary = () => {
-    const latest = getLatestLot(section)
-    const lotStatus = latest ? getLotStatus(latest) : undefined
+  const cameraNamesForGrid = useMemo(() => {
+    const fromLatest = Array.from(new Set((latestLotForSection?.cameras || []).map(cam => cam?.name).filter(Boolean)))
+    const fallback = SECTION_CONFIG[section]?.cameras || []
+    return fromLatest.length ? fromLatest : fallback
+  }, [latestLotForSection, section])
 
-    
-return <SectionSummary latestLot={latest} lotStatus={lotStatus} />
-  }
+  const statusByNameForGrid = useMemo(() => {
+    const entries = (latestLotForSection?.cameras || [])
+      .filter(cam => cam?.name)
+      .map(cam => [cam.name, cam.status])
+    return Object.fromEntries(entries)
+  }, [latestLotForSection])
 
-  // カメラグリッド
-  const renderCameraGrid = () => {
-    const latest = getLatestLot(section)
-    const names = SECTION_CONFIG[section].cameras
-    const statusByName = Object.fromEntries((latest?.cameras || []).map(c => [c.name, c.status]))
+  const sectionLots = useMemo(
+    () => getSectionLots(section, selectedDate),
+    [getSectionLots, section, selectedDate],
+  )
 
-    
-return <CameraGrid cameraNames={names} statusByName={statusByName} />
+  const handleToggleRow = lot => {
+    const isOpen = !!openRows[lot.lotId]
+    const next = !isOpen
+    setOpenRows(prev => ({ ...prev, [lot.lotId]: next }))
+    if (next && ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
   }
 
   return (
@@ -94,14 +93,18 @@ return <CameraGrid cameraNames={names} statusByName={statusByName} />
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                リアルタイム監視: {section}検査（{SECTION_CONFIG[section].cameras.length}カメラ）
+                リアルタイム監視: {section}検査（{cameraNamesForGrid.length}カメラ）
               </Typography>
-              {renderCameraGrid()}
+              {cameraNamesForGrid.length === 0 ? (
+                <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
+              ) : (
+                <CameraGrid cameraNames={cameraNamesForGrid} statusByName={statusByNameForGrid} />
+              )}
               <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                 <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                   最新のロット判定
                 </Typography>
-                {renderLatestLotSummary()}
+                <SectionSummary latestLot={latestLotForSection} lotStatus={latestLotStatus} />
               </Box>
             </CardContent>
           </Card>
@@ -114,53 +117,25 @@ return <CameraGrid cameraNames={names} statusByName={statusByName} />
                   サマリー（最新日）
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  {(() => {
-                    const latest = getLatestLot(section)
-                    const latestDate = latest?.date
-                    const statsLatest = getSectionStats(section, latestDate)
-
-                    
-return <DonutChart percentage={statsLatest.passRate} />
-                  })()}
+                  <DonutChart percentage={statsLatest.passRate} />
                 </Box>
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">ロット総数</Typography>
-                      {(() => {
-                        const latest = getLatestLot(section)
-                        const latestDate = latest?.date
-                        const statsLatest = getSectionStats(section, latestDate)
-
-                        
-return <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
-                      })()}
+                      <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
                     </SurfaceBox>
                   </Grid>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">良品</Typography>
-                      {(() => {
-                        const latest = getLatestLot(section)
-                        const latestDate = latest?.date
-                        const statsLatest = getSectionStats(section, latestDate)
-
-                        
-return <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
-                      })()}
+                      <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
                     </SurfaceBox>
                   </Grid>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign:  'center' }}>
                       <Typography variant="body2" color="text.secondary">不良品</Typography>
-                      {(() => {
-                        const latest = getLatestLot(section)
-                        const latestDate = latest?.date
-                        const statsLatest = getSectionStats(section, latestDate)
-
-                        
-return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
-                      })()}
+                      <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
                     </SurfaceBox>
                   </Grid>
                 </Grid>
@@ -169,36 +144,29 @@ return <Typography variant="h4" fontWeight="bold" color="error.main">{statsLates
                 <Typography variant="h6" gutterBottom>
                   不良原因
                 </Typography>
-                {(() => {
-                  const latest = getLatestLot(section)
-                  const latestDate = latest?.date
-                  const fr = getFailReasons(section, latestDate)
-
-                  
-return fr.length === 0 ? (
-                    <Typography color="text.secondary">本日の不良品はありません。</Typography>
-                  ) : (
-                    <Box sx={{ '& > * + *': { mt: 2 } }}>
-                      {fr.map((reason, index) => (
-                        <Box key={index}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" fontWeight="medium">
-                              {reason.reason}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {reason.count}件
-                            </Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={reason.percentage}
-                            sx={{ height: 8, borderRadius: 4 }}
-                          />
+                {failReasonsLatest.length === 0 ? (
+                  <Typography color="text.secondary">本日の不良品はありません。</Typography>
+                ) : (
+                  <Box sx={{ '& > * + *': { mt: 2 } }}>
+                    {failReasonsLatest.map((reason, index) => (
+                      <Box key={index}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" fontWeight="medium">
+                            {reason.reason}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {reason.count}件
+                          </Typography>
                         </Box>
-                      ))}
-                    </Box>
-                  )
-                })()}
+                        <LinearProgress
+                          variant="determinate"
+                          value={reason.percentage}
+                          sx={{ height: 8, borderRadius: 4 }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -240,142 +208,44 @@ return fr.length === 0 ? (
                 </Typography>
               )}
             </Box>
-            <TableContainer component={Paper} variant="outlined">
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell width={56} />
-                    <TableCell>日時</TableCell>
-                    <TableCell>ロットID</TableCell>
-                    <TableCell align="center">総合結果</TableCell>
-                    <TableCell>各カメラ</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {getSectionLots(section, selectedDate).map((lot, index) => {
+            <Box>
+              {sectionLots.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                  表示できるロットがありません。
+                </Typography>
+              ) : (
+                <Grid container spacing={2}>
+                  {sectionLots.map(lot => {
                     const isOpen = !!openRows[lot.lotId]
-                    const toggle = () => {
-                      const nextOpen = !isOpen
-                      setOpenRows(prev => ({ ...prev, [lot.lotId]: nextOpen }))
-                      if (nextOpen && ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
-                    }
                     const shotsByCam = getLotShotsByCamera(lot.lotId)
-                    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
-                    const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
-                    
-return (
-                      <Fragment key={lot.lotId}>
-                        <TableRow hover onClick={toggle} sx={{ cursor: 'pointer' }} aria-expanded={isOpen}>
-                          <TableCell width={56}>
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggle() }} aria-label="expand row">
-                              {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
-                            </IconButton>
-                          </TableCell>
-                          <TableCell>{lot.time}</TableCell>
-                          <TableCell sx={{ fontWeight: 'medium' }}>{lot.lotId}</TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={getLotStatus(lot)}
-                              color={getLotStatus(lot) === 'PASS' ? 'success' : 'error'}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                              {lot.cameras.map((c, i) => (
-                                <Chip
-                                  key={i}
-                                  label={`${c.name}: ${c.status}`}
-                                  size="small"
-                                  color={c.status === 'OK' ? 'success' : 'error'}
-                                  variant={c.status === 'OK' ? 'outlined' : 'filled'}
-                                />
-                              ))}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell colSpan={5} sx={{ p: 0, bgcolor: 'action.hover' }}>
-                            <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                              <Box sx={{ px: 3, py: 2 }}>
-                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                  撮影・検査履歴
-                                </Typography>
-                                <Divider sx={{ mb: 2 }} />
-                                <Table size="small" aria-label="lot shots table">
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableCell>カメラ</TableCell>
-                                      <TableCell>結果</TableCell>
-                                      <TableCell>詳細</TableCell>
-                                      <TableCell align="right">画像</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {Object.entries(shotsByCam).flatMap(([camId, shots]) =>
-                                      shots.map((s, i) => (
-                                        <TableRow key={`${camId}-${i}`}>
-                                          <TableCell sx={{ fontWeight: 500 }}>{camId}</TableCell>
-                                          <TableCell>
-                                            <Chip label={s.status} size="small" color={s.status === 'PASS' ? 'success' : 'error'} />
-                                          </TableCell>
-                                          <TableCell>
-                                            {s.details || '-'}
-                                          </TableCell>
-                                          <TableCell align="right" sx={{ width: 220 }}>
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}>
-                                                {s.image_path}
-                                              </Typography>
-                                              <Box
-                                                sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
-                                                onClick={() => {
-                                                  const srcMissing = s.status === 'MISSING' ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG) : null
-                                                  const isDone = s.status === 'PASS' || s.status === 'FAIL'
-                                                  const srcAfter = isDone ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG) : null
-                                                  const src = srcMissing || srcAfter || (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG)
-                                                  setLightbox({ open: true, src, alt: s.image_path || 'shot' })
-                                                }}
-                                              >
-                                                <img
-                                                  src={
-                                                    (s.status === 'MISSING')
-                                                      ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG)
-                                                      : ((s.status === 'PASS' || s.status === 'FAIL')
-                                                          ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG)
-                                                          : (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG))
-                                                  }
-                                                  alt={s.image_path || 'shot'}
-                                                  onError={e => {
-                                                    if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
-                                                  }}
-                                                  style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 4 }}
-                                                />
-                                              </Box>
-                                            </Box>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))
-                                    )}
-                                  </TableBody>
-                                </Table>
-                              </Box>
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      </Fragment>
+                    return (
+                      <Grid item xs={12} md={6} xl={4} key={lot.lotId}>
+                        <LotCard
+                          lot={lot}
+                          lotStatus={getLotStatus(lot)}
+                          isExpanded={isOpen}
+                          onToggle={() => handleToggleRow(lot)}
+                          shotsByCamera={shotsByCam}
+                          setLightbox={setLightbox}
+                        />
+                      </Grid>
                     )
                   })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                </Grid>
+              )}
+            </Box>
           </CardContent>
         </Card>
       </Box>
       {/* Lightbox */}
-      <ImageLightbox open={lightbox.open} src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox({ open: false, src: '', alt: '' })} />
+      <ImageLightbox
+        open={lightbox.open}
+        src={lightbox.src}
+        fallbackSrc={lightbox.fallback}
+        alt={lightbox.alt}
+        onClose={() => setLightbox({ open: false, src: '', fallback: '', alt: '' })}
+      />
     </>
   )
 }

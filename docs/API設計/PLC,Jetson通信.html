@@ -40,6 +40,10 @@
             background-color: #f97316;
         }
 
+        .delete {
+            background-color: #ef4444;
+        }
+
         pre code.hljs {
             padding: 1rem;
             border-radius: 0.5rem;
@@ -736,6 +740,134 @@ except Exception:
                 </ul>
             </div>
         </section>
+
+        <!-- 12. 検査ステータスのリセット -->
+        <section id="reset-inspection-status">
+            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">12. 検査ステータスのリセット（lot内ショットを一括MISSING化）</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center space-x-4 mb-4">
+                    <span class="method-badge post">POST</span>
+                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}/reset</span>
+                    <span class="bg-rose-500 text-white px-3 py-1 rounded-full text-sm font-bold">再検査の初期化</span>
+                </div>
+
+                <p class="mb-4">指定した <code>lot_id</code> に紐づくショットのうち、現在 <code>MISSING</code> 以外のステータスになっている行だけを <code>MISSING</code> に戻し、<code>details</code> をクリアして再検査待ちの状態へまとめて戻します。</p>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="border-b-2 p-2">パラメータ</th>
+                            <th class="border-b-2 p-2">説明</th>
+                            <th class="border-b-2 p-2">例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border-b p-2 font-mono">lot_id（必須）</td>
+                            <td class="border-b p-2">検査対象となるロットID。内部の <code>inspection_lots.id</code> に変換して処理します。</td>
+                            <td class="border-b p-2 font-mono">/api/ingress/inspection/<strong>MAT-00125</strong>/reset</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
+                <ol class="list-decimal list-inside text-sm space-y-1">
+                    <li>受け取った <code>lot_id</code> から <code>inspection_lots</code> を検索し、内部ID (<code>lot_id_ref</code>) を取得。</li>
+                    <li>該当ロットに紐づく <code>inspection_camera_shots</code> のうち、<code>status</code> が <code>MISSING</code> 以外の行のみを更新。</li>
+                    <li>更新対象の行を <code>status = 'MISSING'</code>, <code>details = NULL</code> にセットし、更新件数をレスポンスで返却。</li>
+                    <li>リセット対象となったショットのうち、検査後画像 (<code>/imageDB/afterTest/{filename}</code>) が存在するものは物理ファイルも削除。検査前画像は保持し、再検査で再利用できるようにする。</li>
+                </ol>
+                <p class="text-sm mt-2 text-slate-600">※ すでに全ショットが <code>MISSING</code> の場合は更新件数 0 のまま成功レスポンスになります。</p>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                <pre><code class="language-json">{
+    "message": "検査ステータスをリセットしました。",
+    "lot_id": "MAT-00125",
+    "updated_count": 18
+}</code></pre>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
+                <p class="text-sm mb-1">404 Not Found（指定された <code>lot_id</code> が存在しない）</p>
+                <pre><code class="language-json">{
+    "error": "Not Found",
+    "details": "指定された lot_id (MAT-09999) が見つかりません。"
+}</code></pre>
+
+                <p class="text-sm mt-4 mb-1">500 Internal Server Error（DB例外など想定外エラー）</p>
+                <pre><code class="language-json">{
+    "error": "Internal Server Error",
+    "details": "エラー内容"
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- 13. ロットの完全削除 -->
+        <section id="delete-lot">
+            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">13. 特定ロットの削除（DB + 画像ファイル）</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center space-x-4 mb-4">
+                    <span class="method-badge delete">DELETE</span>
+                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
+                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">危険操作</span>
+                </div>
+
+                <p class="mb-4">指定したロットをシステムから完全に削除します。DB上の <code>inspection_camera_shots</code> と <code>inspection_lots</code> を消去し、対応する検査前後画像も <code>/imageDB/beforeTest</code> および <code>/imageDB/afterTest</code> から除去します。誤実行防止のため、基本的には管理UIからのみ呼び出す想定です。</p>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="border-b-2 p-2">パラメータ</th>
+                            <th class="border-b-2 p-2">説明</th>
+                            <th class="border-b-2 p-2">例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border-b p-2 font-mono">lot_id（必須）</td>
+                            <td class="border-b p-2">削除対象ロットのID。内部IDを引いてから削除を実施。</td>
+                            <td class="border-b p-2 font-mono">/api/ingress/inspection/<strong>MAT-00110</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
+                <ol class="list-decimal list-inside text-sm space-y-1">
+                    <li><code>inspection_lots</code> から <code>lot_id</code> に一致する行を検索。存在しない場合は 404 を返す。</li>
+                    <li>トランザクションを開始し、該当する <code>inspection_camera_shots</code> を削除後、親ロット (<code>inspection_lots</code>) を削除。</li>
+                    <li>削除対象ショット一覧からファイル名を導出し、<code>/imageDB/beforeTest/{filename}</code> と <code>/imageDB/afterTest/{filename}</code> の物理ファイルを順次削除。</li>
+                    <li>DB・ファイルどちらかでエラーが起きた場合はロールバックし 500 を返す。</li>
+                </ol>
+                <p class="text-sm mt-2 text-slate-600">※ before/after いずれかのファイルが存在しなくても API 自体は成功扱い（削除件数を別途返却）とします。</p>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                <pre><code class="language-json">{
+    "message": "ロット MAT-00110 を削除しました。"
+}</code></pre>
+
+                <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
+                <p class="text-sm mb-1">404 Not Found（指定ロットが存在しない）</p>
+                <pre><code class="language-json">{
+    "error": "Not Found",
+    "details": "指定された lot_id (MAT-09999) が見つかりません。"
+}</code></pre>
+
+                <p class="text-sm mt-4 mb-1">500 Internal Server Error（削除処理で想定外エラー）</p>
+                <pre><code class="language-json">{
+    "error": "Internal Server Error",
+    "details": "ファイル削除中にエラーが発生しました。"
+}</code></pre>
+
+                <div class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-700 rounded-r-lg">
+                    <p class="font-semibold">利用上の注意</p>
+                    <ul class="list-disc list-inside text-sm space-y-1 mt-2">
+                        <li>復元不可。削除前に監査ログを残すこと。</li>
+                        <li>関連レポート等で参照される場合は別途連携テーブルの整合性にも注意。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
     </div>
 
     <footer class="text-center text-slate-500 mt-12 py-4">
@@ -787,6 +919,8 @@ except Exception:
             });
         })();
     </script>
+
+    
 </body>
 
 </html>
