@@ -1,5 +1,5 @@
 // ダミーデータ/今後API接続で置き換え予定
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SAMPLE_SUMMARIES } from '../data/sampleSummaries'
 import { SAMPLE_LOTS } from '../data/sampleLots'
 
@@ -201,11 +201,27 @@ export const useLotsData = () => {
         return lots.sort((a, b) => b.timestamp - a.timestamp)
     }, [apiPayload])
 
+    useEffect(() => {
+        if (!uiLots.length) return
+        setLotUiIndex(prev => {
+            const next = { ...prev }
+            let changed = false
+            for (const lot of uiLots) {
+                if (next[lot.lotId] !== lot) {
+                    next[lot.lotId] = lot
+                    changed = true
+                }
+            }
+            return changed ? next : prev
+        })
+    }, [uiLots])
+
     // ---- ロット一覧(API) 対応 ----
     // raw: APIの返却をページ結合して保存、ui: アダプト済み配列
     const [lotsRawCache, setLotsRawCache] = useState({}) // key: `${sectionCode}|${date}` -> { total_pages, lots: [...] }
     const [lotsUiCache, setLotsUiCache] = useState({})   // key: `${section}|${date}` (表示名) -> adapted[]
     const [lotRawIndex, setLotRawIndex] = useState({})   // key: lot_id -> raw lot
+    const [lotUiIndex, setLotUiIndex] = useState({})     // key: lot_id -> adapted lot
     const [lotShotsCache, setLotShotsCache] = useState({}) // key: lot_id -> shots[]
     const [datesCache, setDatesCache] = useState({})      // key: section display name -> [YYYY-MM-DD]
 
@@ -214,6 +230,7 @@ export const useLotsData = () => {
     const inFlightLotsRef = useRef(new Set())    // keys: `${sectionCode}|${date}`
     const inFlightShotsRef = useRef(new Set())   // keys: lot_id
     const inFlightDatesRef = useRef(new Set())   // keys: section display name
+    const inFlightLotDetailRef = useRef(new Set()) // keys: lot_id
 
     const fetchLotsAllPages = async (sectionDisplayName, date, limit = 200) => {
         const sectionCode = SECTION_TO_CODE[sectionDisplayName]
@@ -252,6 +269,17 @@ export const useLotsData = () => {
 
         const adapted = (allLots || []).map(adaptLotToUi).sort((a, b) => b.timestamp - a.timestamp)
         setLotsUiCache(prev => ({ ...prev, [cacheKeyUi]: adapted }))
+        setLotUiIndex(prev => {
+            const next = { ...prev }
+            let changed = false
+            for (const lot of adapted) {
+                if (next[lot.lotId] !== lot) {
+                    next[lot.lotId] = lot
+                    changed = true
+                }
+            }
+            return changed ? next : prev
+        })
         inFlightLotsRef.current.delete(cacheKeyRaw)
         return adapted
     }
@@ -427,6 +455,71 @@ export const useLotsData = () => {
         return grouped
     }
 
+    const ensureLotLoaded = useCallback(async (lotId) => {
+        if (!lotId) return null
+        if (!USE_API_LOTS) {
+            return uiLots.find(l => l.lotId === lotId) || null
+        }
+        if (lotUiIndex[lotId]) return lotUiIndex[lotId]
+        if (lotRawIndex[lotId]) {
+            const adapted = adaptLotToUi(lotRawIndex[lotId])
+            setLotUiIndex(prev => {
+                const prevLot = prev[lotId]
+                if (prevLot && prevLot.timestamp === adapted.timestamp) return prev
+                return { ...prev, [lotId]: adapted }
+            })
+            return adapted
+        }
+        if (inFlightLotDetailRef.current.has(lotId)) return null
+        inFlightLotDetailRef.current.add(lotId)
+        try {
+            const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+            const res = await fetch(`${base}/api/inspections/lots/${encodeURIComponent(lotId)}`)
+            if (!res.ok) throw new Error(`Failed to fetch lot ${res.status}`)
+            const data = await res.json()
+            const rawLot = data?.lot || data
+            if (!rawLot || !rawLot.lot_id) return null
+
+            setLotRawIndex(prev => ({ ...prev, [rawLot.lot_id]: rawLot }))
+
+            const adapted = adaptLotToUi(rawLot)
+            setLotUiIndex(prev => ({ ...prev, [adapted.lotId]: adapted }))
+
+            const sectionName = adapted.section
+            const date = adapted.date
+
+            if (sectionName && date) {
+                const cacheKeyUi = `${sectionName}|${date}`
+                setLotsUiCache(prev => {
+                    const existing = prev[cacheKeyUi] || []
+                    if (existing.some(l => l.lotId === adapted.lotId)) return prev
+                    const updated = [...existing, adapted].sort((a, b) => b.timestamp - a.timestamp)
+                    return { ...prev, [cacheKeyUi]: updated }
+                })
+
+                setDatesCache(prev => {
+                    const prevDates = prev[sectionName] || []
+                    if (prevDates.includes(date)) return prev
+                    const nextDates = [...prevDates, date].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+                    return { ...prev, [sectionName]: nextDates }
+                })
+            }
+
+            return adapted
+        } catch {
+            return null
+        } finally {
+            inFlightLotDetailRef.current.delete(lotId)
+        }
+    }, [lotRawIndex, lotUiIndex, uiLots])
+
+    const getLotById = useCallback((lotId) => {
+        if (!lotId) return null
+        if (lotUiIndex[lotId]) return lotUiIndex[lotId]
+        if (lotRawIndex[lotId]) return adaptLotToUi(lotRawIndex[lotId])
+        return uiLots.find(l => l.lotId === lotId) || null
+    }, [lotUiIndex, lotRawIndex, uiLots])
+
     // 初期プリフェッチ（APIモード時）: セクションごと最新日を先読み
     useEffect(() => {
         const sections = Object.keys(SECTION_TO_CODE)
@@ -468,6 +561,8 @@ export const useLotsData = () => {
         getAvailableDates,
         getLotShots,
         getLotShotsByCamera,
+        getLotById,
+        ensureLotLoaded,
         ensureLotShotsLoaded,
     }
 }

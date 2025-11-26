@@ -1,7 +1,9 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -59,11 +61,60 @@ const ImageInspection = () => {
     getLatestLot,
     getLotShotsByCamera,
     getAvailableDates,
-    ensureLotShotsLoaded
+    ensureLotShotsLoaded,
+    getLotById,
+    ensureLotLoaded,
   } = useLotsData()
 
-  // セクションごとの展開行状態（詳細表示用）
-  const [openRows, setOpenRows] = useState({})
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const selectedLotId = searchParams.get('lot')
+
+  useEffect(() => {
+    if (!selectedLotId) return
+    ensureLotLoaded(selectedLotId)
+  }, [selectedLotId, ensureLotLoaded])
+
+  const selectedLotInfo = useMemo(() => getLotById(selectedLotId), [getLotById, selectedLotId])
+
+  useEffect(() => {
+    if (!selectedLotInfo) return
+    const sectionToTabIndex = {
+      'バネ留め': 1,
+      'A層': 2,
+    }
+    const targetIndex = sectionToTabIndex[selectedLotInfo.section]
+    if (typeof targetIndex === 'number' && targetIndex !== activeTab) {
+      setActiveTab(targetIndex)
+    }
+  }, [selectedLotInfo, activeTab])
+
+  const updateUrlWithLot = lotId => {
+    const currentLot = searchParams.get('lot')
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (lotId) {
+      if (currentLot === lotId) return
+      params.set('lot', lotId)
+    } else {
+      if (!currentLot) return
+      params.delete('lot')
+    }
+
+    const queryString = params.toString()
+    const url = queryString ? `${pathname}?${queryString}` : pathname
+    router.push(url, { scroll: false })
+  }
+
+  const handleOpenLot = lot => {
+    ensureLotLoaded?.(lot.lotId)
+    updateUrlWithLot(lot.lotId)
+  }
+
+  const handleCloseLot = () => {
+    updateUrlWithLot(null)
+  }
 
   // 画像拡大表示用ライトボックス状態
   const [lightbox, setLightbox] = useState({ open: false, src: '', fallback: '', alt: '' })
@@ -129,12 +180,14 @@ const ImageInspection = () => {
       ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}
-      openRows={openRows}
-      setOpenRows={setOpenRows}
       lightbox={lightbox}
       setLightbox={setLightbox}
       getLatestLot={getLatestLot}
       getAvailableDates={getAvailableDates}
+      selectedLotId={selectedLotId}
+      selectedLotInfo={selectedLotInfo}
+      onOpenLot={handleOpenLot}
+      onCloseLot={handleCloseLot}
     />
   )
 

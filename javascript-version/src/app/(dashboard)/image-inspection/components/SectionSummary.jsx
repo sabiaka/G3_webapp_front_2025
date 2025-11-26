@@ -7,8 +7,7 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
     if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
     const failedCams = (latestLot.cameras || []).filter(c => c.status !== 'OK')
 
-    
-return (
+    return (
         <Box
             sx={{
                 display: 'flex',
