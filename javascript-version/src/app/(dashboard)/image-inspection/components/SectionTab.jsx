@@ -1,3 +1,4 @@
+// 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
 import { Fragment, useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -28,7 +29,7 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
-import { toImageUrl, toBeforeTestUrl, toAfterTestUrl } from '../utils/imageUrl'
+import { toImageUrl, toBeforeTestUrl, toAfterTestUrl, getFallbackImageBase } from '../utils/imageUrl'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
@@ -69,6 +70,41 @@ const SectionTab = ({
 
 
   // 最新ロット概要
+  const fallbackImageBase = getFallbackImageBase()
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+  const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
+
+  const buildShotSrc = (shot, baseOverride) => {
+    if (!shot) return ''
+    const options = baseOverride ? { base: baseOverride } : undefined
+    const srcMissing = shot.status === 'MISSING' ? (toBeforeTestUrl(shot.image_path, options) || '') : ''
+    const isDone = shot.status === 'PASS' || shot.status === 'FAIL'
+    const srcAfter = isDone ? (toAfterTestUrl(shot.image_path, options) || '') : ''
+    const fallbackDirect = shot.image_path ? toImageUrl(shot.image_path, options) : ''
+
+    return srcMissing || srcAfter || fallbackDirect
+  }
+
+  const buildShotSrcPair = shot => {
+    const primary = buildShotSrc(shot)
+    const fallback = fallbackImageBase ? buildShotSrc(shot, fallbackImageBase) : ''
+
+    return {
+      primary: primary || FALLBACK_IMG,
+      fallback: fallback && fallback !== primary ? fallback : '',
+    }
+  }
+
+  const handleThumbError = (event, fallbackSrc) => {
+    const target = event.currentTarget
+    if (fallbackSrc && !target.dataset.fallbackTried) {
+      target.dataset.fallbackTried = 'true'
+      target.src = fallbackSrc
+    } else if (target.src !== FALLBACK_IMG) {
+      target.src = FALLBACK_IMG
+    }
+  }
+
   const renderLatestLotSummary = () => {
     const latest = getLatestLot(section)
     const lotStatus = latest ? getLotStatus(latest) : undefined
@@ -260,9 +296,6 @@ return fr.length === 0 ? (
                       if (nextOpen && ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
                     }
                     const shotsByCam = getLotShotsByCamera(lot.lotId)
-                    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
-                    const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
-
                     
 return (
                       <Fragment key={lot.lotId}>
@@ -315,49 +348,41 @@ return (
                                   </TableHead>
                                   <TableBody>
                                     {Object.entries(shotsByCam).flatMap(([camId, shots]) =>
-                                      shots.map((s, i) => (
-                                        <TableRow key={`${camId}-${i}`}>
-                                          <TableCell sx={{ fontWeight: 500 }}>{camId}</TableCell>
-                                          <TableCell>
-                                            <Chip label={s.status} size="small" color={s.status === 'PASS' ? 'success' : 'error'} />
-                                          </TableCell>
-                                          <TableCell>
-                                            {s.details || '-'}
-                                          </TableCell>
-                                          <TableCell align="right" sx={{ width: 220 }}>
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}>
-                                                {s.image_path}
-                                              </Typography>
-                                              <Box
-                                                sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
-                                                onClick={() => {
-                                                  const srcMissing = s.status === 'MISSING' ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG) : null
-                                                  const isDone = s.status === 'PASS' || s.status === 'FAIL'
-                                                  const srcAfter = isDone ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG) : null
-                                                  const src = srcMissing || srcAfter || (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG)
-                                                  setLightbox({ open: true, src, alt: s.image_path || 'shot' })
-                                                }}
-                                              >
-                                                <img
-                                                  src={
-                                                    (s.status === 'MISSING')
-                                                      ? (toBeforeTestUrl(s.image_path) || FALLBACK_IMG)
-                                                      : ((s.status === 'PASS' || s.status === 'FAIL')
-                                                          ? (toAfterTestUrl(s.image_path) || FALLBACK_IMG)
-                                                          : (s.image_path ? toImageUrl(s.image_path) : FALLBACK_IMG))
-                                                  }
-                                                  alt={s.image_path || 'shot'}
-                                                  onError={e => {
-                                                    if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG
+                                      shots.map((s, i) => {
+                                        const { primary, fallback } = buildShotSrcPair(s)
+
+                                        return (
+                                          <TableRow key={`${camId}-${i}`}>
+                                            <TableCell sx={{ fontWeight: 500 }}>{camId}</TableCell>
+                                            <TableCell>
+                                              <Chip label={s.status} size="small" color={s.status === 'PASS' ? 'success' : 'error'} />
+                                            </TableCell>
+                                            <TableCell>
+                                              {s.details || '-'}
+                                            </TableCell>
+                                            <TableCell align="right" sx={{ width: 220 }}>
+                                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                                <Typography variant="caption" color="text.secondary" sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}>
+                                                  {s.image_path}
+                                                </Typography>
+                                                <Box
+                                                  sx={{ width: 120, aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'), cursor: 'pointer' }}
+                                                  onClick={() => {
+                                                    setLightbox({ open: true, src: primary, fallback, alt: s.image_path || 'shot' })
                                                   }}
-                                                  style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 4 }}
-                                                />
+                                                >
+                                                  <img
+                                                    src={primary}
+                                                    alt={s.image_path || 'shot'}
+                                                    onError={e => handleThumbError(e, fallback)}
+                                                    style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 4 }}
+                                                  />
+                                                </Box>
                                               </Box>
-                                            </Box>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))
+                                            </TableCell>
+                                          </TableRow>
+                                        )
+                                      })
                                     )}
                                   </TableBody>
                                 </Table>
@@ -375,7 +400,13 @@ return (
         </Card>
       </Box>
       {/* Lightbox */}
-      <ImageLightbox open={lightbox.open} src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox({ open: false, src: '', alt: '' })} />
+      <ImageLightbox
+        open={lightbox.open}
+        src={lightbox.src}
+        fallbackSrc={lightbox.fallback}
+        alt={lightbox.alt}
+        onClose={() => setLightbox({ open: false, src: '', fallback: '', alt: '' })}
+      />
     </>
   )
 }
