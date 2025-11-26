@@ -17,11 +17,12 @@ import CameraTile from './CameraTile'
  * @returns {JSX.Element} グリッドレイアウトでカメラタイルを表示するReact要素
  */
 
-const CameraGrid = ({ cameraNames, statusByName }) => {
-    const isSingleCamera = cameraNames.length === 1
+const CameraGrid = ({ cameraNames = [], statusByName }) => {
+    const uniqueNames = Array.from(new Set((cameraNames || []).filter(Boolean)))
+    const isSingleCamera = uniqueNames.length === 1
     // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
-    const needsDummy = !isSingleCamera && cameraNames.length === 3
-    const items = needsDummy ? [...cameraNames, '__dummy__'] : cameraNames
+    const needsDummy = !isSingleCamera && uniqueNames.length === 3
+    const items = needsDummy ? [...uniqueNames, '__dummy__'] : uniqueNames
     const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定
 
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -56,7 +57,7 @@ const CameraGrid = ({ cameraNames, statusByName }) => {
                             />
                         </Box>
                     ) : (
-                        <CameraTile name={name} status={statusByName[name] || 'OK'} isSingle={isSingleCamera} />
+                        <CameraTile name={name} status={statusByName?.[name] || 'OK'} isSingle={isSingleCamera} />
                     )}
                 </Grid>
             ))}
