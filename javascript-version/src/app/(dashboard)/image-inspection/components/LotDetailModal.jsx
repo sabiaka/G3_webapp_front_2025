@@ -68,15 +68,32 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
     const normalized = normalizeRelativePath(shot.image_path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
     const status = (shot.status || '').toString().toUpperCase()
-    let primary = ''
-    if (status === 'MISSING') primary = toBeforeTestUrl(normalized)
-    if (!primary && (status === 'PASS' || status === 'FAIL')) primary = toAfterTestUrl(normalized)
-    if (!primary) primary = toImageUrl(normalized)
-    const fallback = fallbackImageBase ? toImageUrl(normalized, { base: fallbackImageBase }) : ''
-    return {
-      primary: primary || FALLBACK_IMG,
-      fallback: fallback && fallback !== primary ? fallback : '',
+    const hasFallbackBase = Boolean(fallbackImageBase)
+
+    const buildPair = builder => {
+      const primaryCandidate = builder(normalized)
+      const fallbackCandidate = hasFallbackBase ? builder(normalized, { base: fallbackImageBase }) : ''
+      return { primary: primaryCandidate, fallback: fallbackCandidate }
     }
+
+    const ensureUrl = pair => {
+      if (pair.primary) return pair
+      return buildPair((path, options) => toImageUrl(path, options))
+    }
+
+    let pair
+    if (status === 'MISSING') {
+      pair = ensureUrl(buildPair((path, options) => toBeforeTestUrl(path, options)))
+    } else if (status === 'PASS' || status === 'FAIL') {
+      pair = ensureUrl(buildPair((path, options) => toAfterTestUrl(path, options)))
+    } else {
+      pair = ensureUrl(buildPair((path, options) => toImageUrl(path, options)))
+    }
+
+    const primary = pair.primary || FALLBACK_IMG
+    const fallback = pair.fallback && pair.fallback !== primary ? pair.fallback : ''
+
+    return { primary, fallback }
   }, [])
 
   const handleImageError = (event, fallbackSrc) => {
