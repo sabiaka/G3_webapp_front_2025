@@ -18,6 +18,8 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
   const imgRef = useRef(null)
   const [scale, setScale] = useState(1) // 1: フィット, >1: 拡大
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [viewport, setViewport] = useState({ w: 0, h: 0 })
+  const [baseSize, setBaseSize] = useState({ w: 0, h: 0 })
   const dragState = useRef({ dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 })
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
   const [imgSrc, setImgSrc] = useState(src || FALLBACK_IMG)
@@ -32,8 +34,40 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
       setOffset({ x: 0, y: 0 })
       setImgSrc(src || FALLBACK_IMG)
       setFallbackTried(false)
+      setImgNatural({ w: 0, h: 0 })
+      setBaseSize({ w: 0, h: 0 })
     }
   }, [open, src, fallbackSrc])
+
+  useEffect(() => {
+    if (!open) return
+
+    const updateViewport = () => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      setViewport({
+        w: rect?.width || window.innerWidth,
+        h: rect?.height || window.innerHeight,
+      })
+    }
+
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !imgNatural.w || !imgNatural.h || !viewport.w || !viewport.h) return
+
+    const maxWidth = viewport.w * 0.95
+    const maxHeight = viewport.h * 0.9
+    const ratio = Math.min(maxWidth / imgNatural.w, maxHeight / imgNatural.h, 1)
+
+    setBaseSize({
+      w: imgNatural.w * ratio,
+      h: imgNatural.h * ratio,
+    })
+  }, [open, imgNatural, viewport])
 
   useEffect(() => {
     const onKey = e => {
@@ -42,20 +76,60 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     }
 
     window.addEventListener('keydown', onKey)
-    
-return () => window.removeEventListener('keydown', onKey)
+
+    return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  const clamp = (val, min, max) => Math.max(min, Math.min(max, val))
+
+  useEffect(() => {
+    if (!open) return
+
+    const frameWidth = baseSize.w * scale
+    const frameHeight = baseSize.h * scale
+
+    if (!frameWidth || !frameHeight || !viewport.w || !viewport.h) return
+
+    const maxX = Math.max(0, (frameWidth - viewport.w) / 2)
+    const maxY = Math.max(0, (frameHeight - viewport.h) / 2)
+
+    setOffset(prev => {
+      const nextX = clamp(prev.x, -maxX, maxX)
+      const nextY = clamp(prev.y, -maxY, maxY)
+
+      if (nextX === prev.x && nextY === prev.y) return prev
+
+      return { x: nextX, y: nextY }
+    })
+  }, [open, baseSize, viewport, scale])
 
   const handleWheel = e => {
     if (!open) return
     e.preventDefault()
-  }
 
-  const clamp = (val, min, max) => Math.max(min, Math.min(max, val))
+    if (scale <= 1 || !viewport.w || !viewport.h || !baseSize.w || !baseSize.h) return
+
+    const frameWidth = baseSize.w * scale
+    const frameHeight = baseSize.h * scale
+    const maxX = Math.max(0, (frameWidth - viewport.w) / 2)
+    const maxY = Math.max(0, (frameHeight - viewport.h) / 2)
+
+    setOffset(prev => {
+      const nextX = clamp(prev.x - e.deltaX, -maxX, maxX)
+      const nextY = clamp(prev.y - e.deltaY, -maxY, maxY)
+
+      if (nextX === prev.x && nextY === prev.y) return prev
+
+      suppressClickRef.current = true
+
+      return { x: nextX, y: nextY }
+    })
+  }
 
   const handleMouseDown = e => {
     // ブラウザのデフォルト画像ドラッグや選択を抑止
     e.preventDefault()
+    suppressClickRef.current = false
     if (scale <= 1) return
     dragState.current = {
       dragging: true,
@@ -74,15 +148,11 @@ return () => window.removeEventListener('keydown', onKey)
     const next = { x: dragState.current.originX + dx, y: dragState.current.originY + dy }
 
     if (Math.abs(dx) + Math.abs(dy) > 3) suppressClickRef.current = true
-    const cont = containerRef.current?.getBoundingClientRect()
-    const nat = imgNatural
-
-    if (cont && nat.w && nat.h) {
-      const fitScale = Math.min(cont.width / nat.w, cont.height / nat.h) || 1
-      const dispW = nat.w * fitScale * scale
-      const dispH = nat.h * fitScale * scale
-      const maxX = Math.max(0, (dispW - cont.width) / 2)
-      const maxY = Math.max(0, (dispH - cont.height) / 2)
+    if (viewport.w && viewport.h && baseSize.w && baseSize.h) {
+      const frameWidth = baseSize.w * scale
+      const frameHeight = baseSize.h * scale
+      const maxX = Math.max(0, (frameWidth - viewport.w) / 2)
+      const maxY = Math.max(0, (frameHeight - viewport.h) / 2)
 
       next.x = clamp(next.x, -maxX, maxX)
       next.y = clamp(next.y, -maxY, maxY)
@@ -109,15 +179,13 @@ return () => window.removeEventListener('keydown', onKey)
   const toggleZoom = e => {
     if (e.target === containerRef.current) {
       onClose?.()
-      
-return
+      return
     }
 
     if (suppressClickRef.current) {
       // ドラッグ直後のクリック抑制
       suppressClickRef.current = false
-      
-return
+      return
     }
 
     setScale(prev => (prev > 1 ? 1 : 2))
@@ -158,6 +226,31 @@ return
     100% { transform: scale(1) }
   `
 
+  const frameWidth = baseSize.w ? baseSize.w * scale : null
+  const frameHeight = baseSize.h ? baseSize.h * scale : null
+  const frameStyles = {
+    position: 'relative',
+    borderRadius: 2,
+    boxShadow: 24,
+    bgcolor: 'black',
+    overflow: 'hidden',
+    animation: `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both`,
+    willChange: 'transform',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: dragging ? 'none' : 'width 180ms ease, height 180ms ease',
+    ...(frameWidth && frameHeight
+      ? {
+          width: frameWidth,
+          height: frameHeight,
+        }
+      : {
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+        }),
+  }
+
   return (
     <Box
       ref={containerRef}
@@ -167,7 +260,7 @@ return
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onDragStart={(e) => e.preventDefault()}
+      onDragStart={e => e.preventDefault()}
       sx={{
         position: 'fixed',
         inset: 0,
@@ -188,28 +281,15 @@ return
     >
       <Box
         sx={{
-          position: 'relative',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
-          overflow: 'hidden',
-          borderRadius: 2,
-          boxShadow: 24,
-          bgcolor: 'black',
-
-          // うにょん（ポップイン）
-          transform: 'scale(1)',
-          animation: `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          transition: dragging ? 'none' : 'transform 180ms ease',
           willChange: 'transform',
         }}
       >
-        <Box
-          sx={{
-            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-            transformOrigin: 'center center',
-            transition: dragging ? 'none' : 'transform 180ms ease',
-            willChange: 'transform',
-          }}
-        >
+        <Box sx={frameStyles}>
           <img
             ref={imgRef}
             src={imgSrc}
@@ -221,8 +301,6 @@ return
               display: 'block',
               width: '100%',
               height: '100%',
-              maxWidth: '90vw',
-              maxHeight: '85vh',
               objectFit: 'contain',
               userSelect: 'none',
               pointerEvents: 'none',
