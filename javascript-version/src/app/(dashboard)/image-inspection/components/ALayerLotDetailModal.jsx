@@ -7,11 +7,12 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 
 import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../utils/imageUrl'
+import FourKMapSection from './FourKMapSection'
+import LotInfoSection from './LotInfoSection'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -250,211 +251,23 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
       <DialogContent dividers>
         <Grid container spacing={4}>
           <Grid item xs={12} md={5}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <Box
-                sx={{
-                  width: '100%',
-                  aspectRatio: '16/9',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                  cursor: 'zoom-in',
-                }}
-                onClick={() => {
-                  if (setLightbox) {
-                    setLightbox({
-                      open: true,
-                      src: representativeSources.primary,
-                      fallback: representativeSources.fallback,
-                      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
-                    })
-                  }
-                }}
-              >
-                <img
-                  src={representativeSources.primary}
-                  alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
-                  onError={e => handleImageError(e, representativeSources.fallback)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </Box>
-
-              <Divider flexItem />
-
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  判定要素
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {(lot.cameras || []).map((camera, index) => (
-                    <Chip
-                      key={`${camera.name}-${index}`}
-                      label={`${camera.name}: ${camera.status}`}
-                      size="small"
-                      color={getChipColor(camera.status)}
-                      variant={camera.status === 'OK' ? 'outlined' : 'filled'}
-                    />
-                  ))}
-                </Box>
-                {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
-                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => (
-                      <Typography key={idx} variant="body2" color="error.main">
-                        {c.name}: {c.details}
-                      </Typography>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </Box>
+            <LotInfoSection
+              lot={lot}
+              representativeSources={representativeSources}
+              handleImageError={handleImageError}
+              setLightbox={setLightbox}
+              getChipColor={getChipColor}
+            />
           </Grid>
           <Grid item xs={12} md={7}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
-                4K 撮影マップ
-              </Typography>
-              {!hasGrid ? (
-                <Typography variant="body2" color="text.secondary">
-                  詳細データを取得中です…
-                </Typography>
-              ) : (
-                <Box sx={{ overflowX: 'auto', flexGrow: 1 }}>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: `80px repeat(${gridStructure.cols.length}, minmax(160px, 1fr))`,
-                      gap: 2,
-                      alignItems: 'stretch',
-                      minWidth: `${80 + gridStructure.cols.length * 180}px`,
-                    }}
-                  >
-                    {gridStructure.cells.map(cell => {
-                      if (cell.type === 'corner') {
-                        return <Box key={cell.key} />
-                      }
-                      if (cell.type === 'colHeader') {
-                        return (
-                          <Box
-                            key={cell.key}
-                            sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                          >
-                            <Typography variant="subtitle2" fontWeight="bold">
-                              {cell.col.label}
-                            </Typography>
-                          </Box>
-                        )
-                      }
-                      if (cell.type === 'rowHeader') {
-                        return (
-                          <Box
-                            key={cell.key}
-                            sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                          >
-                            <Typography variant="subtitle2" fontWeight="bold">
-                              {cell.row.label}
-                            </Typography>
-                          </Box>
-                        )
-                      }
-
-                      const entry = cell.entry
-                      if (!entry) {
-                        return (
-                          <Box
-                            key={cell.key}
-                            sx={{
-                              border: theme => `1px dashed ${theme.palette.divider}`,
-                              borderRadius: 2,
-                              p: 2,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100'),
-                            }}
-                          >
-                            <Typography variant="caption" color="text.secondary">
-                              未取得
-                            </Typography>
-                          </Box>
-                        )
-                      }
-
-                      const { shot, sequence } = entry
-                      const sources = buildShotSources(shot)
-                      const statusColor = getShotStatusColor(shot.status)
-                      const metaParts = []
-                      if (shot.camera_id) metaParts.push(`CAM: ${shot.camera_id}`)
-                      if (shot.shot_seq != null) metaParts.push(`${shot.shot_seq}枚目`)
-                      const metaLine = metaParts.join(' / ')
-
-                      return (
-                        <Box
-                          key={cell.key}
-                          sx={{
-                            border: theme => `1px solid ${theme.palette.divider}`,
-                            borderRadius: 2,
-                            p: 1.5,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1,
-                            bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {sequence.label}
-                            </Typography>
-                            <Chip size="small" label={shot.status || '-'} color={statusColor} variant="outlined" />
-                          </Box>
-                          <Box
-                            sx={{
-                              width: '100%',
-                              aspectRatio: '4/3',
-                              borderRadius: 1,
-                              overflow: 'hidden',
-                              bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'),
-                              cursor: 'zoom-in',
-                            }}
-                            onClick={() => {
-                              if (setLightbox) {
-                                setLightbox({
-                                  open: true,
-                                  src: sources.primary,
-                                  fallback: sources.fallback,
-                                  alt: shot.image_path || sequence.label,
-                                })
-                              }
-                            }}
-                          >
-                            <img
-                              src={sources.primary}
-                              alt={shot.image_path || sequence.label}
-                              onError={e => handleImageError(e, sources.fallback)}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          </Box>
-                          {shot.details && (
-                            <Typography variant="caption" color="error.main">
-                              {shot.details}
-                            </Typography>
-                          )}
-                          {metaLine && (
-                            <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                              {metaLine}
-                            </Typography>
-                          )}
-                          {shot.image_path && (
-                            <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                              {shot.image_path}
-                            </Typography>
-                          )}
-                        </Box>
-                      )
-                    })}
-                  </Box>
-                </Box>
-              )}
-            </Box>
+            <FourKMapSection
+              hasGrid={hasGrid}
+              gridStructure={gridStructure}
+              buildShotSources={buildShotSources}
+              getShotStatusColor={getShotStatusColor}
+              handleImageError={handleImageError}
+              setLightbox={setLightbox}
+            />
           </Grid>
         </Grid>
       </DialogContent>
