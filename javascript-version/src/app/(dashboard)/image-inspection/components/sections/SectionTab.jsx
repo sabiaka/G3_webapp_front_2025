@@ -103,17 +103,50 @@ const SectionTab = ({
   const failReasonsLatest = getFailReasons(section, latestDate)
 
   const cameraNamesForGrid = useMemo(() => {
-    const fromLatest = Array.from(new Set((latestLotForSection?.cameras || []).map(cam => cam?.name).filter(Boolean)))
     const fallback = SECTION_CONFIG[section]?.cameras || []
+    if (section === 'A層') {
+      return fallback
+    }
+    const fromLatest = Array.from(new Set((latestLotForSection?.cameras || []).map(cam => cam?.name).filter(Boolean)))
     return fromLatest.length ? fromLatest : fallback
   }, [latestLotForSection, section])
 
   const statusByNameForGrid = useMemo(() => {
+    if (section === 'A層') {
+      const fallback = SECTION_CONFIG[section]?.cameras || []
+      const normalizedLotStatus = (latestLotStatus || '').toString().trim().toUpperCase()
+      const statusForCamera = (() => {
+        if (normalizedLotStatus === 'PASS') return 'OK'
+        if (normalizedLotStatus === 'FAIL') return 'NG'
+        if (normalizedLotStatus === 'MISSING') return 'MISSING'
+        return normalizedLotStatus || ''
+      })()
+      if (!statusForCamera) return {}
+      return Object.fromEntries(fallback.map(name => [name, statusForCamera]))
+    }
+
     const entries = (latestLotForSection?.cameras || [])
       .filter(cam => cam?.name)
       .map(cam => [cam.name, cam.status])
     return Object.fromEntries(entries)
-  }, [latestLotForSection])
+  }, [latestLotForSection, latestLotStatus, section])
+
+  const imageByNameForGrid = useMemo(() => {
+    if (!latestLotForSection) return {}
+    if (section === 'A層') {
+      const representative = latestLotForSection.representativeImage
+      if (!representative) return {}
+      return Object.fromEntries((cameraNamesForGrid || []).map(name => [name, representative]))
+    }
+    const entries = (latestLotForSection.cameras || [])
+      .filter(cam => cam?.name && cam?.image_path)
+      .map(cam => [cam.name, cam.image_path])
+    if (entries.length > 0) return Object.fromEntries(entries)
+    if (latestLotForSection.representativeImage) {
+      return Object.fromEntries((cameraNamesForGrid || []).map(name => [name, latestLotForSection.representativeImage]))
+    }
+    return {}
+  }, [latestLotForSection, section, cameraNamesForGrid])
 
   const sectionLots = useMemo(() => {
     const baseLots = getSectionLots(section, selectedDate) || []
@@ -256,7 +289,7 @@ const SectionTab = ({
               {cameraNamesForGrid.length === 0 ? (
                 <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
               ) : (
-                <CameraGrid cameraNames={cameraNamesForGrid} statusByName={statusByNameForGrid} />
+                <CameraGrid cameraNames={cameraNamesForGrid} statusByName={statusByNameForGrid} imageByName={imageByNameForGrid} />
               )}
               <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                 <Typography variant="subtitle1" color="text.secondary" gutterBottom>

@@ -131,10 +131,51 @@ const ImageInspection = () => {
     const renderRealtimeCard = sectionKey => {
       const latest = getLatestLot(sectionKey)
       const lotStatus = latest ? getLotStatus(latest) : undefined
-      const dynamicNames = Array.from(new Set((latest?.cameras || []).map(cam => cam?.name).filter(Boolean)))
       const fallbackNames = SECTION_CONFIG[sectionKey]?.cameras || []
-      const cameraNames = dynamicNames.length ? dynamicNames : fallbackNames
-      const statusByName = Object.fromEntries((latest?.cameras || []).filter(cam => cam?.name).map(cam => [cam.name, cam.status]))
+
+      const cameraNames = (() => {
+        if (sectionKey === 'A層') {
+          return fallbackNames
+        }
+        const dynamicNames = Array.from(new Set((latest?.cameras || []).map(cam => cam?.name).filter(Boolean)))
+        return dynamicNames.length ? dynamicNames : fallbackNames
+      })()
+
+      const statusByName = (() => {
+        if (sectionKey === 'A層') {
+          const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+          const mappedStatus = (() => {
+            if (normalizedLotStatus === 'PASS') return 'OK'
+            if (normalizedLotStatus === 'FAIL') return 'NG'
+            if (normalizedLotStatus === 'MISSING') return 'MISSING'
+            return normalizedLotStatus || ''
+          })()
+          if (!mappedStatus) return {}
+          return Object.fromEntries(fallbackNames.map(name => [name, mappedStatus]))
+        }
+        const entries = (latest?.cameras || [])
+          .filter(cam => cam?.name)
+          .map(cam => [cam.name, cam.status])
+        return Object.fromEntries(entries)
+      })()
+
+      const imageByName = (() => {
+        if (!latest) return {}
+        if (sectionKey === 'A層') {
+          const representative = latest.representativeImage
+          if (!representative) return {}
+          return Object.fromEntries((cameraNames || []).map(name => [name, representative]))
+        }
+        const entries = (latest.cameras || [])
+          .filter(cam => cam?.name && cam?.image_path)
+          .map(cam => [cam.name, cam.image_path])
+        if (entries.length > 0) return Object.fromEntries(entries)
+        if (latest.representativeImage) {
+          return Object.fromEntries((cameraNames || []).map(name => [name, latest.representativeImage]))
+        }
+        return {}
+      })()
+
       const cameraCount = cameraNames.length
       const title = `${sectionKey}検査`
 
@@ -151,6 +192,7 @@ const ImageInspection = () => {
                 <CameraGrid
                   cameraNames={cameraNames}
                   statusByName={statusByName}
+                  imageByName={imageByName}
                 />
               )}
               <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
