@@ -1,4 +1,5 @@
 // 検査の良品率を円形ドーナツチャートで視覚化するコンポーネント
+
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'

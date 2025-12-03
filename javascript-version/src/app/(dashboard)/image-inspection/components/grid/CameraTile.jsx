@@ -1,4 +1,5 @@
 // 単一カメラの名称と稼働ステータスを表示するタイル
+
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'

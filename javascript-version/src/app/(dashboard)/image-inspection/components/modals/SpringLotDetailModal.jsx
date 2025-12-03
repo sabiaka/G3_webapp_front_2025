@@ -1,3 +1,5 @@
+// バネどめ検査 ロット詳細モーダル
+
 import { useCallback, useMemo } from 'react'
 
 import Box from '@mui/material/Box'
@@ -16,7 +18,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 
-import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../utils/imageUrl'
+import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -51,7 +53,7 @@ const getShotStatusColor = status => {
   return 'default'
 }
 
-const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLightbox }) => {
+const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, onClose, setLightbox }) => {
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -275,4 +277,4 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
   )
 }
 
-export default LotDetailModal
+export default SpringLotDetailModal

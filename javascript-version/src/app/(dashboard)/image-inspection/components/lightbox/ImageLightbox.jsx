@@ -1,4 +1,5 @@
 // 撮影画像を全画面オーバーレイで拡大表示しズーム・パン操作を提供するライトボックス
+
 import { useEffect, useRef, useState } from 'react'
 
 import { keyframes } from '@mui/system'
@@ -27,6 +28,7 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
   const [fallbackTried, setFallbackTried] = useState(false)
   const suppressClickRef = useRef(false)
   const moveRaf = useRef(0)
+  const [animatePopIn, setAnimatePopIn] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -36,6 +38,7 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
       setFallbackTried(false)
       setImgNatural({ w: 0, h: 0 })
       setBaseSize({ w: 0, h: 0 })
+      setAnimatePopIn(true)
     }
   }, [open, src, fallbackSrc])
 
@@ -54,6 +57,12 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     window.addEventListener('resize', updateViewport)
 
     return () => window.removeEventListener('resize', updateViewport)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => setAnimatePopIn(false), 380)
+    return () => clearTimeout(timer)
   }, [open])
 
   useEffect(() => {
@@ -226,24 +235,30 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     100% { transform: scale(1) }
   `
 
-  const frameWidth = baseSize.w ? baseSize.w * scale : null
-  const frameHeight = baseSize.h ? baseSize.h * scale : null
+  const popWrapperStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    animation: animatePopIn ? `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both` : 'none',
+    willChange: animatePopIn ? 'transform' : undefined,
+  }
   const frameStyles = {
     position: 'relative',
     borderRadius: 2,
     boxShadow: 24,
     bgcolor: 'black',
     overflow: 'hidden',
-    animation: `${popIn} 360ms cubic-bezier(.2,.8,.2,1) both`,
     willChange: 'transform',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: dragging ? 'none' : 'width 180ms ease, height 180ms ease',
-    ...(frameWidth && frameHeight
+    transformOrigin: 'center center',
+    transform: `scale(${scale})`,
+    transition: dragging ? 'none' : 'transform 220ms cubic-bezier(.2,.8,.2,1)',
+    ...(baseSize.w && baseSize.h
       ? {
-          width: frameWidth,
-          height: frameHeight,
+          width: baseSize.w,
+          height: baseSize.h,
         }
       : {
           maxWidth: '95vw',
@@ -289,23 +304,25 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
           willChange: 'transform',
         }}
       >
-        <Box sx={frameStyles}>
-          <img
-            ref={imgRef}
-            src={imgSrc}
-            alt={alt}
-            onLoad={onImgLoad}
-            onError={handleImgError}
-            draggable={false}
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
-          />
+        <Box sx={popWrapperStyles}>
+          <Box sx={frameStyles}>
+            <img
+              ref={imgRef}
+              src={imgSrc}
+              alt={alt}
+              onLoad={onImgLoad}
+              onError={handleImgError}
+              draggable={false}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>

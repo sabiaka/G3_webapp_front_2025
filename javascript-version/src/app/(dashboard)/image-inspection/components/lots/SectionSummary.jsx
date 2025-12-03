@@ -1,4 +1,5 @@
 // 最新ロットの結果と各カメラの判定をまとめて表示するサマリー行コンポーネント
+
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'

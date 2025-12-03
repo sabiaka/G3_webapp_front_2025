@@ -19,9 +19,9 @@ import { styled } from '@mui/material/styles'
 import { useLotsData } from './hooks/useLotsData'
 
 // セクションごとのタブ・カメラグリッド・サマリー表示用コンポーネント
-import SectionTab from './components/SectionTab'
-import CameraGrid from './components/CameraGrid'
-import SectionSummary from './components/SectionSummary'
+import SectionTab from './components/sections/SectionTab'
+import CameraGrid from './components/grid/CameraGrid'
+import SectionSummary from './components/lots/SectionSummary'
 
 // セクション設定（カメラ構成など）
 import { SECTION_CONFIG } from './utils/sectionConfig'
@@ -60,6 +60,8 @@ const ImageInspection = () => {
     getFailReasons,
     getLatestLot,
     getLotShotsByCamera,
+    getLotShots,
+    getLotShotsStatus,
     getAvailableDates,
     ensureLotShotsLoaded,
     getLotById,
@@ -177,6 +179,8 @@ const ImageInspection = () => {
       getSectionLots={getSectionLots}
       getLotStatus={getLotStatus}
       getLotShotsByCamera={getLotShotsByCamera}
+      getLotShots={getLotShots}
+      getLotShotsStatus={getLotShotsStatus}
       ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}
