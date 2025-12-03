@@ -1,3 +1,5 @@
+// A層ロット詳細モーダル
+
 import { useCallback, useEffect, useMemo } from 'react'
 
 import Box from '@mui/material/Box'
@@ -10,9 +12,9 @@ import DialogTitle from '@mui/material/DialogTitle'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 
-import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../utils/imageUrl'
+import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
 import FourKMapSection from './FourKMapSection'
-import LotInfoSection from './LotInfoSection'
+import LotInfoSection from '../lots/LotInfoSection'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''

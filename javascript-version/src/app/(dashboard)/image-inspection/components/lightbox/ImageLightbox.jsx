@@ -1,4 +1,5 @@
 // 撮影画像を全画面オーバーレイで拡大表示しズーム・パン操作を提供するライトボックス
+
 import { useEffect, useRef, useState } from 'react'
 
 import { keyframes } from '@mui/system'

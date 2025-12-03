@@ -1,3 +1,5 @@
+// モーダル内ロット情報セクションコンポーネント
+
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'

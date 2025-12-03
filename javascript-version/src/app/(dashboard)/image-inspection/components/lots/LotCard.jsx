@@ -1,3 +1,5 @@
+// ロットカード表示コンポーネント
+
 import { useCallback, useMemo } from 'react'
 
 import Box from '@mui/material/Box'
@@ -7,7 +9,7 @@ import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 
-import { getFallbackImageBase, toImageUrl } from '../utils/imageUrl'
+import { getFallbackImageBase, toImageUrl } from '../../utils/imageUrl'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''

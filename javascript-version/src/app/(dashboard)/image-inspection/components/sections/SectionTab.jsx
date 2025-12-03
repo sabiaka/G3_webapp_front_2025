@@ -1,4 +1,5 @@
 // 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -13,14 +14,14 @@ import TextField from '@mui/material/TextField'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
-import DonutChart from './DonutChart'
-import ImageLightbox from './ImageLightbox'
-import SectionSummary from './SectionSummary'
-import CameraGrid from './CameraGrid'
-import LotCard from './LotCard'
-import SpringLotDetailModal from './SpringLotDetailModal'
-import ALayerLotDetailModal from './ALayerLotDetailModal'
-import { SECTION_CONFIG } from '../utils/sectionConfig'
+import DonutChart from '../charts/DonutChart'
+import ImageLightbox from '../lightbox/ImageLightbox'
+import SectionSummary from '../lots/SectionSummary'
+import CameraGrid from '../grid/CameraGrid'
+import LotCard from '../lots/LotCard'
+import SpringLotDetailModal from '../modals/SpringLotDetailModal'
+import ALayerLotDetailModal from '../modals/ALayerLotDetailModal'
+import { SECTION_CONFIG } from '../../utils/sectionConfig'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
 const SectionTab = ({
