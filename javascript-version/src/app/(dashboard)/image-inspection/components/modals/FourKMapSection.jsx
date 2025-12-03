@@ -2,7 +2,10 @@
 
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+
+const SQUARE_ASPECT_RATIO = '1 / 1'
 
 const FourKMapSection = ({
   hasGrid,
@@ -70,21 +73,24 @@ const FourKMapSection = ({
               const entry = cell.entry
               if (!entry) {
                 return (
-                  <Box
-                    key={cell.key}
-                    sx={{
-                      border: theme => `1px dashed ${theme.palette.divider}`,
-                      borderRadius: 2,
-                      p: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100'),
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      未取得
-                    </Typography>
+                  <Box key={cell.key} sx={{ position: 'relative', width: '100%', aspectRatio: SQUARE_ASPECT_RATIO }}>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        border: theme => `1px dashed ${theme.palette.divider}`,
+                        borderRadius: 2,
+                        p: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100'),
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        未取得
+                      </Typography>
+                    </Box>
                   </Box>
                 )
               }
@@ -98,57 +104,63 @@ const FourKMapSection = ({
               const metaLine = metaParts.join(' / ')
 
               return (
-                <Box
-                  key={cell.key}
-                  sx={{
-                    border: theme => `1px solid ${theme.palette.divider}`,
-                    borderRadius: 2,
-                    p: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1,
-                    bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      {sequence.label}
-                    </Typography>
-                    <Chip size="small" label={shot.status || '-'} color={statusColor} variant="outlined" />
-                  </Box>
+                <Box key={cell.key} sx={{ position: 'relative', width: '100%', aspectRatio: SQUARE_ASPECT_RATIO }}>
                   <Box
                     sx={{
-                      width: '100%',
-                      aspectRatio: '4/3',
-                      borderRadius: 1,
-                      overflow: 'hidden',
-                      bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'),
-                      cursor: 'zoom-in',
+                      position: 'absolute',
+                      inset: 0,
+                      border: theme => `1px solid ${theme.palette.divider}`,
+                      borderRadius: 2,
+                      p: 1.5,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                      bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
                     }}
-                    onClick={() => handlePreview(sources, shot.image_path || sequence.label)}
                   >
-                    <img
-                      src={sources.primary}
-                      alt={shot.image_path || sequence.label}
-                      onError={e => handleImageError(e, sources.fallback)}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {sequence.label}
+                      </Typography>
+                      <Chip size="small" label={shot.status || '-'} color={statusColor} variant="outlined" />
+                    </Box>
+                    <Tooltip title={shot.image_path || 'ファイルパス未登録'} enterDelay={300} arrow>
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          flexGrow: 1,
+                          minHeight: 0,
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'),
+                          cursor: 'zoom-in',
+                        }}
+                        onClick={() => handlePreview(sources, shot.image_path || sequence.label)}
+                      >
+                        <img
+                          src={sources.primary}
+                          alt={shot.image_path || sequence.label}
+                          onError={e => handleImageError(e, sources.fallback)}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                          }}
+                        />
+                      </Box>
+                    </Tooltip>
+                    {shot.details && (
+                      <Typography variant="caption" color="error.main">
+                        {shot.details}
+                      </Typography>
+                    )}
+                    {metaLine && (
+                      <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                        {metaLine}
+                      </Typography>
+                    )}
                   </Box>
-                  {shot.details && (
-                    <Typography variant="caption" color="error.main">
-                      {shot.details}
-                    </Typography>
-                  )}
-                  {metaLine && (
-                    <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                      {metaLine}
-                    </Typography>
-                  )}
-                  {shot.image_path && (
-                    <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                      {shot.image_path}
-                    </Typography>
-                  )}
                 </Box>
               )
             })}

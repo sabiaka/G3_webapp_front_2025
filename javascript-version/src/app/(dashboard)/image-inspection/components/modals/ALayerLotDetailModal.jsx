@@ -9,7 +9,6 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 
 import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
@@ -19,6 +18,8 @@ import LotInfoSection from '../lots/LotInfoSection'
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
+const MIN_GRID_ROWS = 6
+const MIN_GRID_COLS = 4
 
 const normalizeRelativePath = path => {
   if (!path) return null
@@ -53,6 +54,20 @@ const toRowIndex = letters => {
   return letters.split('').reduce((acc, char) => acc * 26 + (char.charCodeAt(0) - 64), 0) - 1
 }
 
+const fromRowIndex = index => {
+  if (!Number.isFinite(index) || index < 0) return ''
+  let value = Math.floor(index) + 1
+  let label = ''
+
+  while (value > 0) {
+    const remainder = (value - 1) % 26
+    label = String.fromCharCode(65 + remainder) + label
+    value = Math.floor((value - 1) / 26)
+  }
+
+  return label
+}
+
 const parseFourKSequence = value => {
   if (!value) return null
   const raw = String(value).trim().toUpperCase()
@@ -83,10 +98,6 @@ const buildGridStructure = shots => {
     })
     .filter(Boolean)
 
-  if (entries.length === 0) {
-    return { rows: [], cols: [], cells: [] }
-  }
-
   const rowMap = new Map()
   const colMap = new Map()
   const cellMap = new Map()
@@ -101,8 +112,75 @@ const buildGridStructure = shots => {
     cellMap.set(sequence.label, { shot, sequence })
   })
 
-  const rows = Array.from(rowMap.values()).sort((a, b) => a.index - b.index)
-  const cols = Array.from(colMap.values()).sort((a, b) => a.index - b.index)
+  let rows = Array.from(rowMap.values()).sort((a, b) => a.index - b.index)
+  let cols = Array.from(colMap.values()).sort((a, b) => a.index - b.index)
+
+  const ensureRowCoverage = currentRows => {
+    if (currentRows.length === 0) {
+      const baseRows = []
+      for (let idx = 0; idx < MIN_GRID_ROWS; idx += 1) {
+        baseRows.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
+      }
+      return baseRows
+    }
+
+    const rowsByIndex = new Map(currentRows.map(row => [row.index, row]))
+    const startIndex = currentRows[0].index
+    const maxIndex = currentRows[currentRows.length - 1].index
+    let endIndex = Math.max(maxIndex, startIndex + MIN_GRID_ROWS - 1)
+    const result = []
+
+    for (let idx = startIndex; idx <= endIndex; idx += 1) {
+      const existing = rowsByIndex.get(idx)
+      if (existing) {
+        result.push(existing)
+      } else {
+        result.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
+      }
+    }
+
+    while (result.length < MIN_GRID_ROWS) {
+      endIndex += 1
+      result.push({ label: fromRowIndex(endIndex), index: endIndex, placeholder: true })
+    }
+
+    return result
+  }
+
+  const ensureColCoverage = currentCols => {
+    if (currentCols.length === 0) {
+      const baseCols = []
+      for (let idx = 0; idx < MIN_GRID_COLS; idx += 1) {
+        baseCols.push({ label: String(idx + 1), index: idx, placeholder: true })
+      }
+      return baseCols
+    }
+
+    const colsByIndex = new Map(currentCols.map(col => [col.index, col]))
+    const startIndex = currentCols[0].index
+    const maxIndex = currentCols[currentCols.length - 1].index
+    let endIndex = Math.max(maxIndex, startIndex + MIN_GRID_COLS - 1)
+    const result = []
+
+    for (let idx = startIndex; idx <= endIndex; idx += 1) {
+      const existing = colsByIndex.get(idx)
+      if (existing) {
+        result.push(existing)
+      } else {
+        result.push({ label: String(idx + 1), index: idx, placeholder: true })
+      }
+    }
+
+    while (result.length < MIN_GRID_COLS) {
+      endIndex += 1
+      result.push({ label: String(endIndex + 1), index: endIndex, placeholder: true })
+    }
+
+    return result
+  }
+
+  rows = ensureRowCoverage(rows)
+  cols = ensureColCoverage(cols)
 
   const cells = []
   cells.push({ type: 'corner', key: 'corner' })
@@ -250,9 +328,30 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
           <Chip label={lotStatus || '-'} color={getLotStatusColor(lotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={5}>
+      <DialogContent
+        dividers
+        sx={{
+          p: 0,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: 'stretch',
+            gap: { xs: 4, md: 6 },
+            p: { xs: 4, md: 6 },
+            height: { md: '70vh' },
+            boxSizing: 'border-box',
+          }}
+        >
+          <Box
+            sx={{
+              flexBasis: { md: '40%' },
+              flexShrink: 0,
+              alignSelf: 'flex-start',
+            }}
+          >
             <LotInfoSection
               lot={lot}
               representativeSources={representativeSources}
@@ -260,8 +359,16 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
               setLightbox={setLightbox}
               getChipColor={getChipColor}
             />
-          </Grid>
-          <Grid item xs={12} md={7}>
+          </Box>
+
+          <Box
+            sx={{
+              flexGrow: 1,
+              minHeight: 0,
+              overflowY: { xs: 'visible', md: 'auto' },
+              pr: { md: 1 },
+            }}
+          >
             <FourKMapSection
               hasGrid={hasGrid}
               gridStructure={gridStructure}
@@ -270,8 +377,8 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
               handleImageError={handleImageError}
               setLightbox={setLightbox}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">
