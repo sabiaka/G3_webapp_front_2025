@@ -26,13 +26,15 @@ const normalizeImagePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
   if (!trimmed) return null
-  if (/^https?:\/\//i.test(trimmed)) {
-    const [protocol, rest] = trimmed.split('://')
-    if (!rest) return trimmed
-    return `${protocol}://${rest.replace(/\/{2,}/g, '/')}`
+  const sanitized = trimmed.replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(sanitized)) {
+    const [protocol, rest] = sanitized.split('://')
+    if (!rest) return sanitized
+    const cleanedRest = rest.replace(/\/{3,}/g, '//')
+    return `${protocol}://${cleanedRest}`
   }
-  const cleaned = trimmed.replace(/\/{2,}/g, '/')
-  return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
+  const withLeading = sanitized.startsWith('/') ? sanitized : `/${sanitized}`
+  return withLeading.replace(/\/{3,}/g, '//')
 }
 
 const SHOT_DEFAULT_TYPE = 'DEFAULT'
@@ -197,7 +199,7 @@ export const useLotsData = () => {
   }
 
   const mapFourKSequences = sequences => (sequences || []).map(seq => {
-    const rawSequence = seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
+    const rawSequence = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
     const label = deriveSequenceLabel(rawSequence)
     const statusUi = mapStatusApiToUi(seq?.status)
     const detailTextRaw = typeof seq?.details === 'string' ? seq.details.trim() : ''
@@ -476,11 +478,16 @@ export const useLotsData = () => {
 
     if (shotTypeNormalized === '4K') {
       const sequences = Array.isArray(lot.four_k_sequences) ? lot.four_k_sequences : []
-      return sequences.map(seq => ({
-        ...seq,
-        image_path: seq?.image_path ? normalizeImagePath(seq.image_path) : seq?.image_path,
-        ['c4k_seq']: seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? null,
-      }))
+      return sequences.map(seq => {
+        const sequenceValue = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? null
+        return {
+          ...seq,
+          image_path: seq?.image_path ? normalizeImagePath(seq.image_path) : seq?.image_path,
+          ['4k_seq']: sequenceValue,
+          ['c4k_seq']: seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? null,
+          four_k_seq: seq?.four_k_seq ?? sequenceValue,
+        }
+      })
     }
 
     if (shotTypeNormalized !== SHOT_DEFAULT_TYPE) return []
@@ -543,7 +550,7 @@ export const useLotsData = () => {
     const shots = getLotShots(lotId, options)
 
     const grouped = shots.reduce((acc, s) => {
-      const key = s?.camera_id || s?.cameraId || s?.['c4k_seq'] || s?.four_k_seq || 'unknown'
+      const key = s?.camera_id || s?.cameraId || s?.['4k_seq'] || s?.['c4k_seq'] || s?.four_k_seq || 'unknown'
       if (!acc[key]) acc[key] = []
       acc[key].push(s)
       return acc

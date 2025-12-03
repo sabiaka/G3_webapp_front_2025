@@ -19,9 +19,15 @@ const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
   if (!trimmed) return null
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  const cleaned = trimmed.replace(/\/{2,}/g, '/')
-  return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
+  const sanitized = trimmed.replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(sanitized)) {
+    const [protocol, rest] = sanitized.split('://')
+    if (!rest) return sanitized
+    const cleanedRest = rest.replace(/\/{3,}/g, '//')
+    return `${protocol}://${cleanedRest}`
+  }
+  const withLeading = sanitized.startsWith('/') ? sanitized : `/${sanitized}`
+  return withLeading.replace(/\/{3,}/g, '//')
 }
 
 const getChipColor = status => {
