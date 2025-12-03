@@ -1,6 +1,6 @@
 // A層ロット詳細モーダル
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -68,7 +68,7 @@ const fromRowIndex = index => {
   return label
 }
 
-const parseFourKSequence = value => {
+const parseShotSequence = value => {
   if (!value) return null
   const raw = String(value).trim().toUpperCase()
   if (!raw) return null
@@ -80,6 +80,7 @@ const parseFourKSequence = value => {
   const rowIndex = toRowIndex(rowLabel)
   if (rowIndex < 0) return null
   return {
+    raw,
     label: `${rowLabel}-${colNumber}`,
     rowLabel,
     colLabel: String(colNumber),
@@ -88,11 +89,81 @@ const parseFourKSequence = value => {
   }
 }
 
-const buildGridStructure = shots => {
+const ensureRowCoverage = (currentRows, minCount = MIN_GRID_ROWS) => {
+  if (currentRows.length === 0) {
+    const baseRows = []
+    for (let idx = 0; idx < minCount; idx += 1) {
+      baseRows.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
+    }
+    return baseRows
+  }
+
+  const rowsByIndex = new Map(currentRows.map(row => [row.index, row]))
+  const startIndex = currentRows[0].index
+  const maxIndex = currentRows[currentRows.length - 1].index
+  let endIndex = Math.max(maxIndex, startIndex + minCount - 1)
+  const result = []
+
+  for (let idx = startIndex; idx <= endIndex; idx += 1) {
+    const existing = rowsByIndex.get(idx)
+    if (existing) {
+      result.push(existing)
+    } else {
+      result.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
+    }
+  }
+
+  while (result.length < minCount) {
+    endIndex += 1
+    result.push({ label: fromRowIndex(endIndex), index: endIndex, placeholder: true })
+  }
+
+  return result
+}
+
+const ensureColCoverage = (currentCols, minCount = MIN_GRID_COLS) => {
+  if (currentCols.length === 0) {
+    const baseCols = []
+    for (let idx = 0; idx < minCount; idx += 1) {
+      baseCols.push({ label: String(idx + 1), index: idx, placeholder: true })
+    }
+    return baseCols
+  }
+
+  const colsByIndex = new Map(currentCols.map(col => [col.index, col]))
+  const startIndex = currentCols[0].index
+  const maxIndex = currentCols[currentCols.length - 1].index
+  let endIndex = Math.max(maxIndex, startIndex + minCount - 1)
+  const result = []
+
+  for (let idx = startIndex; idx <= endIndex; idx += 1) {
+    const existing = colsByIndex.get(idx)
+    if (existing) {
+      result.push(existing)
+    } else {
+      result.push({ label: String(idx + 1), index: idx, placeholder: true })
+    }
+  }
+
+  while (result.length < minCount) {
+    endIndex += 1
+    result.push({ label: String(endIndex + 1), index: endIndex, placeholder: true })
+  }
+
+  return result
+}
+
+const buildGridStructure = (shots, options = {}) => {
+  const {
+    sequenceExtractor = shot => shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq,
+    minRows = MIN_GRID_ROWS,
+    minCols = MIN_GRID_COLS,
+  } = options
+
   const entries = (shots || [])
     .map(shot => {
-      const seqValue = shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq
-      const parsed = parseFourKSequence(seqValue)
+      const seqValue = sequenceExtractor(shot)
+      const parsed = parseShotSequence(seqValue)
       if (!parsed) return null
       return { shot, sequence: parsed }
     })
@@ -109,78 +180,19 @@ const buildGridStructure = shots => {
     if (!colMap.has(sequence.colLabel)) {
       colMap.set(sequence.colLabel, { label: sequence.colLabel, index: sequence.colIndex })
     }
-    cellMap.set(sequence.label, { shot, sequence })
+    const existing = cellMap.get(sequence.label)
+    if (existing) {
+      existing.shots.push(shot)
+    } else {
+      cellMap.set(sequence.label, { sequence, shots: [shot] })
+    }
   })
 
   let rows = Array.from(rowMap.values()).sort((a, b) => a.index - b.index)
   let cols = Array.from(colMap.values()).sort((a, b) => a.index - b.index)
 
-  const ensureRowCoverage = currentRows => {
-    if (currentRows.length === 0) {
-      const baseRows = []
-      for (let idx = 0; idx < MIN_GRID_ROWS; idx += 1) {
-        baseRows.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
-      }
-      return baseRows
-    }
-
-    const rowsByIndex = new Map(currentRows.map(row => [row.index, row]))
-    const startIndex = currentRows[0].index
-    const maxIndex = currentRows[currentRows.length - 1].index
-    let endIndex = Math.max(maxIndex, startIndex + MIN_GRID_ROWS - 1)
-    const result = []
-
-    for (let idx = startIndex; idx <= endIndex; idx += 1) {
-      const existing = rowsByIndex.get(idx)
-      if (existing) {
-        result.push(existing)
-      } else {
-        result.push({ label: fromRowIndex(idx), index: idx, placeholder: true })
-      }
-    }
-
-    while (result.length < MIN_GRID_ROWS) {
-      endIndex += 1
-      result.push({ label: fromRowIndex(endIndex), index: endIndex, placeholder: true })
-    }
-
-    return result
-  }
-
-  const ensureColCoverage = currentCols => {
-    if (currentCols.length === 0) {
-      const baseCols = []
-      for (let idx = 0; idx < MIN_GRID_COLS; idx += 1) {
-        baseCols.push({ label: String(idx + 1), index: idx, placeholder: true })
-      }
-      return baseCols
-    }
-
-    const colsByIndex = new Map(currentCols.map(col => [col.index, col]))
-    const startIndex = currentCols[0].index
-    const maxIndex = currentCols[currentCols.length - 1].index
-    let endIndex = Math.max(maxIndex, startIndex + MIN_GRID_COLS - 1)
-    const result = []
-
-    for (let idx = startIndex; idx <= endIndex; idx += 1) {
-      const existing = colsByIndex.get(idx)
-      if (existing) {
-        result.push(existing)
-      } else {
-        result.push({ label: String(idx + 1), index: idx, placeholder: true })
-      }
-    }
-
-    while (result.length < MIN_GRID_COLS) {
-      endIndex += 1
-      result.push({ label: String(endIndex + 1), index: endIndex, placeholder: true })
-    }
-
-    return result
-  }
-
-  rows = ensureRowCoverage(rows)
-  cols = ensureColCoverage(cols)
+  rows = ensureRowCoverage(rows, minRows)
+  cols = ensureColCoverage(cols, minCols)
 
   const cells = []
   cells.push({ type: 'corner', key: 'corner' })
@@ -196,10 +208,32 @@ const buildGridStructure = shots => {
     })
   })
 
-  return { rows, cols, cells }
+  return {
+    rows,
+    cols,
+    cells,
+    hasEntries: entries.length > 0,
+  }
 }
 
-const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLightbox }) => {
+const STATUS_PRIORITY = ['FAIL', 'MISSING', 'PASS']
+const pickRepresentativeShot = shots => {
+  if (!Array.isArray(shots) || shots.length === 0) return null
+  const normalized = shots
+    .map(shot => {
+      const status = (shot?.status || '').toString().toUpperCase()
+      const priority = STATUS_PRIORITY.indexOf(status)
+      return {
+        shot,
+        priority: priority >= 0 ? priority : STATUS_PRIORITY.length,
+      }
+    })
+    .sort((a, b) => a.priority - b.priority)
+
+  return normalized[0]?.shot || shots[0]
+}
+
+const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'success', onClose, setLightbox }) => {
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -259,8 +293,68 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
     [buildImageSources, lot?.representativeImage],
   )
 
-  const gridStructure = useMemo(() => buildGridStructure(shots4k), [shots4k])
-  const hasGrid = gridStructure.rows.length > 0 && gridStructure.cols.length > 0
+  const gridStructure = useMemo(
+    () => buildGridStructure(shots4k, { sequenceExtractor: shot => shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq }),
+    [shots4k],
+  )
+
+  const [selectedSequence, setSelectedSequence] = useState(null)
+  const [fhdShots, setFhdShots] = useState([])
+  const [fhdStatus, setFhdStatus] = useState('idle')
+  const [fhdError, setFhdError] = useState('')
+  const fhdCacheRef = useRef(new Map())
+  const fhdAbortRef = useRef(null)
+
+  const fhdGridStructure = useMemo(
+    () => buildGridStructure(fhdShots, { sequenceExtractor: shot => shot?.fhd_seq ?? shot?.seq }),
+    [fhdShots],
+  )
+
+  const normalizedShotsStatus = useMemo(() => {
+    if (shotsStatus === 'error') return 'error'
+    if (Array.isArray(shots4k) && shots4k.length > 0) return 'success'
+    if (shotsStatus === 'success') return 'success'
+    if (shotsStatus === 'loading') return 'loading'
+    return 'loading'
+  }, [shotsStatus, shots4k])
+
+  const normalizedFhdStatus = useMemo(() => {
+    if (!selectedSequence) return 'idle'
+    if (fhdStatus === 'error') return 'error'
+    if (Array.isArray(fhdShots) && fhdShots.length > 0) return 'success'
+    if (fhdStatus === 'success') return 'success'
+    if (fhdStatus === 'loading') return 'loading'
+    return 'loading'
+  }, [selectedSequence, fhdStatus, fhdShots])
+
+  const handleResetFhdState = useCallback(() => {
+    setSelectedSequence(null)
+    setFhdShots([])
+    setFhdStatus('idle')
+    setFhdError('')
+    if (fhdAbortRef.current) {
+      fhdAbortRef.current.abort()
+      fhdAbortRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!open) {
+      handleResetFhdState()
+    }
+  }, [open, handleResetFhdState])
+
+  useEffect(() => {
+    fhdCacheRef.current = new Map()
+    handleResetFhdState()
+  }, [lot?.lotId, handleResetFhdState])
+
+  useEffect(() => () => {
+    if (fhdAbortRef.current) {
+      fhdAbortRef.current.abort()
+      fhdAbortRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -289,11 +383,11 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
       return
     }
 
-    if (!hasGrid) {
+    if (Array.isArray(shots4k) && shots4k.length > 0 && !gridStructure.hasEntries) {
       const invalidShots = shots4k
         .map(shot => {
           const seqValue = shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq
-          const parsed = parseFourKSequence(seqValue)
+          const parsed = parseShotSequence(seqValue)
           if (parsed) return null
           return {
             seqValue,
@@ -309,7 +403,121 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
         invalidShots,
       })
     }
-  }, [open, shots4k, lot?.lotId, hasGrid])
+  }, [open, shots4k, lot?.lotId, gridStructure.hasEntries])
+
+  useEffect(() => {
+    if (!selectedSequence || !lot?.lotId) return
+
+    const sequenceLabel = selectedSequence.label
+    if (!sequenceLabel) return
+
+    const cacheKey = `${lot.lotId}::${sequenceLabel}`
+    const cached = fhdCacheRef.current.get(cacheKey)
+    if (cached) {
+      setFhdShots(cached.shots)
+      setFhdStatus('success')
+      setFhdError('')
+      return
+    }
+
+    const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+    const controller = new AbortController()
+    if (fhdAbortRef.current) {
+      fhdAbortRef.current.abort()
+    }
+    fhdAbortRef.current = controller
+
+    const fetchFhdShots = async () => {
+      try {
+        setFhdStatus('loading')
+        setFhdError('')
+        setFhdShots([])
+        const res = await fetch(
+          `${base}/api/inspections/lots/${encodeURIComponent(lot.lotId)}/shots/FHD/${encodeURIComponent(sequenceLabel)}`,
+          { signal: controller.signal },
+        )
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
+        }
+        const data = await res.json()
+        const shots = Array.isArray(data?.shots) ? data.shots : []
+        setFhdShots(shots)
+        setFhdStatus('success')
+        fhdCacheRef.current.set(cacheKey, { shots, fetchedAt: Date.now() })
+      } catch (error) {
+        if (controller.signal.aborted) return
+        console.error('[ALayerLotDetailModal] FHD ショットの取得に失敗しました', {
+          lotId: lot?.lotId,
+          sequence: sequenceLabel,
+          error,
+        })
+        setFhdStatus('error')
+        setFhdError(error?.message || '不明なエラー')
+        setFhdShots([])
+      } finally {
+        if (fhdAbortRef.current === controller) {
+          fhdAbortRef.current = null
+        }
+      }
+    }
+
+    fetchFhdShots()
+
+    return () => {
+      controller.abort()
+    }
+  }, [selectedSequence, lot?.lotId])
+
+  useEffect(() => {
+    if (!selectedSequence || normalizedFhdStatus !== 'success') return
+    const invalidFhdShots = (fhdShots || [])
+      .map(shot => {
+        const parsed = parseShotSequence(shot?.fhd_seq ?? shot?.seq)
+        if (parsed) return null
+        return { shot }
+      })
+      .filter(Boolean)
+
+    if (invalidFhdShots.length > 0) {
+      console.warn('[ALayerLotDetailModal] FHD グリッド構築で無効なシーケンスが検出されました', {
+        lotId: lot?.lotId,
+        sequence: selectedSequence.label,
+        count: invalidFhdShots.length,
+        invalidFhdShots,
+      })
+    }
+  }, [selectedSequence, normalizedFhdStatus, fhdShots, lot?.lotId])
+
+  const isShowingFhd = Boolean(selectedSequence)
+  const activeMapStructure = isShowingFhd ? fhdGridStructure : gridStructure
+  const activeStatus = isShowingFhd ? normalizedFhdStatus : normalizedShotsStatus
+  const selectedFourKShot = selectedSequence ? pickRepresentativeShot(selectedSequence.shots || []) : null
+  const fhdSubtitle = useMemo(() => {
+    if (!selectedSequence) return ''
+    const parts = [`4Kシーケンス: ${selectedSequence.label}`]
+    if (selectedFourKShot?.camera_id) parts.push(`カメラ: ${selectedFourKShot.camera_id}`)
+    if (selectedFourKShot?.status) parts.push(`結果: ${selectedFourKShot.status}`)
+    if (Array.isArray(selectedSequence.shots) && selectedSequence.shots.length > 1) {
+      parts.push(`4K撮影枚数: ${selectedSequence.shots.length}`)
+    }
+    return parts.join(' / ')
+  }, [selectedSequence, selectedFourKShot])
+
+  const handleSelectSequence = useCallback((entry) => {
+    if (!entry?.sequence) return
+    setSelectedSequence(prev => {
+      if (prev?.label === entry.sequence.label) return prev
+      return {
+        label: entry.sequence.label,
+        sequence: entry.sequence,
+        shots: Array.isArray(entry.shots) ? entry.shots : [],
+      }
+    })
+  }, [])
+
+  const handleBackToMap = useCallback(() => {
+    handleResetFhdState()
+  }, [handleResetFhdState])
 
   if (!lot) return null
 
@@ -370,12 +578,21 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, onClose, setLight
             }}
           >
             <FourKMapSection
-              hasGrid={hasGrid}
-              gridStructure={gridStructure}
+              title={isShowingFhd ? 'FHD 撮影マップ' : '4K 撮影マップ'}
+              subtitle={isShowingFhd ? fhdSubtitle : undefined}
+              status={activeStatus}
+              loadingMessage={isShowingFhd ? 'FHDデータを取得中です…' : '詳細データを取得中です…'}
+              errorMessage={isShowingFhd ? (fhdError ? `FHDデータの取得に失敗しました: ${fhdError}` : 'FHDデータの取得に失敗しました。') : '詳細データの取得に失敗しました。'}
+              emptyMessage={isShowingFhd ? '該当するFHDショットがありません。' : '該当する4Kショットがありません。'}
+              placeholderLabel={isShowingFhd ? '未取得' : '未取得'}
+              gridStructure={activeMapStructure}
               buildShotSources={buildShotSources}
               getShotStatusColor={getShotStatusColor}
               handleImageError={handleImageError}
               setLightbox={setLightbox}
+              onSelectSequence={isShowingFhd ? undefined : handleSelectSequence}
+              selectedSequenceLabel={selectedSequence?.label}
+              onBack={isShowingFhd ? handleBackToMap : undefined}
             />
           </Box>
         </Box>
