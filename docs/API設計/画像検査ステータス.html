@@ -82,9 +82,7 @@ CREATE TABLE inspection_camera_shots (
     lot_id_ref BIGINT NOT NULL REFERENCES inspection_lots(id) ON DELETE CASCADE,
     camera_id VARCHAR(64) NOT NULL,
     
-    -- ▼ 修正箇所 ▼
     c4k_seq VARCHAR(32) NULL,                                       -- 4KシーケンスID（JSONキー "4k_seq" とマッピング）
-    -- ▲ 修正箇所 ▲
     
     fhd_seq VARCHAR(32) NULL,                                       -- FHDシーケンスID
     status VARCHAR(16) NOT NULL CHECK (status IN ('PASS','FAIL','MISSING')),
