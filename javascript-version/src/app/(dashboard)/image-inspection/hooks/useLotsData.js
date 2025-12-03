@@ -136,6 +136,7 @@ export const useLotsData = () => {
     if (!normalized) return '-'
     if (normalized === 'PASS' || normalized === 'OK') return 'OK'
     if (normalized === 'FAIL' || normalized === 'NG') return 'NG'
+    if (normalized === 'MISSING') return 'MISSING'
     return normalized
   }
 
@@ -147,7 +148,8 @@ export const useLotsData = () => {
       const cameraId = raw?.camera_id || raw?.cameraId || raw?.name
       if (!cameraId) continue
       const statusUi = mapStatusApiToUi(raw?.status)
-      const details = raw?.details ?? '-'
+      const detailTextRaw = typeof raw?.details === 'string' ? raw.details.trim() : ''
+      const details = detailTextRaw || '-'
       const imagePath = raw?.image_path || null
       const prev = byId.get(cameraId)
 
@@ -167,7 +169,9 @@ export const useLotsData = () => {
         if (nextIsFail && !prevIsFail) {
           prev.status = statusUi
           prev.rawStatus = raw?.status ?? prev.rawStatus
-          prev.details = details
+          if (details !== '-' || prev.details === '-' || !prev.details) {
+            prev.details = details
+          }
           prev.image_path = imagePath || prev.image_path
         }
       }
@@ -176,13 +180,39 @@ export const useLotsData = () => {
     return Array.from(byId.values())
   }
 
-  const mapFourKSequences = sequences => (sequences || []).map(seq => ({
-    name: seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? '-',
-    status: mapStatusApiToUi(seq?.status),
-    rawStatus: seq?.status ?? '',
-    details: seq?.details ?? '-',
-    type: 'sequence',
-  }))
+  const deriveSequenceLabel = value => {
+    if (!value) return ''
+    const raw = String(value).trim()
+    if (!raw) return ''
+    const match = raw.match(/^([A-Za-z]+)[-_]?(\d+)$/)
+    if (match) {
+      const [, rowRaw, colRaw] = match
+      const row = rowRaw.toUpperCase()
+      const col = parseInt(colRaw, 10)
+      if (Number.isFinite(col) && col > 0) {
+        return `${row}-${col}`
+      }
+    }
+    return raw
+  }
+
+  const mapFourKSequences = sequences => (sequences || []).map(seq => {
+    const rawSequence = seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
+    const label = deriveSequenceLabel(rawSequence)
+    const statusUi = mapStatusApiToUi(seq?.status)
+    const detailTextRaw = typeof seq?.details === 'string' ? seq.details.trim() : ''
+    const detailText = detailTextRaw || '-'
+
+    return {
+      name: label || seq?.camera_id || rawSequence || '-',
+      label: label || seq?.camera_id || rawSequence || '-',
+      status: statusUi,
+      rawStatus: seq?.status ?? '',
+      details: detailText,
+      type: 'sequence',
+      rawSequence: rawSequence || '',
+    }
+  })
 
   const adaptLotToUi = lot => {
     const sectionDisplay = normalizeSection(lot.section)
@@ -333,10 +363,25 @@ export const useLotsData = () => {
     return filtered.filter(l => l.date === ymd)
   }
 
+  const normalizeUiStatus = value => (value || '').toString().trim().toUpperCase()
+
   const getLotStatus = lot => {
     if (!lot) return 'UNKNOWN'
-    if (lot.overallStatus) return lot.overallStatus
-    return (lot.cameras || []).every(c => c.status === 'OK') ? 'PASS' : 'FAIL'
+
+    const overallStatus = normalizeUiStatus(lot.overallStatus)
+    const cameraStatuses = (lot.cameras || []).map(camera => normalizeUiStatus(camera.status))
+
+    if (cameraStatuses.includes('NG') || overallStatus === 'FAIL') return 'FAIL'
+    if (cameraStatuses.includes('MISSING') || overallStatus === 'MISSING') return 'MISSING'
+    if (overallStatus === 'PASS') return 'PASS'
+
+    if (cameraStatuses.length === 0) return overallStatus || 'UNKNOWN'
+
+    if (cameraStatuses.every(status => status === 'OK')) return 'PASS'
+
+    if (cameraStatuses.some(status => status)) return 'FAIL'
+
+    return 'UNKNOWN'
   }
 
   // 同期API: UI互換のため、最新取得済みのAPI値を返却し、未取得ならリクエストを発火してローカル計算をフォールバック

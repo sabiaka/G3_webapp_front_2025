@@ -25,9 +25,22 @@ const normalizeRelativePath = path => {
 }
 
 const getChipColor = status => {
-  if (status === 'OK') return 'success'
-  if (status === 'NG') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'OK') return 'success'
+  if (normalized === 'NG') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
+}
+
+const resolveDisplayName = (item, index) => {
+  const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === null) continue
+    const text = String(candidate).trim()
+    if (!text || text === '-' || text === '--') continue
+    return text
+  }
+  return `#${index + 1}`
 }
 
 const LotCard = ({
@@ -63,7 +76,15 @@ const LotCard = ({
     [buildImageSources, lot.representativeImage],
   )
 
-  const chipColor = lotStatus === 'PASS' ? 'success' : lotStatus === 'FAIL' ? 'error' : 'default'
+  const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+  const chipColor = normalizedLotStatus === 'PASS'
+    ? 'success'
+    : normalizedLotStatus === 'FAIL'
+      ? 'error'
+      : normalizedLotStatus === 'MISSING'
+        ? 'warning'
+        : 'default'
+  const lotStatusLabel = normalizedLotStatus || '-'
 
   return (
     <Card
@@ -106,30 +127,42 @@ const LotCard = ({
                 {lot.lotId}
               </Typography>
             </Box>
-            <Chip label={lotStatus || '-'} color={chipColor} size="small" variant="filled" />
+            <Chip label={lotStatusLabel} color={chipColor} size="small" variant="filled" />
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="caption" color="text.secondary">
               判定要素
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => (
-                <Chip
-                  key={`${camera.name}-${index}`}
-                  label={`${camera.name}: ${camera.status}`}
-                  size="small"
-                  color={getChipColor(camera.status)}
-                  variant={camera.status === 'OK' ? 'outlined' : 'filled'}
-                />
-              ))}
+              {(lot.cameras || []).map((camera, index) => {
+                const normalizedCameraStatus = (camera.status || '').toString().trim().toUpperCase()
+                const label = resolveDisplayName(camera, index)
+                const statusLabel = camera?.status || 'UNKNOWN'
+
+                return (
+                  <Chip
+                    key={`${label}-${index}`}
+                    label={`${label}: ${statusLabel}`}
+                    size="small"
+                    color={getChipColor(statusLabel)}
+                    variant={normalizedCameraStatus === 'OK' ? 'outlined' : 'filled'}
+                  />
+                )
+              })}
             </Box>
             {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => (
-                  <Typography key={idx} variant="caption" color="error.main">
-                    {c.name}: {c.details}
-                  </Typography>
-                ))}
+                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => {
+                  const normalizedStatus = (c.status || '').toString().trim().toUpperCase()
+                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
+                  const label = resolveDisplayName(c, idx)
+
+                  return (
+                    <Typography key={idx} variant="caption" color={detailColor}>
+                      {label}: {c.details}
+                    </Typography>
+                  )
+                })}
               </Box>
             )}
           </Box>

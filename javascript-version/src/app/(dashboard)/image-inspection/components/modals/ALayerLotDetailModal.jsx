@@ -31,14 +31,18 @@ const normalizeRelativePath = path => {
 }
 
 const getLotStatusColor = status => {
-  if (status === 'PASS') return 'success'
-  if (status === 'FAIL') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'PASS') return 'success'
+  if (normalized === 'FAIL') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
 const getChipColor = status => {
-  if (status === 'OK') return 'success'
-  if (status === 'NG') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'OK' || normalized === 'PASS') return 'success'
+  if (normalized === 'NG' || normalized === 'FAIL') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
@@ -234,6 +238,56 @@ const pickRepresentativeShot = shots => {
 }
 
 const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'success', onClose, setLightbox }) => {
+  const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+  const sequenceStatusItems = useMemo(() => {
+    if (!Array.isArray(shots4k) || shots4k.length === 0) return []
+
+    const priorityOf = status => {
+      const normalized = (status || '').toString().trim().toUpperCase()
+      if (normalized === 'NG') return 0
+      const index = STATUS_PRIORITY.indexOf(normalized)
+      return index >= 0 ? index : STATUS_PRIORITY.length
+    }
+
+    const groups = new Map()
+
+    shots4k.forEach(shot => {
+      const seqRaw = shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq ?? ''
+      const parsedSequence = parseShotSequence(seqRaw)
+      const labelSource = parsedSequence?.label || (typeof seqRaw === 'string' && seqRaw.trim()) || shot?.camera_id || '-'
+      const label = labelSource || '-'
+      const normalizedStatus = (shot?.status || '').toString().trim().toUpperCase() || 'UNKNOWN'
+      const detail = shot?.details && shot.details !== '-' ? shot.details : ''
+
+      const existing = groups.get(label)
+      if (!existing) {
+        groups.set(label, {
+          name: label,
+          status: normalizedStatus,
+          priority: priorityOf(normalizedStatus),
+          details: detail ? [detail] : [],
+        })
+      } else {
+        const currentPriority = existing.priority
+        const nextPriority = priorityOf(normalizedStatus)
+        if (nextPriority < currentPriority) {
+          existing.status = normalizedStatus
+          existing.priority = nextPriority
+        }
+        if (detail && !existing.details.includes(detail)) {
+          existing.details.push(detail)
+        }
+      }
+    })
+
+    return Array.from(groups.values())
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+      .map(item => ({
+        name: item.name,
+        status: item.status,
+        details: item.details[0] || '',
+      }))
+  }, [shots4k])
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -533,7 +587,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
               {lot.lotId}
             </Typography>
           </Box>
-          <Chip label={lotStatus || '-'} color={getLotStatusColor(lotStatus)} size="small" variant="filled" />
+          <Chip label={normalizedLotStatus || '-'} color={getLotStatusColor(normalizedLotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
       <DialogContent
@@ -566,6 +620,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
               handleImageError={handleImageError}
               setLightbox={setLightbox}
               getChipColor={getChipColor}
+              statusItems={sequenceStatusItems}
             />
           </Box>
 
