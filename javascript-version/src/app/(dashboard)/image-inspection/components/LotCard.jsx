@@ -90,7 +90,8 @@ const LotCard = ({
             src={representativeSources.primary}
             alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
             onError={e => handleImageError(e, representativeSources.fallback)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', userSelect: 'none' }}
+            draggable={false}
           />
         </Box>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, flexGrow: 1, width: '100%' }}>

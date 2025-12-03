@@ -1,5 +1,5 @@
 // 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -18,7 +18,8 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import LotCard from './LotCard'
-import LotDetailModal from './LotDetailModal'
+import SpringLotDetailModal from './SpringLotDetailModal'
+import ALayerLotDetailModal from './ALayerLotDetailModal'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
@@ -26,7 +27,9 @@ const SectionTab = ({
   section,
   getSectionLots,
   getLotStatus,
+  getLotShotsStatus,
   getLotShotsByCamera,
+  getLotShots,
   ensureLotShotsLoaded,
   getSectionStats,
   getFailReasons,
@@ -51,6 +54,11 @@ const SectionTab = ({
   const [selectedDateIndex, setSelectedDateIndex] = useState(0)
   const [manualDate, setManualDate] = useState('')
   const selectedDate = manualDate || (availableDates[selectedDateIndex] || undefined)
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentModalLotId, setCurrentModalLotId] = useState(null)
+  const [localLotSnapshot, setLocalLotSnapshot] = useState(null)
+  const closingLotIdRef = useRef(null)
 
   useEffect(() => {
     if (!manualDate) return
@@ -130,17 +138,109 @@ const SectionTab = ({
     [sectionLots, selectedLotId, selectedLotInfo, section],
   )
 
-  useEffect(() => {
-    if (selectedLot && ensureLotShotsLoaded) ensureLotShotsLoaded(selectedLot.lotId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLot?.lotId])
+  const activeLot = useMemo(() => {
+    if (selectedLot && selectedLot.section === section) return selectedLot
+    if (!currentModalLotId) return null
+    const fromSection = (sectionLots || []).find(lot => lot.lotId === currentModalLotId)
+    if (fromSection) return fromSection
+    if (selectedLotInfo && selectedLotInfo.section === section && selectedLotInfo.lotId === currentModalLotId) {
+      return selectedLotInfo
+    }
+    if (localLotSnapshot && localLotSnapshot.lotId === currentModalLotId) return localLotSnapshot
+    return null
+  }, [selectedLot, section, currentModalLotId, sectionLots, selectedLotInfo, localLotSnapshot])
 
-  const selectedLotStatus = selectedLot ? getLotStatus(selectedLot) : undefined
-  const selectedLotShots = selectedLot ? getLotShotsByCamera(selectedLot.lotId) : {}
+  useEffect(() => {
+    if (!selectedLot || selectedLot.section !== section) return
+    if (currentModalLotId && selectedLot.lotId !== currentModalLotId) return
+    setLocalLotSnapshot(prev => (prev && prev.lotId === selectedLot.lotId ? prev : selectedLot))
+  }, [selectedLot, section, currentModalLotId])
+
+  useEffect(() => {
+    const targetedByUrl = Boolean(
+      selectedLotId && (
+        (selectedLotInfo && selectedLotInfo.section === section) ||
+        (selectedLot && selectedLot.section === section)
+      )
+    )
+
+    if (targetedByUrl) {
+      if (closingLotIdRef.current === selectedLotId) return
+      setCurrentModalLotId(prev => (prev === selectedLotId ? prev : selectedLotId))
+      if (!isModalOpen) setIsModalOpen(true)
+      if (selectedLotInfo && selectedLotInfo.lotId === selectedLotId) {
+        setLocalLotSnapshot(prev => (prev && prev.lotId === selectedLotId ? prev : selectedLotInfo))
+      } else if (selectedLot && selectedLot.lotId === selectedLotId) {
+        setLocalLotSnapshot(prev => (prev && prev.lotId === selectedLotId ? prev : selectedLot))
+      }
+    } else if (selectedLotId) {
+      if (currentModalLotId === selectedLotId && !isModalOpen) setIsModalOpen(true)
+      return
+    } else {
+      const routerPending = currentModalLotId && closingLotIdRef.current === null && isModalOpen
+      if (routerPending) return
+      closingLotIdRef.current = null
+      if (isModalOpen) setIsModalOpen(false)
+      if (currentModalLotId) setCurrentModalLotId(null)
+      if (localLotSnapshot) setLocalLotSnapshot(null)
+    }
+
+    if (selectedLotId && closingLotIdRef.current && closingLotIdRef.current !== selectedLotId) {
+      closingLotIdRef.current = null
+    }
+  }, [selectedLotId, selectedLotInfo, selectedLot, section, currentModalLotId, isModalOpen, localLotSnapshot])
+
+  useEffect(() => {
+    if (!isModalOpen || !currentModalLotId || !ensureLotShotsLoaded) return
+    if (section === 'A層') {
+      ensureLotShotsLoaded(currentModalLotId, { type: '4K' })
+    } else {
+      ensureLotShotsLoaded(currentModalLotId)
+    }
+  }, [isModalOpen, currentModalLotId, section, ensureLotShotsLoaded])
+
+  const modalLotId = currentModalLotId || (activeLot ? activeLot.lotId : null)
+
+  const lotShotsStatus = useMemo(() => {
+    if (!getLotShotsStatus || !modalLotId) return 'idle'
+    return section === 'A層'
+      ? getLotShotsStatus(modalLotId, { type: '4K' })
+      : getLotShotsStatus(modalLotId)
+  }, [getLotShotsStatus, modalLotId, section])
+
+  const selectedLotStatus = activeLot ? getLotStatus(activeLot) : undefined
+
+  const selectedLotShotsByCamera = useMemo(() => {
+    if (!modalLotId || section === 'A層') return {}
+    return getLotShotsByCamera(modalLotId)
+  }, [modalLotId, section, getLotShotsByCamera])
+
+  const selectedLotShots4K = useMemo(() => {
+    if (!modalLotId || section !== 'A層') return []
+    return getLotShots(modalLotId, { type: '4K' })
+  }, [modalLotId, section, getLotShots])
 
   const handleOpenLot = lot => {
+    closingLotIdRef.current = null
+    setIsModalOpen(true)
+    setCurrentModalLotId(lot.lotId)
+    setLocalLotSnapshot(lot)
     onOpenLot?.(lot)
-    if (ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
+    if (!ensureLotShotsLoaded) return
+    if (section === 'A層') {
+      ensureLotShotsLoaded(lot.lotId, { type: '4K' })
+    } else {
+      ensureLotShotsLoaded(lot.lotId)
+    }
+  }
+
+  const handleCloseLotModal = () => {
+    const lotIdToClose = modalLotId
+    if (lotIdToClose) closingLotIdRef.current = lotIdToClose
+    setIsModalOpen(false)
+    setCurrentModalLotId(null)
+    setLocalLotSnapshot(null)
+    onCloseLot?.()
   }
 
   return (
@@ -278,7 +378,7 @@ const SectionTab = ({
                         lot={lot}
                         lotStatus={getLotStatus(lot)}
                         onOpen={() => handleOpenLot(lot)}
-                        isActive={selectedLotId === lot.lotId}
+                        isActive={modalLotId === lot.lotId}
                       />
                     </Grid>
                   ))}
@@ -288,14 +388,27 @@ const SectionTab = ({
           </CardContent>
         </Card>
       </Box>
-      <LotDetailModal
-        open={Boolean(selectedLot)}
-        lot={selectedLot}
-        lotStatus={selectedLotStatus}
-        shotsByCamera={selectedLotShots}
-        onClose={onCloseLot}
-        setLightbox={setLightbox}
-      />
+      {section === 'A層' ? (
+        <ALayerLotDetailModal
+          open={isModalOpen && Boolean(activeLot)}
+          lot={activeLot}
+          lotStatus={selectedLotStatus}
+          shots4k={selectedLotShots4K}
+          shotsStatus={lotShotsStatus}
+          onClose={handleCloseLotModal}
+          setLightbox={setLightbox}
+        />
+      ) : (
+        <SpringLotDetailModal
+          open={isModalOpen && Boolean(activeLot)}
+          lot={activeLot}
+          lotStatus={selectedLotStatus}
+          shotsByCamera={selectedLotShotsByCamera}
+          shotsStatus={lotShotsStatus}
+          onClose={handleCloseLotModal}
+          setLightbox={setLightbox}
+        />
+      )}
       {/* Lightbox */}
       <ImageLightbox
         open={lightbox.open}

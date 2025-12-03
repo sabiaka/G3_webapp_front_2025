@@ -60,6 +60,8 @@ const ImageInspection = () => {
     getFailReasons,
     getLatestLot,
     getLotShotsByCamera,
+    getLotShots,
+    getLotShotsStatus,
     getAvailableDates,
     ensureLotShotsLoaded,
     getLotById,
@@ -177,6 +179,8 @@ const ImageInspection = () => {
       getSectionLots={getSectionLots}
       getLotStatus={getLotStatus}
       getLotShotsByCamera={getLotShotsByCamera}
+      getLotShots={getLotShots}
+      getLotShotsStatus={getLotShotsStatus}
       ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}
