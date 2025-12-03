@@ -18,7 +18,7 @@ import CameraTile from './CameraTile'
  * @returns {JSX.Element} グリッドレイアウトでカメラタイルを表示するReact要素
  */
 
-const CameraGrid = ({ cameraNames = [], statusByName }) => {
+const CameraGrid = ({ cameraNames = [], statusByName, imageByName = {} }) => {
     const uniqueNames = Array.from(new Set((cameraNames || []).filter(Boolean)))
     const isSingleCamera = uniqueNames.length === 1
     // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
@@ -31,37 +31,44 @@ const CameraGrid = ({ cameraNames = [], statusByName }) => {
 
     return (
         <Grid container spacing={2} sx={{ mb: 2 }}>
-            {items.map((name, i) => (
-                <Grid
-                    item
-                    xs={12}
-                    sm={isSingleCamera ? 12 : 6}
-                    md={isSingleCamera ? 12 : isTwoCols ? 6 : 4}
-                    key={i}
-                >
-                    {name === '__dummy__' ? (
-                        <Box
-                            sx={{
-                                bgcolor: 'grey.900',
-                                borderRadius: 2,
-                                aspectRatio: '16/9',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                overflow: 'hidden',
-                            }}
-                        >
-                            <img
-                                src={dummyImg}
-                                alt="placeholder"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                        </Box>
-                    ) : (
-                        <CameraTile name={name} status={statusByName?.[name] || 'OK'} isSingle={isSingleCamera} />
-                    )}
-                </Grid>
-            ))}
+            {items.map((name, i) => {
+                const rawStatus = statusByName?.[name]
+                const resolvedStatus = typeof rawStatus === 'string' && rawStatus.trim() ? rawStatus : 'MISSING'
+
+                const imagePath = name === '__dummy__' ? null : imageByName?.[name]
+
+                return (
+                    <Grid
+                        item
+                        xs={12}
+                        sm={isSingleCamera ? 12 : 6}
+                        md={isSingleCamera ? 12 : isTwoCols ? 6 : 4}
+                        key={i}
+                    >
+                        {name === '__dummy__' ? (
+                            <Box
+                                sx={{
+                                    bgcolor: 'grey.900',
+                                    borderRadius: 2,
+                                    aspectRatio: '16/9',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <img
+                                    src={dummyImg}
+                                    alt="placeholder"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            </Box>
+                        ) : (
+                            <CameraTile name={name} status={resolvedStatus} isSingle={isSingleCamera} imagePath={imagePath} />
+                        )}
+                    </Grid>
+                )
+            })}
         </Grid>
     )
 }
