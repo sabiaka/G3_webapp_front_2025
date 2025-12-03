@@ -1,5 +1,5 @@
 // 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -18,6 +18,7 @@ import ImageLightbox from './ImageLightbox'
 import SectionSummary from './SectionSummary'
 import CameraGrid from './CameraGrid'
 import LotCard from './LotCard'
+import LotDetailModal from './LotDetailModal'
 import { SECTION_CONFIG } from '../utils/sectionConfig'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
@@ -29,18 +30,49 @@ const SectionTab = ({
   ensureLotShotsLoaded,
   getSectionStats,
   getFailReasons,
-  openRows,
-  setOpenRows,
   lightbox,
   setLightbox,
   getLatestLot,
-  getAvailableDates
+  getAvailableDates,
+  selectedLotId,
+  selectedLotInfo,
+  onOpenLot,
+  onCloseLot,
 }) => {
   // 日付切替（セクション別に）
-  const availableDates = useMemo(() => getAvailableDates(section), [getAvailableDates, section])
+  const availableDatesRaw = useMemo(() => getAvailableDates(section) || [], [getAvailableDates, section])
+  const availableDates = useMemo(() => {
+    if (selectedLotInfo?.section === section && selectedLotInfo.date) {
+      const set = new Set([selectedLotInfo.date, ...availableDatesRaw])
+      return Array.from(set).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+    }
+    return availableDatesRaw
+  }, [availableDatesRaw, selectedLotInfo, section])
   const [selectedDateIndex, setSelectedDateIndex] = useState(0)
   const [manualDate, setManualDate] = useState('')
   const selectedDate = manualDate || (availableDates[selectedDateIndex] || undefined)
+
+  useEffect(() => {
+    if (!manualDate) return
+    const idx = availableDates.indexOf(manualDate)
+    if (idx >= 0 && idx !== selectedDateIndex) {
+      setSelectedDateIndex(idx)
+    }
+  }, [manualDate, availableDates, selectedDateIndex])
+
+  useEffect(() => {
+    const maxIndex = Math.max(availableDates.length - 1, 0)
+    if (selectedDateIndex > maxIndex) {
+      setSelectedDateIndex(maxIndex)
+    }
+  }, [availableDates, selectedDateIndex])
+
+  useEffect(() => {
+    if (!selectedLotInfo) return
+    if (selectedLotInfo.section !== section) return
+    if (!selectedLotInfo.date) return
+    setManualDate(prev => (prev === selectedLotInfo.date ? prev : selectedLotInfo.date))
+  }, [selectedLotInfo, section])
 
   const goPrevDate = () => {
     setManualDate('')
@@ -74,16 +106,41 @@ const SectionTab = ({
     return Object.fromEntries(entries)
   }, [latestLotForSection])
 
-  const sectionLots = useMemo(
-    () => getSectionLots(section, selectedDate),
-    [getSectionLots, section, selectedDate],
+  const sectionLots = useMemo(() => {
+    const baseLots = getSectionLots(section, selectedDate) || []
+    if (selectedLotInfo && selectedLotInfo.section === section) {
+      const matchesDate = !selectedDate || selectedLotInfo.date === selectedDate
+      const exists = baseLots.some(l => l.lotId === selectedLotInfo.lotId)
+      if (matchesDate && !exists) {
+        return [...baseLots, selectedLotInfo].sort((a, b) => b.timestamp - a.timestamp)
+      }
+    }
+    return baseLots
+  }, [getSectionLots, section, selectedDate, selectedLotInfo])
+
+  const selectedLot = useMemo(
+    () => {
+      const fromList = (sectionLots || []).find(lot => lot.lotId === selectedLotId)
+      if (fromList) return fromList
+      if (selectedLotInfo && selectedLotInfo.section === section && selectedLotInfo.lotId === selectedLotId) {
+        return selectedLotInfo
+      }
+      return null
+    },
+    [sectionLots, selectedLotId, selectedLotInfo, section],
   )
 
-  const handleToggleRow = lot => {
-    const isOpen = !!openRows[lot.lotId]
-    const next = !isOpen
-    setOpenRows(prev => ({ ...prev, [lot.lotId]: next }))
-    if (next && ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
+  useEffect(() => {
+    if (selectedLot && ensureLotShotsLoaded) ensureLotShotsLoaded(selectedLot.lotId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLot?.lotId])
+
+  const selectedLotStatus = selectedLot ? getLotStatus(selectedLot) : undefined
+  const selectedLotShots = selectedLot ? getLotShotsByCamera(selectedLot.lotId) : {}
+
+  const handleOpenLot = lot => {
+    onOpenLot?.(lot)
+    if (ensureLotShotsLoaded) ensureLotShotsLoaded(lot.lotId)
   }
 
   return (
@@ -215,29 +272,30 @@ const SectionTab = ({
                 </Typography>
               ) : (
                 <Grid container spacing={2}>
-                  {sectionLots.map(lot => {
-                    const isOpen = !!openRows[lot.lotId]
-                    const shotsByCam = getLotShotsByCamera(lot.lotId)
-
-                    return (
-                      <Grid item xs={12} md={6} xl={4} key={lot.lotId}>
-                        <LotCard
-                          lot={lot}
-                          lotStatus={getLotStatus(lot)}
-                          isExpanded={isOpen}
-                          onToggle={() => handleToggleRow(lot)}
-                          shotsByCamera={shotsByCam}
-                          setLightbox={setLightbox}
-                        />
-                      </Grid>
-                    )
-                  })}
+                  {sectionLots.map(lot => (
+                    <Grid item xs={12} md={6} xl={4} key={lot.lotId}>
+                      <LotCard
+                        lot={lot}
+                        lotStatus={getLotStatus(lot)}
+                        onOpen={() => handleOpenLot(lot)}
+                        isActive={selectedLotId === lot.lotId}
+                      />
+                    </Grid>
+                  ))}
                 </Grid>
               )}
             </Box>
           </CardContent>
         </Card>
       </Box>
+      <LotDetailModal
+        open={Boolean(selectedLot)}
+        lot={selectedLot}
+        lotStatus={selectedLotStatus}
+        shotsByCamera={selectedLotShots}
+        onClose={onCloseLot}
+        setLightbox={setLightbox}
+      />
       {/* Lightbox */}
       <ImageLightbox
         open={lightbox.open}

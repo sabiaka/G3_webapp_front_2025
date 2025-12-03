@@ -1,6 +1,21 @@
 // サンプルのロット一覧データ（API想定のJSON形そのまま）
 // 画面はこれをUI用にアダプトして表示します
 
+const withRepresentativeImage = lot => {
+  if (lot.representative_image) return lot
+  const firstImage = lot.cameras && lot.cameras.length > 0 ? lot.cameras[0].image_path : null
+  if (!firstImage) return lot
+  const cleaned = firstImage.replace(/\\/g, '/')
+  const normalizedPath = cleaned.replace(/\/{2,}/g, '/')
+  const normalized = normalizedPath.startsWith('/imageDB/')
+    ? normalizedPath
+    : `/imageDB/beforeTest/${normalizedPath.replace(/^\/+/, '')}`
+  return {
+    ...lot,
+    representative_image: normalized,
+  }
+}
+
 export const SAMPLE_LOTS = {
   total_pages: 1,
   current_page: 1,
@@ -163,7 +178,7 @@ export const SAMPLE_LOTS = {
         { camera_id: 'A-main01', status: 'FAIL', details: 'ゴミ付着', image_path: 'LOLL-10002-02_A-main01-01.jpg' },
       ],
     },
-  ],
+  ].map(withRepresentativeImage),
 }
 
 export default SAMPLE_LOTS
