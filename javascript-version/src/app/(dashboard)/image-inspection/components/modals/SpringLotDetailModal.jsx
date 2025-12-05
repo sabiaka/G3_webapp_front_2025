@@ -19,6 +19,8 @@ import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 
 import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
+import ShotsSummaryBlock from '../lots/ShotsSummaryBlock'
+import { normalizeShotSummary } from '../../utils/summaryUtils'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -63,7 +65,7 @@ const getShotStatusColor = status => {
   return 'default'
 }
 
-const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, onClose, setLightbox }) => {
+const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, lotSummary, onClose, setLightbox }) => {
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
@@ -129,6 +131,18 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     [shotsByCamera],
   )
 
+  const flattenedShots = useMemo(() => {
+    return Object.values(shotsByCamera || {}).reduce((acc, value) => {
+      if (Array.isArray(value)) acc.push(...value)
+      return acc
+    }, [])
+  }, [shotsByCamera])
+
+  const normalizedLotSummary = useMemo(
+    () => normalizeShotSummary(lotSummary, flattenedShots),
+    [lotSummary, flattenedShots],
+  )
+
   if (!lot) return null
 
   return (
@@ -149,33 +163,38 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
       <DialogContent dividers sx={{ '& > * + *': { mt: 4 } }}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
-            <Box
-              sx={{
-                width: '100%',
-                aspectRatio: '16/9',
-                borderRadius: 2,
-                overflow: 'hidden',
-                bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                cursor: 'zoom-in',
-              }}
-              onClick={() => {
-                if (setLightbox) {
-                  setLightbox({
-                    open: true,
-                    src: representativeSources.primary,
-                    fallback: representativeSources.fallback,
-                    alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
-                  })
-                }
-              }}
-            >
-              <img
-                src={representativeSources.primary}
-                alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
-                onError={e => handleImageError(e, representativeSources.fallback)}
-                draggable={false}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Box
+                sx={{
+                  width: '100%',
+                  aspectRatio: '16/9',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
+                  cursor: 'zoom-in',
+                }}
+                onClick={() => {
+                  if (setLightbox) {
+                    setLightbox({
+                      open: true,
+                      src: representativeSources.primary,
+                      fallback: representativeSources.fallback,
+                      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
+                    })
+                  }
+                }}
+              >
+                <img
+                  src={representativeSources.primary}
+                  alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
+                  onError={e => handleImageError(e, representativeSources.fallback)}
+                  draggable={false}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </Box>
+              {normalizedLotSummary && (
+                <ShotsSummaryBlock title="検査サマリー" summary={normalizedLotSummary} />
+              )}
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -197,20 +216,6 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
                 )
               })}
             </Box>
-            {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => {
-                  const normalizedStatus = (c.status || '').toString().trim().toUpperCase()
-                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
-
-                  return (
-                    <Typography key={idx} variant="body2" color={detailColor}>
-                      {c.name}: {c.details}
-                    </Typography>
-                  )
-                })}
-              </Box>
-            )}
           </Grid>
         </Grid>
 
