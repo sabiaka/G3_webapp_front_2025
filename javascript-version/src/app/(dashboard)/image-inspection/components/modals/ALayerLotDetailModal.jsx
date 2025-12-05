@@ -12,6 +12,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import Typography from '@mui/material/Typography'
 
 import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
+import { normalizeShotSummary } from '../../utils/summaryUtils'
 import FourKMapSection from './FourKMapSection'
 import LotInfoSection from '../lots/LotInfoSection'
 
@@ -237,7 +238,7 @@ const pickRepresentativeShot = shots => {
   return normalized[0]?.shot || shots[0]
 }
 
-const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'success', onClose, setLightbox }) => {
+const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'success', shots4kSummary, onClose, setLightbox }) => {
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const sequenceStatusItems = useMemo(() => {
     if (!Array.isArray(shots4k) || shots4k.length === 0) return []
@@ -356,6 +357,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
   const [fhdShots, setFhdShots] = useState([])
   const [fhdStatus, setFhdStatus] = useState('idle')
   const [fhdError, setFhdError] = useState('')
+  const [fhdSummary, setFhdSummary] = useState(null)
   const fhdCacheRef = useRef(new Map())
   const fhdAbortRef = useRef(null)
 
@@ -386,6 +388,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
     setFhdShots([])
     setFhdStatus('idle')
     setFhdError('')
+    setFhdSummary(null)
     if (fhdAbortRef.current) {
       fhdAbortRef.current.abort()
       fhdAbortRef.current = null
@@ -471,6 +474,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
       setFhdShots(cached.shots)
       setFhdStatus('success')
       setFhdError('')
+      setFhdSummary(cached.summary || normalizeShotSummary(null, cached.shots))
       return
     }
 
@@ -486,6 +490,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
         setFhdStatus('loading')
         setFhdError('')
         setFhdShots([])
+        setFhdSummary(null)
         const res = await fetch(
           `${base}/api/inspections/lots/${encodeURIComponent(lot.lotId)}/shots/FHD/${encodeURIComponent(sequenceLabel)}`,
           { signal: controller.signal },
@@ -495,9 +500,11 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
         }
         const data = await res.json()
         const shots = Array.isArray(data?.shots) ? data.shots : []
+        const summary = normalizeShotSummary(data?.summary, shots)
         setFhdShots(shots)
         setFhdStatus('success')
-        fhdCacheRef.current.set(cacheKey, { shots, fetchedAt: Date.now() })
+        setFhdSummary(summary)
+        fhdCacheRef.current.set(cacheKey, { shots, summary, fetchedAt: Date.now() })
       } catch (error) {
         if (controller.signal.aborted) return
         console.error('[ALayerLotDetailModal] FHD ショットの取得に失敗しました', {
@@ -508,6 +515,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
         setFhdStatus('error')
         setFhdError(error?.message || '不明なエラー')
         setFhdShots([])
+        setFhdSummary(null)
       } finally {
         if (fhdAbortRef.current === controller) {
           fhdAbortRef.current = null
@@ -556,6 +564,26 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
     }
     return parts.join(' / ')
   }, [selectedSequence, selectedFourKShot])
+
+  const lotSummaryForDisplay = useMemo(
+    () => normalizeShotSummary(shots4kSummary, shots4k),
+    [shots4kSummary, shots4k],
+  )
+
+  const fhdSummaryForDisplay = useMemo(
+    () => normalizeShotSummary(fhdSummary, fhdShots),
+    [fhdSummary, fhdShots],
+  )
+
+  const lotInfoSummaryLabel = useMemo(() => {
+    if (isShowingFhd) {
+      return selectedSequence ? `FHDサマリー（${selectedSequence.label}）` : 'FHDサマリー'
+    }
+    return '4Kサマリー'
+  }, [isShowingFhd, selectedSequence])
+
+  const lotInfoSummary = isShowingFhd ? fhdSummaryForDisplay : lotSummaryForDisplay
+  const lotInfoSummaryItems = isShowingFhd ? fhdShots : shots4k
 
   const handleSelectSequence = useCallback((entry) => {
     if (!entry?.sequence) return
@@ -621,6 +649,9 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
               setLightbox={setLightbox}
               getChipColor={getChipColor}
               statusItems={sequenceStatusItems}
+              summary={lotInfoSummary}
+              summaryItems={lotInfoSummaryItems}
+              summaryLabel={lotInfoSummaryLabel}
             />
           </Box>
 

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SAMPLE_SUMMARIES } from '../data/sampleSummaries'
 import { SAMPLE_LOTS } from '../data/sampleLots'
+import { mapStatusApiToUi, normalizeShotSummary } from '../utils/summaryUtils'
 
 // 簡易トグル: trueでAPIを叩いてサマリー（総数/良品/不良/不良理由）を取得、falseでフロント側計算
 const USE_API_SUMMARY = true;
@@ -133,15 +134,6 @@ export const useLotsData = () => {
     }
   }
 
-  const mapStatusApiToUi = status => {
-    const normalized = (status || '').toString().trim().toUpperCase()
-    if (!normalized) return '-'
-    if (normalized === 'PASS' || normalized === 'OK') return 'OK'
-    if (normalized === 'FAIL' || normalized === 'NG') return 'NG'
-    if (normalized === 'MISSING') return 'MISSING'
-    return normalized
-  }
-
   // 同一 camera_id が複数ある場合はワースト優先（FAILが1つでもあればNG）
   const aggregateCameras = cameras => {
     const byId = new Map()
@@ -264,7 +256,7 @@ export const useLotsData = () => {
   const [lotsUiCache, setLotsUiCache] = useState({})   // key: `${section}|${date}` (表示名) -> adapted[]
   const [lotRawIndex, setLotRawIndex] = useState({})   // key: lot_id -> raw lot
   const [lotUiIndex, setLotUiIndex] = useState({})     // key: lot_id -> adapted lot
-  const [lotShotsCache, setLotShotsCache] = useState({}) // key: `${lot_id}|${shotType}` -> shots[]
+  const [lotShotsCache, setLotShotsCache] = useState({}) // key: `${lot_id}|${shotType}` -> { shots, summary }
   const [lotShotsStatus, setLotShotsStatus] = useState({}) // key: `${lot_id}|${shotType}` -> 'idle' | 'loading' | 'success' | 'error'
   const [datesCache, setDatesCache] = useState({})      // key: section display name -> [YYYY-MM-DD]
 
@@ -470,7 +462,7 @@ export const useLotsData = () => {
     // APIモードでは詳細は遅延取得; キャッシュがなければ空配列を返す
     if (USE_API_LOTS) {
       const cached = lotShotsCache[buildShotCacheKey(lotId, shotTypeNormalized)]
-      return Array.isArray(cached) ? cached : []
+      return Array.isArray(cached?.shots) ? cached.shots : []
     }
     // サンプルモード: sampleLotsの埋め込み詳細を返却
     const lot = (apiPayload?.lots || []).find(l => l.lot_id === lotId)
@@ -478,7 +470,7 @@ export const useLotsData = () => {
 
     if (shotTypeNormalized === '4K') {
       const sequences = Array.isArray(lot.four_k_sequences) ? lot.four_k_sequences : []
-      return sequences.map(seq => {
+      const normalizedSequences = sequences.map(seq => {
         const sequenceValue = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? null
         return {
           ...seq,
@@ -488,6 +480,7 @@ export const useLotsData = () => {
           four_k_seq: seq?.four_k_seq ?? sequenceValue,
         }
       })
+      return normalizedSequences
     }
 
     if (shotTypeNormalized !== SHOT_DEFAULT_TYPE) return []
@@ -498,6 +491,18 @@ export const useLotsData = () => {
       details: c.details,
       image_path: c.image_path,
     }))
+  }
+
+  const getLotShotsSummary = (lotId, options = {}) => {
+    if (!lotId) return null
+    const shotTypeNormalized = normalizeShotType(options?.type)
+    if (USE_API_LOTS) {
+      const cached = lotShotsCache[buildShotCacheKey(lotId, shotTypeNormalized)]
+      if (cached) return cached.summary || normalizeShotSummary(null, cached.shots)
+      return null
+    }
+    const shots = getLotShots(lotId, options)
+    return normalizeShotSummary(null, shots)
   }
 
   const ensureLotShotsLoaded = async (lotId, options = {}) => {
@@ -519,7 +524,8 @@ export const useLotsData = () => {
       if (!res.ok) throw new Error(`Failed to fetch shots ${res.status}`)
       const data = await res.json()
       const shots = Array.isArray(data?.shots) ? data.shots : []
-      setLotShotsCache(prev => ({ ...prev, [cacheKey]: shots }))
+      const summary = normalizeShotSummary(data?.summary, shots)
+      setLotShotsCache(prev => ({ ...prev, [cacheKey]: { shots, summary } }))
       setLotShotsStatus(prev => ({ ...prev, [cacheKey]: 'success' }))
     } catch {
       setLotShotsStatus(prev => ({ ...prev, [cacheKey]: 'error' }))
@@ -666,6 +672,7 @@ export const useLotsData = () => {
     getLotShots,
     getLotShotsByCamera,
     getLotShotsStatus,
+    getLotShotsSummary,
     getLotById,
     ensureLotLoaded,
     ensureLotShotsLoaded,

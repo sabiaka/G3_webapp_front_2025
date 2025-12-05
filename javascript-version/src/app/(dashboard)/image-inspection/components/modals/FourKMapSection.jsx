@@ -301,6 +301,7 @@ const FourKMapSection = ({
                         src={sources.primary}
                         alt={altText}
                         onError={e => handleImageError(e, sources.fallback)}
+                        draggable={false}
                         style={{
                           width: '100%',
                           height: '100%',

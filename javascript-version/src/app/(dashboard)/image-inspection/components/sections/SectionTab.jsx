@@ -42,6 +42,7 @@ const SectionTab = ({
   selectedLotInfo,
   onOpenLot,
   onCloseLot,
+  getLotShotsSummary,
 }) => {
   // 日付切替（セクション別に）
   const availableDatesRaw = useMemo(() => getAvailableDates(section) || [], [getAvailableDates, section])
@@ -52,6 +53,7 @@ const SectionTab = ({
     }
     return availableDatesRaw
   }, [availableDatesRaw, selectedLotInfo, section])
+
   const [selectedDateIndex, setSelectedDateIndex] = useState(0)
   const [manualDate, setManualDate] = useState('')
   const selectedDate = manualDate || (availableDates[selectedDateIndex] || undefined)
@@ -254,6 +256,16 @@ const SectionTab = ({
     return getLotShots(modalLotId, { type: '4K' })
   }, [modalLotId, section, getLotShots])
 
+  const selectedLotShotsSummary = useMemo(() => {
+    if (!modalLotId) return null
+    return getLotShotsSummary(modalLotId)
+  }, [modalLotId, getLotShotsSummary])
+
+  const selectedLotShots4KSummary = useMemo(() => {
+    if (!modalLotId || section !== 'A層') return null
+    return getLotShotsSummary(modalLotId, { type: '4K' })
+  }, [modalLotId, section, getLotShotsSummary])
+
   const handleOpenLot = lot => {
     closingLotIdRef.current = null
     setIsModalOpen(true)
@@ -429,6 +441,7 @@ const SectionTab = ({
           lotStatus={selectedLotStatus}
           shots4k={selectedLotShots4K}
           shotsStatus={lotShotsStatus}
+          shots4kSummary={selectedLotShots4KSummary}
           onClose={handleCloseLotModal}
           setLightbox={setLightbox}
         />
@@ -439,6 +452,7 @@ const SectionTab = ({
           lotStatus={selectedLotStatus}
           shotsByCamera={selectedLotShotsByCamera}
           shotsStatus={lotShotsStatus}
+          lotSummary={selectedLotShotsSummary}
           onClose={handleCloseLotModal}
           setLightbox={setLightbox}
         />
