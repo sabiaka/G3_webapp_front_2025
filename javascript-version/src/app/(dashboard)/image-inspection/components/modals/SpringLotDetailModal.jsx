@@ -1,3 +1,5 @@
+// バネどめ検査 ロット詳細モーダル
+
 import { useCallback, useMemo } from 'react'
 
 import Box from '@mui/material/Box'
@@ -16,7 +18,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 
-import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../utils/imageUrl'
+import { getFallbackImageBase, toAfterTestUrl, toBeforeTestUrl, toImageUrl } from '../../utils/imageUrl'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -26,20 +28,30 @@ const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
   if (!trimmed) return null
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  const cleaned = trimmed.replace(/\/{2,}/g, '/')
-  return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
+  const sanitized = trimmed.replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(sanitized)) {
+    const [protocol, rest] = sanitized.split('://')
+    if (!rest) return sanitized
+    const cleanedRest = rest.replace(/\/{3,}/g, '//')
+    return `${protocol}://${cleanedRest}`
+  }
+  const withLeading = sanitized.startsWith('/') ? sanitized : `/${sanitized}`
+  return withLeading.replace(/\/{3,}/g, '//')
 }
 
 const getChipColor = status => {
-  if (status === 'OK') return 'success'
-  if (status === 'NG') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'OK') return 'success'
+  if (normalized === 'NG') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
 const getLotStatusColor = status => {
-  if (status === 'PASS') return 'success'
-  if (status === 'FAIL') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'PASS') return 'success'
+  if (normalized === 'FAIL') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
@@ -51,7 +63,8 @@ const getShotStatusColor = status => {
   return 'default'
 }
 
-const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLightbox }) => {
+const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, onClose, setLightbox }) => {
+  const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -130,7 +143,7 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
               {lot.lotId}
             </Typography>
           </Box>
-          <Chip label={lotStatus || '-'} color={getLotStatusColor(lotStatus)} size="small" variant="filled" />
+          <Chip label={normalizedLotStatus || '-'} color={getLotStatusColor(normalizedLotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
       <DialogContent dividers sx={{ '& > * + *': { mt: 4 } }}>
@@ -160,6 +173,7 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
                 src={representativeSources.primary}
                 alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
                 onError={e => handleImageError(e, representativeSources.fallback)}
+                draggable={false}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </Box>
@@ -169,23 +183,32 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
               判定要素
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => (
-                <Chip
-                  key={`${camera.name}-${index}`}
-                  label={`${camera.name}: ${camera.status}`}
-                  size="small"
-                  color={getChipColor(camera.status)}
-                  variant={camera.status === 'OK' ? 'outlined' : 'filled'}
-                />
-              ))}
+              {(lot.cameras || []).map((camera, index) => {
+                const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+
+                return (
+                  <Chip
+                    key={`${camera.name}-${index}`}
+                    label={`${camera.name}: ${camera.status}`}
+                    size="small"
+                    color={getChipColor(camera.status)}
+                    variant={normalizedStatus === 'OK' ? 'outlined' : 'filled'}
+                  />
+                )
+              })}
             </Box>
             {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
               <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => (
-                  <Typography key={idx} variant="body2" color="error.main">
-                    {c.name}: {c.details}
-                  </Typography>
-                ))}
+                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => {
+                  const normalizedStatus = (c.status || '').toString().trim().toUpperCase()
+                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
+
+                  return (
+                    <Typography key={idx} variant="body2" color={detailColor}>
+                      {c.name}: {c.details}
+                    </Typography>
+                  )
+                })}
               </Box>
             )}
           </Grid>
@@ -252,6 +275,7 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
                                 src={sources.primary}
                                 alt={shot.image_path || 'shot'}
                                 onError={e => handleImageError(e, sources.fallback)}
+                                draggable={false}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             </Box>
@@ -275,4 +299,4 @@ const LotDetailModal = ({ open, lot, lotStatus, shotsByCamera, onClose, setLight
   )
 }
 
-export default LotDetailModal
+export default SpringLotDetailModal

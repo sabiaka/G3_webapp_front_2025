@@ -1,3 +1,5 @@
+// ロットカード表示コンポーネント
+
 import { useCallback, useMemo } from 'react'
 
 import Box from '@mui/material/Box'
@@ -7,7 +9,7 @@ import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 
-import { getFallbackImageBase, toImageUrl } from '../utils/imageUrl'
+import { getFallbackImageBase, toImageUrl } from '../../utils/imageUrl'
 
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -17,15 +19,34 @@ const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
   if (!trimmed) return null
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  const cleaned = trimmed.replace(/\/{2,}/g, '/')
-  return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
+  const sanitized = trimmed.replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(sanitized)) {
+    const [protocol, rest] = sanitized.split('://')
+    if (!rest) return sanitized
+    const cleanedRest = rest.replace(/\/{3,}/g, '//')
+    return `${protocol}://${cleanedRest}`
+  }
+  const withLeading = sanitized.startsWith('/') ? sanitized : `/${sanitized}`
+  return withLeading.replace(/\/{3,}/g, '//')
 }
 
 const getChipColor = status => {
-  if (status === 'OK') return 'success'
-  if (status === 'NG') return 'error'
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'OK') return 'success'
+  if (normalized === 'NG') return 'error'
+  if (normalized === 'MISSING') return 'warning'
   return 'default'
+}
+
+const resolveDisplayName = (item, index) => {
+  const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === null) continue
+    const text = String(candidate).trim()
+    if (!text || text === '-' || text === '--') continue
+    return text
+  }
+  return `#${index + 1}`
 }
 
 const LotCard = ({
@@ -61,7 +82,15 @@ const LotCard = ({
     [buildImageSources, lot.representativeImage],
   )
 
-  const chipColor = lotStatus === 'PASS' ? 'success' : lotStatus === 'FAIL' ? 'error' : 'default'
+  const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+  const chipColor = normalizedLotStatus === 'PASS'
+    ? 'success'
+    : normalizedLotStatus === 'FAIL'
+      ? 'error'
+      : normalizedLotStatus === 'MISSING'
+        ? 'warning'
+        : 'default'
+  const lotStatusLabel = normalizedLotStatus || '-'
 
   return (
     <Card
@@ -90,7 +119,8 @@ const LotCard = ({
             src={representativeSources.primary}
             alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
             onError={e => handleImageError(e, representativeSources.fallback)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', userSelect: 'none' }}
+            draggable={false}
           />
         </Box>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, flexGrow: 1, width: '100%' }}>
@@ -103,30 +133,42 @@ const LotCard = ({
                 {lot.lotId}
               </Typography>
             </Box>
-            <Chip label={lotStatus || '-'} color={chipColor} size="small" variant="filled" />
+            <Chip label={lotStatusLabel} color={chipColor} size="small" variant="filled" />
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="caption" color="text.secondary">
               判定要素
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => (
-                <Chip
-                  key={`${camera.name}-${index}`}
-                  label={`${camera.name}: ${camera.status}`}
-                  size="small"
-                  color={getChipColor(camera.status)}
-                  variant={camera.status === 'OK' ? 'outlined' : 'filled'}
-                />
-              ))}
+              {(lot.cameras || []).map((camera, index) => {
+                const normalizedCameraStatus = (camera.status || '').toString().trim().toUpperCase()
+                const label = resolveDisplayName(camera, index)
+                const statusLabel = camera?.status || 'UNKNOWN'
+
+                return (
+                  <Chip
+                    key={`${label}-${index}`}
+                    label={`${label}: ${statusLabel}`}
+                    size="small"
+                    color={getChipColor(statusLabel)}
+                    variant={normalizedCameraStatus === 'OK' ? 'outlined' : 'filled'}
+                  />
+                )
+              })}
             </Box>
             {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => (
-                  <Typography key={idx} variant="caption" color="error.main">
-                    {c.name}: {c.details}
-                  </Typography>
-                ))}
+                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => {
+                  const normalizedStatus = (c.status || '').toString().trim().toUpperCase()
+                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
+                  const label = resolveDisplayName(c, idx)
+
+                  return (
+                    <Typography key={idx} variant="caption" color={detailColor}>
+                      {label}: {c.details}
+                    </Typography>
+                  )
+                })}
               </Box>
             )}
           </Box>

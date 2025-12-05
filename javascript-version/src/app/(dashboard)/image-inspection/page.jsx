@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
+import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Tabs from '@mui/material/Tabs'
@@ -19,9 +20,9 @@ import { styled } from '@mui/material/styles'
 import { useLotsData } from './hooks/useLotsData'
 
 // セクションごとのタブ・カメラグリッド・サマリー表示用コンポーネント
-import SectionTab from './components/SectionTab'
-import CameraGrid from './components/CameraGrid'
-import SectionSummary from './components/SectionSummary'
+import SectionTab from './components/sections/SectionTab'
+import CameraGrid from './components/grid/CameraGrid'
+import SectionSummary from './components/lots/SectionSummary'
 
 // セクション設定（カメラ構成など）
 import { SECTION_CONFIG } from './utils/sectionConfig'
@@ -47,6 +48,12 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }))
 
+const SECTION_TAB_INDEX = {
+  overview: 0,
+  'バネ留め': 1,
+  'A層': 2,
+}
+
 // メインコンポーネント
 const ImageInspection = () => {
   // 現在選択中のタブインデックス
@@ -60,6 +67,8 @@ const ImageInspection = () => {
     getFailReasons,
     getLatestLot,
     getLotShotsByCamera,
+    getLotShots,
+    getLotShotsStatus,
     getAvailableDates,
     ensureLotShotsLoaded,
     getLotById,
@@ -80,15 +89,18 @@ const ImageInspection = () => {
 
   useEffect(() => {
     if (!selectedLotInfo) return
-    const sectionToTabIndex = {
-      'バネ留め': 1,
-      'A層': 2,
-    }
-    const targetIndex = sectionToTabIndex[selectedLotInfo.section]
+    const targetIndex = SECTION_TAB_INDEX[selectedLotInfo.section]
     if (typeof targetIndex === 'number' && targetIndex !== activeTab) {
       setActiveTab(targetIndex)
     }
   }, [selectedLotInfo, activeTab])
+
+  const handleSectionCardClick = sectionKey => {
+    const targetIndex = SECTION_TAB_INDEX[sectionKey]
+    if (typeof targetIndex !== 'number') return
+    if (targetIndex === activeTab) return
+    setActiveTab(targetIndex)
+  }
 
   const updateUrlWithLot = lotId => {
     const currentLot = searchParams.get('lot')
@@ -129,35 +141,98 @@ const ImageInspection = () => {
     const renderRealtimeCard = sectionKey => {
       const latest = getLatestLot(sectionKey)
       const lotStatus = latest ? getLotStatus(latest) : undefined
-      const dynamicNames = Array.from(new Set((latest?.cameras || []).map(cam => cam?.name).filter(Boolean)))
       const fallbackNames = SECTION_CONFIG[sectionKey]?.cameras || []
-      const cameraNames = dynamicNames.length ? dynamicNames : fallbackNames
-      const statusByName = Object.fromEntries((latest?.cameras || []).filter(cam => cam?.name).map(cam => [cam.name, cam.status]))
+
+      const cameraNames = (() => {
+        if (sectionKey === 'A層') {
+          return fallbackNames
+        }
+        const dynamicNames = Array.from(new Set((latest?.cameras || []).map(cam => cam?.name).filter(Boolean)))
+        return dynamicNames.length ? dynamicNames : fallbackNames
+      })()
+
+      const statusByName = (() => {
+        if (sectionKey === 'A層') {
+          const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+          const mappedStatus = (() => {
+            if (normalizedLotStatus === 'PASS') return 'OK'
+            if (normalizedLotStatus === 'FAIL') return 'NG'
+            if (normalizedLotStatus === 'MISSING') return 'MISSING'
+            return normalizedLotStatus || ''
+          })()
+          if (!mappedStatus) return {}
+          return Object.fromEntries(fallbackNames.map(name => [name, mappedStatus]))
+        }
+        const entries = (latest?.cameras || [])
+          .filter(cam => cam?.name)
+          .map(cam => [cam.name, cam.status])
+        return Object.fromEntries(entries)
+      })()
+
+      const imageByName = (() => {
+        if (!latest) return {}
+        if (sectionKey === 'A層') {
+          const representative = latest.representativeImage
+          if (!representative) return {}
+          return Object.fromEntries((cameraNames || []).map(name => [name, representative]))
+        }
+        const entries = (latest.cameras || [])
+          .filter(cam => cam?.name && cam?.image_path)
+          .map(cam => [cam.name, cam.image_path])
+        if (entries.length > 0) return Object.fromEntries(entries)
+        if (latest.representativeImage) {
+          return Object.fromEntries((cameraNames || []).map(name => [name, latest.representativeImage]))
+        }
+        return {}
+      })()
+
       const cameraCount = cameraNames.length
       const title = `${sectionKey}検査`
 
       return (
         <Grid item xs={12} lg={6} sx={{ display: 'flex' }} key={sectionKey}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                リアルタイム監視: {title}（{cameraCount}カメラ）
-              </Typography>
-              {cameraNames.length === 0 ? (
-                <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
-              ) : (
-                <CameraGrid
-                  cameraNames={cameraNames}
-                  statusByName={statusByName}
-                />
-              )}
-              <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                  最新のロット判定
+            <CardActionArea
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                transition: theme => theme.transitions.create(['transform', 'box-shadow'], {
+                  duration: theme.transitions.duration.shortest,
+                }),
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme => theme.shadows[4],
+                },
+                '&:focus-visible': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme => theme.shadows[4],
+                },
+              }}
+              onClick={() => handleSectionCardClick(sectionKey)}
+            >
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  リアルタイム監視: {title}（{cameraCount}カメラ）
                 </Typography>
-                <SectionSummary latestLot={latest} lotStatus={lotStatus} />
-              </Box>
-            </CardContent>
+                {cameraNames.length === 0 ? (
+                  <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
+                ) : (
+                  <CameraGrid
+                    cameraNames={cameraNames}
+                    statusByName={statusByName}
+                    imageByName={imageByName}
+                  />
+                )}
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                    最新のロット判定
+                  </Typography>
+                  <SectionSummary latestLot={latest} lotStatus={lotStatus} />
+                </Box>
+              </CardContent>
+            </CardActionArea>
           </Card>
         </Grid>
       )
@@ -177,6 +252,8 @@ const ImageInspection = () => {
       getSectionLots={getSectionLots}
       getLotStatus={getLotStatus}
       getLotShotsByCamera={getLotShotsByCamera}
+      getLotShots={getLotShots}
+      getLotShotsStatus={getLotShotsStatus}
       ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}
