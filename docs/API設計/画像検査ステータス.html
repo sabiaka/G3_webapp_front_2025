@@ -601,6 +601,13 @@ CREATE TABLE inspection_camera_shots (
                         <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス例</h3>
                         <pre><code class="language-json">{
     "lot_id": "MAT-10001",
+    "summary": {
+        "total": 2,
+        "ok_count": 1,
+        "ng_count": 1,
+        "ok_rate": 50,
+        "ng_rate": 50
+    },
     "shots": [
         {
             "camera_id": "B-spring01",
@@ -659,6 +666,14 @@ CREATE TABLE inspection_camera_shots (
                         <pre><code class="language-json">{
   "lot_id": "MAT-10001",
   "c4k_seq": "A-4",
+  "summary": {
+    "total": 2,
+    "ok_count": 1,
+    "ng_count": 1,
+    "ok_rate": 50,
+    "ng_rate": 50
+  },
+
   "shots": [
     {
       "camera_id": "B-spring02",
