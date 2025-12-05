@@ -65,6 +65,7 @@ const LotInfoSection = ({
           src={representativeSources.primary}
           alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
           onError={e => handleImageError(e, representativeSources.fallback)}
+          draggable={false}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </Box>

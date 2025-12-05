@@ -99,7 +99,7 @@ const CameraTile = ({ name, status = 'OK', isSingle = false, imagePath }) => {
       sx={{
         position: 'relative',
         borderRadius: 2,
-        aspectRatio: isSingle ? '21/9' : '16/9',
+        aspectRatio: '16/9',
         overflow: 'hidden',
       }}
     >
@@ -107,6 +107,7 @@ const CameraTile = ({ name, status = 'OK', isSingle = false, imagePath }) => {
         src={imageSources.primary}
         alt={imagePath ? `${name} latest capture` : 'placeholder'}
         onError={handleImageError}
+        draggable={false}
         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
       />
       <Box

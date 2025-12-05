@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
+import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Tabs from '@mui/material/Tabs'
@@ -47,6 +48,12 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }))
 
+const SECTION_TAB_INDEX = {
+  overview: 0,
+  'バネ留め': 1,
+  'A層': 2,
+}
+
 // メインコンポーネント
 const ImageInspection = () => {
   // 現在選択中のタブインデックス
@@ -82,15 +89,18 @@ const ImageInspection = () => {
 
   useEffect(() => {
     if (!selectedLotInfo) return
-    const sectionToTabIndex = {
-      'バネ留め': 1,
-      'A層': 2,
-    }
-    const targetIndex = sectionToTabIndex[selectedLotInfo.section]
+    const targetIndex = SECTION_TAB_INDEX[selectedLotInfo.section]
     if (typeof targetIndex === 'number' && targetIndex !== activeTab) {
       setActiveTab(targetIndex)
     }
   }, [selectedLotInfo, activeTab])
+
+  const handleSectionCardClick = sectionKey => {
+    const targetIndex = SECTION_TAB_INDEX[sectionKey]
+    if (typeof targetIndex !== 'number') return
+    if (targetIndex === activeTab) return
+    setActiveTab(targetIndex)
+  }
 
   const updateUrlWithLot = lotId => {
     const currentLot = searchParams.get('lot')
@@ -182,26 +192,47 @@ const ImageInspection = () => {
       return (
         <Grid item xs={12} lg={6} sx={{ display: 'flex' }} key={sectionKey}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                リアルタイム監視: {title}（{cameraCount}カメラ）
-              </Typography>
-              {cameraNames.length === 0 ? (
-                <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
-              ) : (
-                <CameraGrid
-                  cameraNames={cameraNames}
-                  statusByName={statusByName}
-                  imageByName={imageByName}
-                />
-              )}
-              <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
-                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                  最新のロット判定
+            <CardActionArea
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                transition: theme => theme.transitions.create(['transform', 'box-shadow'], {
+                  duration: theme.transitions.duration.shortest,
+                }),
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme => theme.shadows[4],
+                },
+                '&:focus-visible': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme => theme.shadows[4],
+                },
+              }}
+              onClick={() => handleSectionCardClick(sectionKey)}
+            >
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  リアルタイム監視: {title}（{cameraCount}カメラ）
                 </Typography>
-                <SectionSummary latestLot={latest} lotStatus={lotStatus} />
-              </Box>
-            </CardContent>
+                {cameraNames.length === 0 ? (
+                  <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
+                ) : (
+                  <CameraGrid
+                    cameraNames={cameraNames}
+                    statusByName={statusByName}
+                    imageByName={imageByName}
+                  />
+                )}
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                    最新のロット判定
+                  </Typography>
+                  <SectionSummary latestLot={latest} lotStatus={lotStatus} />
+                </Box>
+              </CardContent>
+            </CardActionArea>
           </Card>
         </Grid>
       )

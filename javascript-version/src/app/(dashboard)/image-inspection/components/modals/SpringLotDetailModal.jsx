@@ -173,6 +173,7 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
                 src={representativeSources.primary}
                 alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
                 onError={e => handleImageError(e, representativeSources.fallback)}
+                draggable={false}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </Box>
@@ -274,6 +275,7 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
                                 src={sources.primary}
                                 alt={shot.image_path || 'shot'}
                                 onError={e => handleImageError(e, sources.fallback)}
+                                draggable={false}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             </Box>
