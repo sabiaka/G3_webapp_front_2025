@@ -679,6 +679,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
               onSelectSequence={isShowingFhd ? undefined : handleSelectSequence}
               selectedSequenceLabel={selectedSequence?.label}
               onBack={isShowingFhd ? handleBackToMap : undefined}
+              highlightSelected={!isShowingFhd}
             />
           </Box>
         </Box>

@@ -46,6 +46,7 @@ const FourKMapSection = ({
   onSelectSequence,
   selectedSequenceLabel,
   onBack,
+  highlightSelected = true,
 }) => {
   const canPreview = Boolean(setLightbox)
 
@@ -174,7 +175,7 @@ const FourKMapSection = ({
 
             const displayShot = pickDisplayShot(entry.shots)
             const sequence = entry.sequence
-            const isActive = Boolean(selectedSequenceLabel && sequence?.label === selectedSequenceLabel)
+            const isActive = Boolean(highlightSelected && selectedSequenceLabel && sequence?.label === selectedSequenceLabel)
             const handleCellClick = () => {
               if (!onSelectSequence) return
               onSelectSequence(entry)
@@ -249,21 +250,22 @@ const FourKMapSection = ({
                   sx={{
                     position: 'absolute',
                     inset: 0,
-                    border: theme => `1px solid ${isActive ? theme.palette.primary.main : theme.palette.divider}`,
-                    borderWidth: isActive ? 2 : 1,
+                    border: theme => `1px solid ${theme.palette.divider}`,
+                    borderColor: theme => (isActive ? theme.palette.primary.main : theme.palette.divider),
                     borderRadius: 2,
                     p: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 1,
                     bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
+                    boxShadow: theme => (isActive ? `0 0 0 2px ${theme.palette.primary.main}` : 'none'),
                     transition: theme => theme.transitions.create(['border-color', 'box-shadow', 'transform'], {
                       duration: theme.transitions.duration.shortest,
                     }),
-                    '&:hover': onSelectSequence
+                    '&:hover': onSelectSequence && highlightSelected
                       ? {
                           borderColor: theme => theme.palette.primary.main,
-                          boxShadow: theme => theme.shadows[2],
+                          boxShadow: theme => `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[2]}`,
                           transform: 'translateY(-1px)',
                         }
                       : undefined,
