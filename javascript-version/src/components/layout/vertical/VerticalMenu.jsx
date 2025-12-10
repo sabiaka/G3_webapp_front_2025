@@ -86,7 +86,7 @@ const VerticalMenu = ({ scrollMenu }) => {
           </MenuItem>
         </MenuSection>
         <MenuSection label='デバッグ'>
-          <MenuItem href='/ssh-connection' icon={<span role='img' aria-label='ssh'>🔐</span>}>
+          <MenuItem href='http://10.100.54.170:4001/static/index.html' icon={<span role='img' aria-label='ssh'>🔐</span>}>
             SSH接続ページ
           </MenuItem>
           <MenuItem href='/sse-monitoring' icon={<span role='img' aria-label='monitoring'>📡</span>}>
