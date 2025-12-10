@@ -85,6 +85,14 @@ const VerticalMenu = ({ scrollMenu }) => {
             生産機械サイネージ
           </MenuItem>
         </MenuSection>
+        <MenuSection label='デバッグ'>
+          <MenuItem href='/ssh-connection' icon={<span role='img' aria-label='ssh'>🔐</span>}>
+            SSH接続ページ
+          </MenuItem>
+          <MenuItem href='/sse-monitoring' icon={<span role='img' aria-label='monitoring'>📡</span>}>
+            SSE監視ページ
+          </MenuItem>
+        </MenuSection>
       </Menu>
     </ScrollWrapper>
   )
