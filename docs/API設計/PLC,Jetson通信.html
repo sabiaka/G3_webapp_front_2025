@@ -265,10 +265,13 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
-                        <span class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production?section={section}</span>
+                        <span
+                            class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production?section={section}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて <strong>機械の当日累計</strong> を +1 します。<br>追加で、<strong>指定した検査セクション（section）</strong>で現在生産中の <code>lot_id</code> の <strong>lot_id</strong> も +1 します。</p>
+                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて <strong>機械の当日累計</strong> を +1
+                        します。<br>追加で、<strong>指定した検査セクション（section）</strong>で現在生産中の <code>lot_id</code> の
+                        <strong>lot_id</strong> も +1 します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
                     <table class="w-full text-left border-collapse">
@@ -282,7 +285,8 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                         <tbody>
                             <tr>
                                 <td class="border-b p-2 font-mono">section（必須）</td>
-                                <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）,
+                                    <code>alayer</code>（A層）。</td>
                                 <td class="border-b p-2 font-mono">?section=spring / ?section=alayer</td>
                             </tr>
                         </tbody>
@@ -316,7 +320,8 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
 
             <!-- 6. 検査前画像の送信 -->
             <section id="post-before-inspection-image">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6. 【検査前】画像アップロード（lot_id指定・単発）(A層検査用)</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">6.
+                    【検査前】画像アップロード（lot_id指定・単発）(A層検査用)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
@@ -325,16 +330,20 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     </div>
                     <p class="mb-4">
                         Jetson から <strong>1枚の検査前画像</strong> をアップロードします。<br>
-                        <strong>lot_id はサーバー側で採番</strong> されます。検査機は <code>/api/ingress/inspection/current-lot?section={section}</code> で取得した lot_id を本APIの <strong>パスパラメータ</strong> <code>{lot_id}</code> に指定してください。
+                        <strong>lot_id はサーバー側で採番</strong> されます。検査機は
+                        <code>/api/ingress/inspection/current-lot?section={section}</code> で取得した lot_id を本APIの
+                        <strong>パスパラメータ</strong> <code>{lot_id}</code> に指定してください。
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">lot_id のルールについて</h3>
                     <div class="p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg mb-4">
                         <p class="font-bold">ロットIDの命名規則</p>
-                        <p class="text-sm mt-1">lot_id はサーバー側で採番されます（生産数インクリメントのフローで作成/更新）。検査機は <code>current-lot</code> API で参照して利用してください。</p>
+                        <p class="text-sm mt-1">lot_id はサーバー側で採番されます（生産数インクリメントのフローで作成/更新）。検査機は <code>current-lot</code>
+                            API で参照して利用してください。</p>
                         <ul class="list-disc list-inside mt-2 text-sm font-mono">
                             <li><code>spring</code>（バネ留め）系 → 例: <code>MAT-00001</code>, <code>MAT-00002</code>, ...</li>
-                            <li><code>alayer</code>（A層検査）系 → 例: <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...</li>
+                            <li><code>alayer</code>（A層検査）系 → 例: <code>LOLL-00001</code>, <code>LOLL-00002</code>, ...
+                            </li>
                         </ul>
                     </div>
 
@@ -342,22 +351,27 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg mb-4">
                         <p class="font-bold">ファイル名はサーバーが自動で決定します</p>
                         <p class="text-sm mt-1">
-                            受け取った <code>lot_id</code>（パス）とメタデータ（<code>camera_id</code>・<code>4K_seq</code>・<code>FHD_seq</code>）からファイル名を生成します。検査後更新のキーとして利用します。
+                            受け取った
+                            <code>lot_id</code>（パス）とメタデータ（<code>camera_id</code>・<code>4K_seq</code>・<code>FHD_seq</code>）からファイル名を生成します。検査後更新のキーとして利用します。
                         </p>
                         <p class="text-sm mt-2 font-mono bg-green-200 p-2 rounded">
                             <strong>フォーマット:</strong> {lot_id}_{camera_id}_{4K_seq}_{FHD_seq}.png<br>
                             <strong>保存先フォルダ:</strong> g3-webapp-back-2025/var/imageDB/beforeTest/<br>
-                            <strong>保存例:</strong> g3-webapp-back-2025/var/imageDB/beforeTest/MAT-00125_B-spring01_A-4_D-5.png
+                            <strong>保存例:</strong>
+                            g3-webapp-back-2025/var/imageDB/beforeTest/MAT-00125_B-spring01_A-4_D-5.png
                         </p>
                         <p class="text-xs text-slate-600 mt-2">
-                            2025-12 メモ: 物理保存先を <code>g3-webapp-back-2025/var/imageDB</code> に移動しました（従来は <code>public/imageDB</code>）。URL 生成の遅延対策です。
+                            2025-12 メモ: 物理保存先を <code>g3-webapp-back-2025/var/imageDB</code> に移動しました（従来は
+                            <code>public/imageDB</code>）。URL 生成の遅延対策です。
                         </p>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
-                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってください（<strong>単発アップロード</strong>）。</p>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code>
+                        で、JSONデータと画像を一緒に送ってください（<strong>単発アップロード</strong>）。</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
-                        <li>パート1: <code>metadata</code> — JSON（<code>camera_id</code>, <code>section_code</code>, <code>4K_seq</code>, <code>FHD_seq</code> など）</li>
+                        <li>パート1: <code>metadata</code> — JSON（<code>camera_id</code>, <code>section_code</code>,
+                            <code>4K_seq</code>, <code>FHD_seq</code> など）</li>
                         <li>パート2: <code>image</code> — 検査前の画像ファイル（PNG推奨）</li>
                     </ul>
 
@@ -415,7 +429,8 @@ print("レスポンス:", resp.json())
 
             <!-- 7. 検査後データと画像の送信 -->
             <section id="put-after-inspection-data">
-                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7. 【検査後】結果と画像の送信（filename指定・単発）（A層検査用）</h2>
+                <h2 class="text-2xl font-bold border-b-2 border-orange-500 pb-2 mb-4">7.
+                    【検査後】結果と画像の送信（filename指定・単発）（A層検査用）</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge put">PUT</span>
@@ -435,14 +450,16 @@ print("レスポンス:", resp.json())
                         </p>
                         <p class="text-sm mt-2 font-mono bg-sky-200 p-2 rounded">
                             <strong>保存先フォルダ:</strong> g3-webapp-back-2025/var/imageDB/afterTest/<br>
-                            <strong>保存例:</strong> g3-webapp-back-2025/var/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png
+                            <strong>保存例:</strong>
+                            g3-webapp-back-2025/var/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png
                         </p>
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
                     <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
-                        <li>パート1: <code>metadata</code> — 検査結果のJSON（<strong>必須: <code>status</code></strong>、任意: <code>details</code>, <code>captured_at</code>）</li>
+                        <li>パート1: <code>metadata</code> — 検査結果のJSON（<strong>必須: <code>status</code></strong>、任意:
+                            <code>details</code>, <code>captured_at</code>）</li>
                         <li>パート2: <code>image</code> — 検査後の画像ファイル（任意、PNG推奨）</li>
                     </ul>
 
@@ -456,12 +473,14 @@ print("レスポンス:", resp.json())
 }</code></pre>
                     </div>
                     <p class="text-xs text-slate-600 mt-2">
-                        2025-12 メモ: 検査機から送信する <code>status</code> は <strong>PASS</strong> または <strong>FAIL</strong> のみを想定しています。未検査ショットはサーバー側で自動的に <code>MISSING</code> を付与するため、クライアントで <code>MISSING</code> を送る必要はありません。
+                        2025-12 メモ: 検査機から送信する <code>status</code> は <strong>PASS</strong> または <strong>FAIL</strong>
+                        のみを想定しています。未検査ショットはサーバー側で自動的に <code>MISSING</code> を付与するため、クライアントで <code>MISSING</code>
+                        を送る必要はありません。
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">Pythonでの送信コード例</h3>
                     <div class="code-block-wrapper">
-<pre><code class="language-python">
+                        <pre><code class="language-python">
 import requests
 import json
 import datetime
@@ -511,7 +530,8 @@ print("レスポンス:", resp.json())
                         <span class="font-mono text-lg font-semibold">/imageDB/{test_type}/{filename}</span>
                     </div>
                     <p class="mb-4">
-                        サーバー側で画像保存フォルダ (例: <code>var/imageDB</code>・旧 <code>public/imageDB</code>) を静的ファイルとして公開することで、画像に直接アクセスできます。<br>
+                        サーバー側で画像保存フォルダ (例: <code>var/imageDB</code>・旧 <code>public/imageDB</code>)
+                        を静的ファイルとして公開することで、画像に直接アクセスできます。<br>
                         検査前後の画像は、同じファイル名で <code>beforeTest</code> と <code>afterTest</code>
                         ディレクトリに保存されているため、パスを切り替えるだけで両方を確認できます。
                     </p>
@@ -687,198 +707,325 @@ except Exception:
 }</code></pre>
                 </div>
 
-        </section>
+            </section>
 
-        <!-- 11. 現在生産中の lot_id を取得（最小） -->
-        <section id="get-current-lot-id">
-            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">11. 現在生産中の lot_id を取得</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex items-center space-x-4 mb-4">
-                    <span class="method-badge get">GET</span>
-                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/current-lot?section={section}</span>
-                    <span class="bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-bold">最小仕様</span>
-                </div>
+            <!-- 11. 現在生産中の lot_id を取得（最小） -->
+            <section id="get-current-lot-id">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">11. 現在生産中の lot_id を取得</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge get">GET</span>
+                        <span
+                            class="font-mono text-lg font-semibold">/api/ingress/inspection/current-lot?section={section}</span>
+                        <span class="bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-bold">最小仕様</span>
+                    </div>
 
-                <p class="mb-4">生産機械での現在生産中（進行中）のロットIDを <strong>1 件だけ</strong> 返します。<strong>指定した検査セクション（section）</strong>ごとに検索します。読み取り専用で副作用はありません。</p>
+                    <p class="mb-4">生産機械での現在生産中（進行中）のロットIDを <strong>1 件だけ</strong>
+                        返します。<strong>指定した検査セクション（section）</strong>ごとに検索します。読み取り専用で副作用はありません。</p>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="border-b-2 p-2">パラメータ</th>
-                            <th class="border-b-2 p-2">説明</th>
-                            <th class="border-b-2 p-2">例</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border-b p-2 font-mono">section（必須）</td>
-                            <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）, <code>alayer</code>（A層）。</td>
-                            <td class="border-b p-2 font-mono">?section=spring / ?section=alayer</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ（section は必須）</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">section（必須）</td>
+                                <td class="border-b p-2">検査セクション（内部コード）。許可値: <code>spring</code>（バネ留め）,
+                                    <code>alayer</code>（A層）。</td>
+                                <td class="border-b p-2 font-mono">?section=spring / ?section=alayer</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス</h3>
-                <p class="text-sm mb-2">200 OK — 指定セクションで現在生産中のロットがある場合</p>
-                <pre><code class="language-json">{
+                    <h3 class="text-lg font-semibold mt-6 mb-2">レスポンス</h3>
+                    <p class="text-sm mb-2">200 OK — 指定セクションで現在生産中のロットがある場合</p>
+                    <pre><code class="language-json">{
     "lot_id": "MAT-00123"
 }</code></pre>
 
-                <p class="text-sm mb-2">204 NG — 指定セクションに現在生産中のロットがない場合</p>
-                <pre><code class="language-json">{
+                    <p class="text-sm mb-2">204 NG — 指定セクションに現在生産中のロットがない場合</p>
+                    <pre><code class="language-json">{
     "message": "現在生産しているロットはありません｡"
 }</code></pre>
 
-                <p class="text-sm mt-4 mb-1">400 Bad Request（<code>section</code> が未指定または不正な値の場合）</p>
-                <pre><code class="language-json">{
+                    <p class="text-sm mt-4 mb-1">400 Bad Request（<code>section</code> が未指定または不正な値の場合）</p>
+                    <pre><code class="language-json">{
     "error": "Bad Request",
     "details": [
         "クエリパラメータ 'section' は必須です（spring または alayer を指定してください）。"
     ]
 }</code></pre>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">備考</h3>
-                <ul class="list-disc list-inside text-sm space-y-1">
-                    <li>読み取り専用。サーバー側で予約・ロック・状態変更は行いません。</li>
-                    <li><code>section</code> は必須。指定セクションのみを対象にします（許可: <code>spring</code>, <code>alayer</code>）。</li>
-                    <li>戻り値は最小限で <code>lot_id</code> のみです（追加情報は将来拡張）。</li>
-                </ul>
-            </div>
-        </section>
-
-        <!-- 12. 検査ステータスのリセット -->
-        <section id="reset-inspection-status">
-            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">12. 検査ステータスのリセット（lot内ショットを一括MISSING化）</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex items-center space-x-4 mb-4">
-                    <span class="method-badge post">POST</span>
-                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}/reset</span>
-                    <span class="bg-rose-500 text-white px-3 py-1 rounded-full text-sm font-bold">再検査の初期化</span>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">備考</h3>
+                    <ul class="list-disc list-inside text-sm space-y-1">
+                        <li>読み取り専用。サーバー側で予約・ロック・状態変更は行いません。</li>
+                        <li><code>section</code> は必須。指定セクションのみを対象にします（許可: <code>spring</code>, <code>alayer</code>）。
+                        </li>
+                        <li>戻り値は最小限で <code>lot_id</code> のみです（追加情報は将来拡張）。</li>
+                    </ul>
                 </div>
+            </section>
 
-                <p class="mb-4">指定した <code>lot_id</code> に紐づくショットのうち、現在 <code>MISSING</code> 以外のステータスになっている行だけを <code>MISSING</code> に戻し、<code>details</code> をクリアして再検査待ちの状態へまとめて戻します。</p>
+            <!-- 12. 検査ステータスのリセット -->
+            <section id="reset-inspection-status">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">12.
+                    検査ステータスのリセット（lot内ショットを一括MISSING化）</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge post">POST</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}/reset</span>
+                        <span class="bg-rose-500 text-white px-3 py-1 rounded-full text-sm font-bold">再検査の初期化</span>
+                    </div>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="border-b-2 p-2">パラメータ</th>
-                            <th class="border-b-2 p-2">説明</th>
-                            <th class="border-b-2 p-2">例</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border-b p-2 font-mono">lot_id（必須）</td>
-                            <td class="border-b p-2">検査対象となるロットID。内部の <code>inspection_lots.id</code> に変換して処理します。</td>
-                            <td class="border-b p-2 font-mono">/api/ingress/inspection/<strong>MAT-00125</strong>/reset</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <p class="mb-4">指定した <code>lot_id</code> に紐づくショットのうち、現在 <code>MISSING</code> 以外のステータスになっている行だけを
+                        <code>MISSING</code> に戻し、<code>details</code> をクリアして再検査待ちの状態へまとめて戻します。</p>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
-                <ol class="list-decimal list-inside text-sm space-y-1">
-                    <li>受け取った <code>lot_id</code> から <code>inspection_lots</code> を検索し、内部ID (<code>lot_id_ref</code>) を取得。</li>
-                    <li>該当ロットに紐づく <code>inspection_camera_shots</code> のうち、<code>status</code> が <code>MISSING</code> 以外の行のみを更新。</li>
-                    <li>更新対象の行を <code>status = 'MISSING'</code>, <code>details = NULL</code> にセットし、更新件数をレスポンスで返却。</li>
-                    <li>リセット対象となったショットのうち、検査後画像 (<code>var/imageDB/afterTest/{filename}</code>・公開URLは <code>/imageDB/afterTest/{filename}</code>) が存在するものは物理ファイルも削除。検査前画像は保持し、再検査で再利用できるようにする。</li>
-                </ol>
-                <p class="text-sm mt-2 text-slate-600">※ すでに全ショットが <code>MISSING</code> の場合は更新件数 0 のまま成功レスポンスになります。</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">lot_id（必須）</td>
+                                <td class="border-b p-2">検査対象となるロットID。内部の <code>inspection_lots.id</code> に変換して処理します。
+                                </td>
+                                <td class="border-b p-2 font-mono">
+                                    /api/ingress/inspection/<strong>MAT-00125</strong>/reset</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                <pre><code class="language-json">{
+                    <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
+                    <ol class="list-decimal list-inside text-sm space-y-1">
+                        <li>受け取った <code>lot_id</code> から <code>inspection_lots</code> を検索し、内部ID
+                            (<code>lot_id_ref</code>) を取得。</li>
+                        <li>該当ロットに紐づく <code>inspection_camera_shots</code> のうち、<code>status</code> が
+                            <code>MISSING</code> 以外の行のみを更新。</li>
+                        <li>更新対象の行を <code>status = 'MISSING'</code>, <code>details = NULL</code> にセットし、更新件数をレスポンスで返却。
+                        </li>
+                        <li>リセット対象となったショットのうち、検査後画像 (<code>var/imageDB/afterTest/{filename}</code>・公開URLは
+                            <code>/imageDB/afterTest/{filename}</code>) が存在するものは物理ファイルも削除。検査前画像は保持し、再検査で再利用できるようにする。
+                        </li>
+                    </ol>
+                    <p class="text-sm mt-2 text-slate-600">※ すでに全ショットが <code>MISSING</code> の場合は更新件数 0 のまま成功レスポンスになります。
+                    </p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
     "message": "検査ステータスをリセットしました。",
     "lot_id": "MAT-00125",
     "updated_count": 18
 }</code></pre>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
-                <p class="text-sm mb-1">404 Not Found（指定された <code>lot_id</code> が存在しない）</p>
-                <pre><code class="language-json">{
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
+                    <p class="text-sm mb-1">404 Not Found（指定された <code>lot_id</code> が存在しない）</p>
+                    <pre><code class="language-json">{
     "error": "Not Found",
     "details": "指定された lot_id (MAT-09999) が見つかりません。"
 }</code></pre>
 
-                <p class="text-sm mt-4 mb-1">500 Internal Server Error（DB例外など想定外エラー）</p>
-                <pre><code class="language-json">{
+                    <p class="text-sm mt-4 mb-1">500 Internal Server Error（DB例外など想定外エラー）</p>
+                    <pre><code class="language-json">{
     "error": "Internal Server Error",
     "details": "エラー内容"
 }</code></pre>
-            </div>
-        </section>
-
-        <!-- 13. ロットの完全削除 -->
-        <section id="delete-lot">
-            <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">13. 特定ロットの削除（DB + 画像ファイル）</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex items-center space-x-4 mb-4">
-                    <span class="method-badge delete">DELETE</span>
-                    <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
-                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">危険操作</span>
                 </div>
+            </section>
 
-                <p class="mb-4">指定したロットをシステムから完全に削除します。DB上の <code>inspection_camera_shots</code> と <code>inspection_lots</code> を消去し、対応する検査前後画像も <code>var/imageDB/beforeTest</code> および <code>var/imageDB/afterTest</code>（公開URLは <code>/imageDB/*</code>）から除去します。誤実行防止のため、基本的には管理UIからのみ呼び出す想定です。</p>
+            <!-- 13. ロットの完全削除 -->
+            <section id="delete-lot">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">13. 特定ロットの削除（DB + 画像ファイル）</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="method-badge delete">DELETE</span>
+                        <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
+                        <span class="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">危険操作</span>
+                    </div>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="border-b-2 p-2">パラメータ</th>
-                            <th class="border-b-2 p-2">説明</th>
-                            <th class="border-b-2 p-2">例</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border-b p-2 font-mono">lot_id（必須）</td>
-                            <td class="border-b p-2">削除対象ロットのID。内部IDを引いてから削除を実施。</td>
-                            <td class="border-b p-2 font-mono">/api/ingress/inspection/<strong>MAT-00110</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <p class="mb-4">指定したロットをシステムから完全に削除します。DB上の <code>inspection_camera_shots</code> と
+                        <code>inspection_lots</code> を消去し、対応する検査前後画像も <code>var/imageDB/beforeTest</code> および
+                        <code>var/imageDB/afterTest</code>（公開URLは
+                        <code>/imageDB/*</code>）から除去します。誤実行防止のため、基本的には管理UIからのみ呼び出す想定です。</p>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
-                <ol class="list-decimal list-inside text-sm space-y-1">
-                    <li><code>inspection_lots</code> から <code>lot_id</code> に一致する行を検索。存在しない場合は 404 を返す。</li>
-                    <li>トランザクションを開始し、該当する <code>inspection_camera_shots</code> を削除後、親ロット (<code>inspection_lots</code>) を削除。</li>
-                    <li>削除対象ショット一覧からファイル名を導出し、<code>var/imageDB/beforeTest/{filename}</code> と <code>var/imageDB/afterTest/{filename}</code>（公開URLは <code>/imageDB/*</code>）の物理ファイルを順次削除。</li>
-                    <li>DB・ファイルどちらかでエラーが起きた場合はロールバックし 500 を返す。</li>
-                </ol>
-                <p class="text-sm mt-2 text-slate-600">※ before/after いずれかのファイルが存在しなくても API 自体は成功扱い（削除件数を別途返却）とします。</p>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">パスパラメータ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">パラメータ</th>
+                                <th class="border-b-2 p-2">説明</th>
+                                <th class="border-b-2 p-2">例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">lot_id（必須）</td>
+                                <td class="border-b p-2">削除対象ロットのID。内部IDを引いてから削除を実施。</td>
+                                <td class="border-b p-2 font-mono">/api/ingress/inspection/<strong>MAT-00110</strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                <pre><code class="language-json">{
+                    <h3 class="text-lg font-semibold mt-6 mb-2">処理フロー</h3>
+                    <ol class="list-decimal list-inside text-sm space-y-1">
+                        <li><code>inspection_lots</code> から <code>lot_id</code> に一致する行を検索。存在しない場合は 404 を返す。</li>
+                        <li>トランザクションを開始し、該当する <code>inspection_camera_shots</code> を削除後、親ロット
+                            (<code>inspection_lots</code>) を削除。</li>
+                        <li>削除対象ショット一覧からファイル名を導出し、<code>var/imageDB/beforeTest/{filename}</code> と
+                            <code>var/imageDB/afterTest/{filename}</code>（公開URLは <code>/imageDB/*</code>）の物理ファイルを順次削除。
+                        </li>
+                        <li>DB・ファイルどちらかでエラーが起きた場合はロールバックし 500 を返す。</li>
+                    </ol>
+                    <p class="text-sm mt-2 text-slate-600">※ before/after いずれかのファイルが存在しなくても API 自体は成功扱い（削除件数を別途返却）とします。
+                    </p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
+                    <pre><code class="language-json">{
     "message": "ロット MAT-00110 を削除しました。"
 }</code></pre>
 
-                <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
-                <p class="text-sm mb-1">404 Not Found（指定ロットが存在しない）</p>
-                <pre><code class="language-json">{
+                    <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
+                    <p class="text-sm mb-1">404 Not Found（指定ロットが存在しない）</p>
+                    <pre><code class="language-json">{
     "error": "Not Found",
     "details": "指定された lot_id (MAT-09999) が見つかりません。"
 }</code></pre>
 
-                <p class="text-sm mt-4 mb-1">500 Internal Server Error（削除処理で想定外エラー）</p>
-                <pre><code class="language-json">{
+                    <p class="text-sm mt-4 mb-1">500 Internal Server Error（削除処理で想定外エラー）</p>
+                    <pre><code class="language-json">{
     "error": "Internal Server Error",
     "details": "ファイル削除中にエラーが発生しました。"
 }</code></pre>
 
-                <div class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-700 rounded-r-lg">
-                    <p class="font-semibold">利用上の注意</p>
-                    <ul class="list-disc list-inside text-sm space-y-1 mt-2">
-                        <li>復元不可。削除前に監査ログを残すこと。</li>
-                        <li>関連レポート等で参照される場合は別途連携テーブルの整合性にも注意。</li>
-                    </ul>
+                    <div class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-700 rounded-r-lg">
+                        <p class="font-semibold">利用上の注意</p>
+                        <ul class="list-disc list-inside text-sm space-y-1 mt-2">
+                            <li>復元不可。削除前に監査ログを残すこと。</li>
+                            <li>関連レポート等で参照される場合は別途連携テーブルの整合性にも注意。</li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
-        </section>
-    </div>
+            </section>
 
-    <footer class="text-center text-slate-500 mt-12 py-4">
-        &copy; 2024 API Design by Gemini. All Rights Reserved.
-    </footer>
+
+            <!-- 14. サーバー送信イベント（SSE） -->
+            <section id="sse-events">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">14. サーバー送信イベント（SSE）連携</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="mb-4">リアルタイムにフロントエンドへ通知を届けるため、バックエンドはサーバー送信イベント（SSE）を通じて主要オペレーションを配信します。イベントの完全なペイロード例は
+                        <span class="font-mono">docs/API設計/sse-events.md</span>
+                        を参照してください。ここでは本ドキュメントで定義したエンドポイントと紐づくイベントの要約を示します。</p>
+
+                    <div class="p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 rounded-r-lg text-sm mb-4">
+                        <p class="font-semibold">基本ポリシー</p>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li>SSE ストリームは <span class="font-mono">GET /api/events</span> で公開し、<code>EventSource</code>
+                                から <code>withCredentials: true</code> で接続します。</li>
+                            <li>全イベント共通で <span class="font-mono">timestamp</span>（UNIX milliseconds）と <span
+                                    class="font-mono">type</span> を含みます。クライアントは <code>type</code> をキーに処理を分岐します。</li>
+                            <li>接続直後には疎通確認用の <span class="font-mono">sse:connected</span> を必ず送出し、監視 UI のステータス更新に利用します。
+                            </li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">接続時イベント</h3>
+                    <pre><code class="language-json">{
+    "type": "sse:connected",
+    "connectedAt": "2025-12-10T06:14:22.126Z"
+}</code></pre>
+                    <p class="text-sm text-slate-600 mt-2">ヘルスチェック兼ステータス表示用。クライアントはこのイベントを受信した時点で UI を「受信中」に切り替えます。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">イベント一覧（ダイジェスト）</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="border-b-2 p-2">Event <code>type</code></th>
+                                    <th class="border-b-2 p-2">発火トリガー</th>
+                                    <th class="border-b-2 p-2">主なペイロード</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:imageUploaded</td>
+                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/{lot_id}</code></td>
+                                    <td class="border-b p-2">lotId, filename, sectionCode, cameraId</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:lotCreated</td>
+                                    <td class="border-b p-2"><code>POST /api/ingress/inspection</code></td>
+                                    <td class="border-b p-2">lotId, sectionCode, filenames[]</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:batchUploaded</td>
+                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/batch/{lot_id}</code>
+                                    </td>
+                                    <td class="border-b p-2">lotId, filename, status</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:resultUpdated</td>
+                                    <td class="border-b p-2"><code>PUT /api/ingress/inspection/result/{filename}</code>
+                                    </td>
+                                    <td class="border-b p-2">filename, status, details</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:lotReset</td>
+                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/{lot_id}/reset</code>
+                                    </td>
+                                    <td class="border-b p-2">lotId, updatedCount</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">inspection:lotDeleted</td>
+                                    <td class="border-b p-2"><code>DELETE /api/ingress/inspection/{lot_id}</code></td>
+                                    <td class="border-b p-2">lotId, deletedFiles</td>
+                                </tr>
+                                <tr>
+                                    <td class="border-b p-2 font-mono">production:lotIncremented</td>
+                                    <td class="border-b p-2"><code>POST /api/machines/{id}/increment-production</code>
+                                    </td>
+                                    <td class="border-b p-2">machineId, lotId, section, todayProductionCount</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-2">※ 上記に挙げたフィールドは「最低限の確認用」です。完全な JSON は <span
+                            class="font-mono">sse-events.md</span> に掲載しています。</p>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">クライアント側ハンドリング例</h3>
+                    <div class="code-block-wrapper">
+                        <pre><code class="language-javascript">const source = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001'}/api/events`, {
+  withCredentials: true
+});
+
+source.addEventListener('inspection:resultUpdated', event => {
+  const payload = JSON.parse(event.data);
+  // TODO: 任意の状態管理へ反映する
+});
+
+source.onerror = () => {
+  // TODO: UI 上で切断状態を表示し、必要に応じてリトライを実装する
+  source.close();
+};</code></pre>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-2">開発環境では <span class="font-mono">NEXT_PUBLIC_API_BASE</span>
+                        を設定すると、ダッシュボード以外のクライアントからも同一 SSE ストリームを共有できます。</p>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-slate-500 mt-12 py-4">
+            &copy; 2024 API Design by Gemini. All Rights Reserved.
+        </footer>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -926,7 +1073,7 @@ except Exception:
         })();
     </script>
 
-    
+
 </body>
 
 </html>
