@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
+import SurfaceBox from '@/components/surface/SurfaceBox'
 
 import { UnitStatusLamps } from './components/UnitStatusLamps'
 import { ErrorLogList } from './components/ErrorLogList'
@@ -146,13 +147,13 @@ return { label: '正常に稼働中', color: 'success' }
             <Card ref={leftCardRef} sx={{ mb: 4, height: '100%' }}>
               <CardContent>
                 <Typography variant='h6' fontWeight='bold' mb={2}>{machineName}</Typography>
-                <Box
+                <SurfaceBox
+                  variant='paper'
                   sx={{
                     width: '100%',
                     borderRadius: 2,
                     overflow: 'hidden',
-                    mb: 2,
-                    bgcolor: 'grey.100',
+                    mb: 2
                   }}
                 >
                   <img
@@ -160,7 +161,7 @@ return { label: '正常に稼働中', color: 'success' }
                     alt={machineName}
                     style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
                   />
-                </Box>
+                </SurfaceBox>
                 <UnitStatusLamps unitStatuses={unitStatuses} />
                 <Chip
                   label={overallStatus.label}
@@ -189,32 +190,32 @@ return { label: '正常に稼働中', color: 'success' }
                 </Box>
                 <Grid container spacing={2} mb={2}>
                   <Grid item xs={6} sm={3}>
-                    <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
+                    <SurfaceBox variant='soft' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>本日の稼働時間</Typography>
                       <Typography variant='h5' fontWeight='bold'>
                         {uptimeSeconds != null ? secondsToHMS(uptimeSeconds) : (todayUptimeHms || defaultInfo.todayWorkTime)}
                       </Typography>
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                   <Grid item xs={6} sm={3}>
-                    <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
+                    <SurfaceBox variant='soft' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>本日の生産数</Typography>
                       <Typography variant='h5' fontWeight='bold'>
                         {todayProductionCount != null ? `${todayProductionCount.toLocaleString()}個` : defaultInfo.todayProduction}
                       </Typography>
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                   <Grid item xs={6} sm={3}>
-                    <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
+                    <SurfaceBox variant='soft' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>最終点検日</Typography>
                       <Typography variant='h5' fontWeight='bold'>{formatYmdSlash(lastInspectionDate)}</Typography>
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                   <Grid item xs={6} sm={3}>
-                    <Box bgcolor='grey.50' p={2} borderRadius={2} textAlign='center'>
+                    <SurfaceBox variant='soft' p={2} borderRadius={2} textAlign='center'>
                       <Typography variant='body2' color='text.secondary'>次回点検日</Typography>
                       <Typography variant='h5' fontWeight='bold'>{formatYmdSlash(nextInspectionDate)}</Typography>
-                    </Box>
+                    </SurfaceBox>
                   </Grid>
                 </Grid>
                 {machineDataError && (

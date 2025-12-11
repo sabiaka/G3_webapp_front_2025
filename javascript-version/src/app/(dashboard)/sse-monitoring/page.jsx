@@ -1,0 +1,384 @@
+'use client'
+
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardHeader from '@mui/material/CardHeader'
+import Chip from '@mui/material/Chip'
+import Divider from '@mui/material/Divider'
+import Grid from '@mui/material/Grid'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+
+const EVENT_STREAM_PATH = '/api/events'
+const DEFAULT_BACKEND_PORT = process.env.NEXT_PUBLIC_BACKEND_PORT || '3001'
+const CONFIG_BACKEND_HOST = process.env.NEXT_PUBLIC_BACKEND_HOST || null
+const CONFIG_BACKEND_PROTOCOL = process.env.NEXT_PUBLIC_BACKEND_PROTOCOL || null
+const CONFIG_API_BASE = process.env.NEXT_PUBLIC_API_BASE || null
+
+const useInspectionEvents = ({
+  streamUrl,
+  onEvent,
+  onConnecting,
+  onOpen,
+  onError,
+  onConnectionInfo,
+  retryToken
+}) => {
+  useEffect(() => {
+    if (!onEvent || !streamUrl) {
+      return undefined
+    }
+
+    onConnecting?.()
+
+    let source
+
+    try {
+      source = new EventSource(streamUrl, { withCredentials: true })
+    } catch (error) {
+      console.error('SSE 初期化エラー', error)
+      onError?.(error)
+      onConnectionInfo?.({
+        streamUrl,
+        initializationFailed: true
+      })
+
+      return undefined
+    }
+
+    try {
+      const resolvedUrl = new URL(source.url)
+      const protocol = resolvedUrl.protocol.replace(':', '')
+      const defaultPort = protocol === 'https' ? '443' : protocol === 'http' ? '80' : null
+
+      onConnectionInfo?.({
+        streamUrl,
+        url: resolvedUrl.toString(),
+        origin: resolvedUrl.origin,
+        host: resolvedUrl.hostname,
+        port: resolvedUrl.port || null,
+        defaultPort,
+        protocol,
+        path: resolvedUrl.pathname + resolvedUrl.search,
+        withCredentials: source.withCredentials ?? true,
+        initializationFailed: false
+      })
+    } catch (error) {
+      onConnectionInfo?.({
+        streamUrl,
+        url: source.url,
+        withCredentials: source.withCredentials ?? true,
+        initializationFailed: false
+      })
+    }
+
+    source.onopen = () => {
+      onOpen?.()
+      onConnectionInfo?.({
+        openedAt: new Date().toISOString(),
+        disconnectedAt: null
+      })
+    }
+
+    source.onmessage = event => {
+      try {
+        const data = JSON.parse(event.data)
+        onEvent(data)
+      } catch (error) {
+        console.error('イベント解析エラー', error)
+      }
+    }
+
+    source.onerror = error => {
+      console.error('SSE 接続エラー', error)
+      onError?.(error)
+      onConnectionInfo?.({
+        disconnectedAt: new Date().toISOString()
+      })
+      source.close()
+    }
+
+    return () => {
+      source?.close()
+    }
+  }, [streamUrl, onConnecting, onOpen, onEvent, onError, onConnectionInfo, retryToken])
+}
+
+const statusChipConfig = {
+  connecting: { label: '接続中', color: 'warning' },
+  open: { label: '受信中', color: 'success' },
+  error: { label: '切断', color: 'error' }
+}
+
+const SSEMonitoringPage = () => {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+  const [events, setEvents] = useState([])
+  const [status, setStatus] = useState('connecting')
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [retryToken, setRetryToken] = useState(0)
+  const [connectionInfo, setConnectionInfo] = useState(null)
+  const isClient = typeof window !== 'undefined'
+
+  const streamUrl = useMemo(() => {
+    const trimmedApiBase = CONFIG_API_BASE ? CONFIG_API_BASE.replace(/\/$/, '') : null
+
+    if (trimmedApiBase) {
+      return `${trimmedApiBase}${EVENT_STREAM_PATH}`
+    }
+
+    const protocolSource = CONFIG_BACKEND_PROTOCOL
+      ? CONFIG_BACKEND_PROTOCOL.replace(/:/g, '')
+      : isClient
+        ? window.location.protocol.replace(':', '')
+        : 'http'
+
+    const protocol = (protocolSource || 'http').toLowerCase()
+
+    const host = CONFIG_BACKEND_HOST || (isClient ? window.location.hostname : 'localhost')
+
+    const portSegment = DEFAULT_BACKEND_PORT ? `:${DEFAULT_BACKEND_PORT}` : ''
+
+    return `${protocol}://${host}${portSegment}${EVENT_STREAM_PATH}`
+  }, [isClient])
+
+  const handleConnecting = useCallback(() => {
+    setStatus('connecting')
+    setErrorMessage(null)
+  }, [])
+
+  const handleOpen = useCallback(() => {
+    setStatus('open')
+    setErrorMessage(null)
+  }, [])
+
+  const handleEvent = useCallback(payload => {
+    setEvents(prev => {
+      const eventEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        receivedAt: new Date().toISOString(),
+        payload
+      }
+
+      const next = [eventEntry, ...prev]
+
+      return next.slice(0, 100)
+    })
+  }, [])
+
+  const handleError = useCallback(() => {
+    setStatus('error')
+    setErrorMessage('SSE接続でエラーが発生しました。ブラウザのコンソールログを確認してください。')
+  }, [])
+
+  const handleConnectionInfo = useCallback(update => {
+    setConnectionInfo(prev => ({ ...(prev || {}), ...update }))
+  }, [])
+
+  useInspectionEvents({
+    streamUrl,
+    onEvent: handleEvent,
+    onConnecting: handleConnecting,
+    onOpen: handleOpen,
+    onError: handleError,
+    onConnectionInfo: handleConnectionInfo,
+    retryToken
+  })
+
+  const latestEventTime = events[0]?.receivedAt
+
+  const formattedLatestEventTime = useMemo(() => {
+    if (!latestEventTime) {
+      return '未受信'
+    }
+
+    const date = new Date(latestEventTime)
+
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
+  }, [latestEventTime])
+
+  const connectionDisplay = useMemo(() => {
+    const hasWindow = typeof window !== 'undefined'
+    const fallbackHost = CONFIG_BACKEND_HOST || (hasWindow ? window.location.hostname : 'localhost')
+    const fallbackProtocol = CONFIG_BACKEND_PROTOCOL
+      ? CONFIG_BACKEND_PROTOCOL.replace(/:/g, '').toUpperCase()
+      : hasWindow
+        ? window.location.protocol.replace(':', '').toUpperCase()
+        : 'HTTP'
+
+    const protocolLabel = connectionInfo?.protocol
+      ? connectionInfo.protocol.toUpperCase()
+      : fallbackProtocol
+
+    const resolvedDefaultPort = connectionInfo?.defaultPort || (DEFAULT_BACKEND_PORT || '---')
+    const portLabel = connectionInfo?.port || (resolvedDefaultPort && resolvedDefaultPort !== '---' ? `${resolvedDefaultPort} (設定)` : '---')
+
+    const absoluteUrl = connectionInfo?.url || streamUrl || '-'
+    const openedAtLabel = connectionInfo?.openedAt ? new Date(connectionInfo.openedAt).toLocaleString() : '---'
+    const disconnectedAtLabel = connectionInfo?.disconnectedAt
+      ? new Date(connectionInfo.disconnectedAt).toLocaleString()
+      : '---'
+
+    return {
+      absoluteUrl,
+      relativeUrl: EVENT_STREAM_PATH,
+      host: connectionInfo?.host || fallbackHost,
+      port: portLabel,
+      protocol: protocolLabel,
+      withCredentialsLabel:
+        connectionInfo?.withCredentials === false
+          ? '無効 (Cookieを送信しません)'
+          : '有効 (Cookie/資格情報を送信)',
+      basePath: basePath || '(未設定)',
+      openedAt: openedAtLabel,
+      disconnectedAt: disconnectedAtLabel,
+      initializationFailed: connectionInfo?.initializationFailed === true
+    }
+  }, [connectionInfo, streamUrl, basePath])
+
+  const clearEvents = useCallback(() => {
+    setEvents([])
+  }, [])
+
+  const reconnect = useCallback(() => {
+    setRetryToken(token => token + 1)
+  }, [])
+
+  const statusChip = statusChipConfig[status] || statusChipConfig.connecting
+
+  return (
+    <Grid container spacing={6} sx={{ pb: 6 }}>
+      <Grid item xs={12}>
+        <Stack direction='row' justifyContent='space-between' alignItems='center' spacing={4} flexWrap='wrap' rowGap={2}>
+          <Box>
+            <Typography variant='h4' sx={{ mb: 1 }}>
+              SSE監視ページ
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              バックエンドが配信するサーバー送信イベントをリアルタイムにモニタリングします。
+            </Typography>
+          </Box>
+          <Stack direction='row' spacing={2} alignItems='center'>
+            <Chip color={statusChip.color} label={statusChip.label} />
+            <Typography variant='body2' color='text.secondary'>
+              最終受信: {formattedLatestEventTime}
+            </Typography>
+            <Button variant='outlined' onClick={reconnect}>
+              再接続
+            </Button>
+            <Button variant='outlined' color='secondary' onClick={clearEvents} disabled={events.length === 0}>
+              ログをクリア
+            </Button>
+          </Stack>
+        </Stack>
+      </Grid>
+
+      {errorMessage ? (
+        <Grid item xs={12}>
+          <Alert severity='error'>{errorMessage}</Alert>
+        </Grid>
+      ) : null}
+
+      <Grid item xs={12} md={5}>
+        <Card>
+          <CardHeader title='接続情報' subheader='現在のSSE接続先の詳細を確認できます。' />
+          <CardContent>
+            <Stack spacing={3}>
+              {connectionDisplay.initializationFailed ? (
+                <Alert severity='warning'>SSEの初期化に失敗しました。接続設定を確認してください。</Alert>
+              ) : null}
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>接続URL (絶対)</Typography>
+                <Typography variant='body2' sx={{ wordBreak: 'break-all' }}>{connectionDisplay.absoluteUrl}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>SSEエンドポイント (相対)</Typography>
+                <Typography variant='body2' sx={{ wordBreak: 'break-all' }}>{connectionDisplay.relativeUrl}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>サーバホスト (IP/ドメイン)</Typography>
+                <Typography variant='body2'>{connectionDisplay.host}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>ポート</Typography>
+                <Typography variant='body2'>{connectionDisplay.port}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>プロトコル</Typography>
+                <Typography variant='body2'>{connectionDisplay.protocol}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>資格情報送信</Typography>
+                <Typography variant='body2'>{connectionDisplay.withCredentialsLabel}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>接続確立 (最新)</Typography>
+                <Typography variant='body2'>{connectionDisplay.openedAt}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>最終切断</Typography>
+                <Typography variant='body2'>{connectionDisplay.disconnectedAt}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant='caption' color='text.secondary'>ベースパス</Typography>
+                <Typography variant='body2'>{connectionDisplay.basePath}</Typography>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      <Grid item xs={12} md={7}>
+        <Card>
+          <CardHeader title='イベントログ' subheader={`受信件数: ${events.length}`} />
+          <CardContent>
+            {events.length === 0 ? (
+              <Typography variant='body2' color='text.secondary'>
+                まだイベントを受信していません。イベントが届くとここに表示されます。
+              </Typography>
+            ) : (
+              <List disablePadding>
+                {events.map((event, index) => (
+                  <Fragment key={event.id}>
+                    <ListItem disableGutters alignItems='flex-start' sx={{ py: 3 }}>
+                      <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Typography variant='caption' color='text.secondary'>
+                          受信時刻: {new Date(event.receivedAt).toLocaleString()}
+                        </Typography>
+                        <Box
+                          component='pre'
+                          sx={{
+                            m: 0,
+                            p: 2,
+                            borderRadius: 1,
+                            bgcolor: 'action.hover',
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                            lineHeight: 1.6,
+                            maxHeight: 240,
+                            overflow: 'auto'
+                          }}
+                        >
+                          {JSON.stringify(event.payload, null, 2)}
+                        </Box>
+                      </Stack>
+                    </ListItem>
+                    {index < events.length - 1 ? <Divider component='li' /> : null}
+                  </Fragment>
+                ))}
+              </List>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  )
+}
+
+export default SSEMonitoringPage

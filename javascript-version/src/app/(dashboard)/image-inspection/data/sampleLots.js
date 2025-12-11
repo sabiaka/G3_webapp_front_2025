@@ -1,6 +1,21 @@
 // サンプルのロット一覧データ（API想定のJSON形そのまま）
 // 画面はこれをUI用にアダプトして表示します
 
+const withRepresentativeImage = lot => {
+  if (lot.representative_image) return lot
+  const firstImage = lot.cameras && lot.cameras.length > 0 ? lot.cameras[0].image_path : null
+  if (!firstImage) return lot
+  const cleaned = firstImage.replace(/\\/g, '/')
+  const normalizedPath = cleaned.replace(/\/{2,}/g, '/')
+  const normalized = normalizedPath.startsWith('/imageDB/')
+    ? normalizedPath
+    : `/imageDB/beforeTest/${normalizedPath.replace(/^\/+/, '')}`
+  return {
+    ...lot,
+    representative_image: normalized,
+  }
+}
+
 export const SAMPLE_LOTS = {
   total_pages: 1,
   current_page: 1,
@@ -37,8 +52,6 @@ export const SAMPLE_LOTS = {
       pass: false,
       cameras: [
         { camera_id: 'A-main01', status: 'FAIL', details: 'A層ヨゴレ', image_path: 'LOLL-09030-01_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-09030-01_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-09030-01_A-stitch02-01.jpg' },
       ],
     },
     {
@@ -48,8 +61,6 @@ export const SAMPLE_LOTS = {
       pass: true,
       cameras: [
         { camera_id: 'A-main01', status: 'PASS', details: null, image_path: 'LOLL-09030-02_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-09030-02_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-09030-02_A-stitch02-01.jpg' },
       ],
     },
 
@@ -103,10 +114,6 @@ export const SAMPLE_LOTS = {
         { camera_id: 'A-main01', status: 'FAIL', details: 'ゴミ付着', image_path: 'LOLL-10001_A-main01-02.jpg' },
         { camera_id: 'A-main01', status: 'PASS', details: null, image_path: 'LOLL-10001_A-main01-03.jpg' },
         { camera_id: 'A-main01', status: 'PASS', details: null, image_path: 'LOLL-10001_A-main01-04.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-10001_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'FAIL', details: '糸ほつれ', image_path: 'LOLL-10001_A-stitch01-02.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-10001_A-stitch02-03.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-10001_A-stitch02-04.jpg' },
       ],
     },
     {
@@ -116,8 +123,6 @@ export const SAMPLE_LOTS = {
       pass: true,
       cameras: [
         { camera_id: 'A-main01', status: 'PASS', details: null, image_path: 'LOLL-10002_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-10002_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-10002_A-stitch02-01.jpg' },
       ],
     },
     {
@@ -127,8 +132,6 @@ export const SAMPLE_LOTS = {
       pass: false,
       cameras: [
         { camera_id: 'A-main01', status: 'FAIL', details: 'A層ヨゴレ', image_path: 'LOLL-10003_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-10003_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'FAIL', details: '糸ほつれ', image_path: 'LOLL-10003_A-stitch02-01.jpg' },
       ],
     },
 
@@ -164,8 +167,6 @@ export const SAMPLE_LOTS = {
       pass: true,
       cameras: [
         { camera_id: 'A-main01', status: 'PASS', details: null, image_path: 'LOLL-10002-01_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-10002-01_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-10002-01_A-stitch02-01.jpg' },
       ],
     },
     {
@@ -175,11 +176,9 @@ export const SAMPLE_LOTS = {
       pass: false,
       cameras: [
         { camera_id: 'A-main01', status: 'FAIL', details: 'ゴミ付着', image_path: 'LOLL-10002-02_A-main01-01.jpg' },
-        { camera_id: 'A-stitch01', status: 'PASS', details: null, image_path: 'LOLL-10002-02_A-stitch01-01.jpg' },
-        { camera_id: 'A-stitch02', status: 'PASS', details: null, image_path: 'LOLL-10002-02_A-stitch02-01.jpg' },
       ],
     },
-  ],
+  ].map(withRepresentativeImage),
 }
 
 export default SAMPLE_LOTS

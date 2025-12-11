@@ -79,11 +79,18 @@ const VerticalMenu = ({ scrollMenu }) => {
             工場設定
           </MenuItem>
           <MenuItem
-            href='/machine-signage/生産機械サイネージ.html'
+            href='/machine-signage'
             icon={<span role='img' aria-label='display'>🖥️</span>}
-            target='_blank'
           >
             生産機械サイネージ
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label='デバッグ'>
+          <MenuItem href='http://10.100.54.170:4001/static/index.html' icon={<span role='img' aria-label='ssh'>🔐</span>}>
+            SSH接続ページ
+          </MenuItem>
+          <MenuItem href='/sse-monitoring' icon={<span role='img' aria-label='monitoring'>📡</span>}>
+            SSE監視ページ
           </MenuItem>
         </MenuSection>
       </Menu>

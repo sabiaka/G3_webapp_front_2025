@@ -390,9 +390,13 @@ export default function useShippingInstructions() {
     // 完了→未完了の確定と取消（モーダル操作）
     const confirmRevert = () => {
         if (pendingToggleId == null) return
-        setInstructions(prev => prev.map(inst => inst.id === pendingToggleId ? { ...inst, completed: false } : inst))
+        const id = pendingToggleId
+        // 先にローカルへ反映
+        setInstructions(prev => prev.map(inst => inst.id === id ? { ...inst, completed: false } : inst))
         setPendingToggleId(null)
         setConfirmOpen(false)
+        // サーバーへも反映（失敗時は updateCompletionOnServer 内でロールバック）
+        updateCompletionOnServer(id, false)
     }
     const cancelRevert = () => { setPendingToggleId(null); setConfirmOpen(false) }
 

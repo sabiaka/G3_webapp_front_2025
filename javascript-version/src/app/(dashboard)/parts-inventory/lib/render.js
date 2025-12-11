@@ -11,7 +11,7 @@ export function renderRackTabs(racks, currentRackId) {
 
     a.href = '#';
     a.dataset.rackId = rack.id;
-    a.className = `rack-tab-item group whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${rack.id === currentRackId ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+    a.className = `rack-tab-item group whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200${rack.id === currentRackId ? ' active' : ''}`;
     a.innerHTML = `
       <ion-icon name="server-outline" class="mr-2 text-lg"></ion-icon>
       <span class="truncate">${rack.name}</span>
@@ -46,18 +46,18 @@ return;
 
   const layoutContainer = document.createElement('div');
 
-  layoutContainer.className = 'grid bg-white';
+  layoutContainer.className = 'grid pi-surface';
   layoutContainer.style.gridTemplateColumns = 'auto 1fr';
   layoutContainer.style.gridTemplateRows = 'auto 1fr';
 
   const corner = document.createElement('div');
 
-  corner.className = 'w-12 h-8 sticky left-0 top-0 z-20 bg-white';
+  corner.className = 'w-12 h-8 sticky left-0 top-0 z-20 pi-surface';
   layoutContainer.appendChild(corner);
 
   const colHeadersContainer = document.createElement('div');
 
-  colHeadersContainer.className = 'grid sticky top-0 z-10 bg-white';
+  colHeadersContainer.className = 'grid sticky top-0 z-10 pi-surface';
   colHeadersContainer.style.gridTemplateColumns = `repeat(${currentRack.cols}, 9rem)`;
   colHeadersContainer.style.gap = '1rem';
   colHeadersContainer.style.paddingLeft = '1rem';
@@ -75,7 +75,7 @@ return;
 
   const rowHeadersContainer = document.createElement('div');
 
-  rowHeadersContainer.className = 'grid sticky left-0 bg-white z-10';
+  rowHeadersContainer.className = 'grid sticky left-0 pi-surface z-10';
   rowHeadersContainer.style.gridTemplateRows = `repeat(${currentRack.rows}, 9rem)`;
   rowHeadersContainer.style.gap = '1rem';
   rowHeadersContainer.style.paddingTop = '1rem';
@@ -115,7 +115,7 @@ return;
       if (part) {
         content += `
           <div class="text-center overflow-hidden min-w-0">
-            <div class="w-full h-4 rounded-full mb-2" style="background-color: ${part.color ? '#' + part.color : '#e5e7eb'};"></div>
+            <div class="w-full h-4 rounded-full mb-2" style="background-color: ${part.color ? '#' + part.color : 'var(--mui-palette-divider)'};"></div>
             <p class="font-bold text-gray-800 text-sm truncate">${s(part.partName)}</p>
             <p class="text-xs text-gray-500 truncate">${s(part.partModelNumber, '')}</p>
           </div>
@@ -150,7 +150,7 @@ export function renderDetails(racks, currentRackId, slotId) {
   let content = '';
 
   if (!currentRack) {
-    detailsPanel.innerHTML = '<div class="text-center text-gray-500 py-10"><ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon><p class="mt-2">ラックを選択してください</p></div>';
+  detailsPanel.innerHTML = '<div class="text-center text-gray-500 py-10"><ion-icon name="grid-outline" class="text-5xl mx-auto"></ion-icon><p class="mt-2">ラックを選択してください</p></div>';
     
 return;
   }
@@ -160,7 +160,7 @@ return;
   if (part) {
     content = `
       <div class="fade-in">
-        <div class="flex items-center mb-4"><div class="w-4 h-4 rounded-full mr-3" style="background-color: ${part.color ? '#' + part.color : '#e5e7eb'};"></div><h3 class="text-xl font-bold">${s(part.partName)}</h3></div>
+        <div class="flex items-center mb-4"><div class="w-4 h-4 rounded-full mr-3" style="background-color: ${part.color ? '#' + part.color : 'var(--mui-palette-divider)'};"></div><h3 class="text-xl font-bold">${s(part.partName)}</h3></div>
         <div class="space-y-2 text-sm">
           <p><strong class="w-24 inline-block text-gray-500">部品型番:</strong> ${s(part.partModelNumber, 'N/A')}</p>
           <p><strong class="w-24 inline-block text-gray-500">現在庫数:</strong> <span class="text-2xl font-bold">${part.quantity}</span></p>

@@ -1,10 +1,16 @@
+// 検査の良品率を円形ドーナツチャートで視覚化するコンポーネント
+
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import { useTheme } from '@mui/material/styles'
 
 const DonutChart = ({ percentage, size = 160 }) => {
+    const theme = useTheme()
     const radius = (size - 20) / 2
     const circumference = 2 * Math.PI * radius
     const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
+    const bgStroke = theme.palette.divider
+    const fgStroke = theme.palette.success.main
 
     return (
         <Box sx={{ position: 'relative', width: size, height: size }}>
@@ -15,7 +21,7 @@ const DonutChart = ({ percentage, size = 160 }) => {
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke="#e5e7eb"
+                    stroke={bgStroke}
                     strokeWidth="8"
                 />
                 {/* Progress circle */}
@@ -24,7 +30,7 @@ const DonutChart = ({ percentage, size = 160 }) => {
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke="#10b981"
+                    stroke={fgStroke}
                     strokeWidth="8"
                     strokeDasharray={strokeDasharray}
                     strokeLinecap="round"

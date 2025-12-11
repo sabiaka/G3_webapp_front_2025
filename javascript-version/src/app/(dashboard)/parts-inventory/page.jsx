@@ -46,7 +46,7 @@ return () => {
     }, [apiBase]);
 
     return (
-        <div className="bg-slate-100 text-gray-800" style={{ minHeight: '100vh', marginTop: '-24px' }}>
+        <div className="pi-root" style={{ minHeight: '100vh', marginTop: '-24px' }}>
             {/* Google Fonts (proxy 環境では既定で無効。必要なら NEXT_PUBLIC_ENABLE_GOOGLE_FONTS=true を設定) */}
             {enableGoogleFonts && (
                 <>
@@ -89,14 +89,14 @@ return () => {
                                         一括QR生成
                                     </button>
                                 </div>
-                                <div className="overflow-x-auto bg-white p-2 pl-0 rounded-xl shadow-md">
+                                <div className="overflow-x-auto pi-surface p-2 pl-0 rounded-xl shadow-md">
                                     <div id="rack-display-area" className="min-w-max">{/* JS will build the labeled grid here */}</div>
                                 </div>
                             </div>
 
                             {/* 詳細と操作 */}
                             <div className="lg:col-span-1">
-                                <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                                <div className="pi-surface rounded-xl shadow-md p-6 sticky top-24">
                                     <h2 className="text-2xl font-bold mb-4">情報・操作</h2>
                                     {/* 検索 */}
                                     <div className="mb-6">
