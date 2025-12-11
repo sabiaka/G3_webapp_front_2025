@@ -141,6 +141,79 @@
 
         <div class="space-y-12">
 
+            <section id="sse-overview">
+                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">SSE通知の概要</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="text-sm mb-4">各APIの処理完了時に、フロントエンドへリアルタイム通知を送るためのサーバー送信イベント (SSE) を実装しました。</p>
+                    <div class="p-4 bg-slate-900 text-slate-100 rounded-lg">
+                        <p class="text-sm font-semibold mb-2">イベントペイロードの共通フォーマット</p>
+                        <pre><code class="language-json">{
+    "ivent": "<イベント名>",
+    "message": "<日本語メッセージ>"
+}</code></pre>
+                        <p class="text-xs text-slate-300 mt-2">ペイロードはイベント名とメッセージのみを含みます。追加情報が必要な場合は該当エンドポイントを GET してください。</p>
+                    </div>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">イベントと対応API</h3>
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr>
+                                <th class="border-b-2 p-2">イベント名</th>
+                                <th class="border-b-2 p-2">対象API</th>
+                                <th class="border-b-2 p-2">トリガー条件</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-b p-2 font-mono">sse:connected</td>
+                                <td class="border-b p-2">SSEクライアントが接続（または再接続）したとき</td>
+                                <td class="border-b p-2">接続確立時に送信されるハンドシェイク用イベント</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">plc:logReceived</td>
+                                <td class="border-b p-2"><a href="#post-plc-data" class="text-indigo-600 underline">POST /api/ingress/plc</a></td>
+                                <td class="border-b p-2">PLC ログを受け付けて永続化した直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">machine:started</td>
+                                <td class="border-b p-2"><a href="#start-machine" class="text-indigo-600 underline">POST /api/machines/{id}/start</a></td>
+                                <td class="border-b p-2">機械の稼働開始を記録した直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">production:lotIncremented</td>
+                                <td class="border-b p-2"><a href="#increment-production" class="text-indigo-600 underline">POST /api/machines/{id}/increment-production</a></td>
+                                <td class="border-b p-2">生産数を +1 し、lot_id を進めた直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">inspection:imageUploaded</td>
+                                <td class="border-b p-2"><a href="#post-before-inspection-image" class="text-indigo-600 underline">POST /api/ingress/inspection/{lot_id}</a></td>
+                                <td class="border-b p-2">【A層】検査前画像を受信して保存した直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">inspection:resultUpdated</td>
+                                <td class="border-b p-2"><a href="#put-after-inspection-data" class="text-indigo-600 underline">PUT /api/ingress/inspection/result/{filename}</a></td>
+                                <td class="border-b p-2">【A層】検査後データを更新し終えた直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">inspection:batchUploaded</td>
+                                <td class="border-b p-2"><a href="#post-before-inspection-image2" class="text-indigo-600 underline">POST /api/ingress/inspection/batch/{lot_id}</a></td>
+                                <td class="border-b p-2">【ばねどめ】ロット単位の一括登録が完了した直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">inspection:lotReset</td>
+                                <td class="border-b p-2"><a href="#reset-inspection-status" class="text-indigo-600 underline">POST /api/ingress/inspection/{lot_id}/reset</a></td>
+                                <td class="border-b p-2">ロットを再検査待ちへ戻した直後</td>
+                            </tr>
+                            <tr>
+                                <td class="border-b p-2 font-mono">inspection:lotDeleted</td>
+                                <td class="border-b p-2"><a href="#delete-lot" class="text-indigo-600 underline">DELETE /api/ingress/inspection/{lot_id}</a></td>
+                                <td class="border-b p-2">ロットと付随リソースを削除した直後</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-xs text-slate-500 mt-4">バックエンドの全イベント一覧は <code>docs/API設計/sse-events.md</code> を参照してください。</p>
+                </div>
+            </section>
+
             <!-- 1. 機械系DB設計 -->
             <section id="db-design">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">1. 機械系DB設計</h2>
@@ -233,6 +306,14 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <pre><code class="language-json">{
     "message": "データを受け付けました。処理を開始します。"
 }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">ログを受け付けると <code>plc:logReceived</code> を配信し、監視UIへ反映させます。</p>
+                    <pre><code class="language-json">{
+    "ivent": "plc:logReceived",
+    "message": "PLCログが受信されました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">イベントは要約のみを通知するため、詳細表示時は最新ログを再取得してください。</p>
                 </div>
             </section>
 
@@ -251,6 +332,14 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <pre><code class="language-json">{
     "started_at": "2025-07-15T08:00:00Z"
 }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">稼働開始を登録すると <code>machine:started</code> を配信してダッシュボードへ通知します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "machine:started",
+    "message": "機械の稼働が開始されました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">稼働状況の最新情報が必要な場合は対象機械の状態 API を再取得してください。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <pre><code class="language-json">{
@@ -297,6 +386,14 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
     "today_production_count": 1521,
     "lot_id": "MAT-00123",
 }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">成功時にリアルタイム通知 <code>production:lotIncremented</code> を配信します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "production:lotIncremented",
+    "message": "生産数がインクリメントされました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">最新状況が必要な場合は該当エンドポイントを再度 GET してください。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
                     <p class="text-sm mb-1">400 Bad Request（<code>section</code> が未指定または不正な値）</p>
@@ -424,6 +521,13 @@ print("レスポンス:", resp.json())
     "lot_id": "MAT-00125",
     "filename": "MAT-00125_B-spring01_A-4_D-5.png"
 }</code></pre>
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">登録完了後に <code>inspection:imageUploaded</code> を即時通知します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "inspection:imageUploaded",
+    "message": "検査前画像がアップロードされました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">イベントは要約情報のみを保持するため、必要に応じて検査データを再取得してください。</p>
                 </div>
             </section>
 
@@ -511,6 +615,14 @@ print("レスポンス:", resp.json())
     "message": "検査結果、更新しといたよ！🎉",
     "filename": "MAT-00123_B-spring01_A-4_D-5.png"
 }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">更新成功後は <code>inspection:resultUpdated</code> を配信してクライアントへ通知します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "inspection:resultUpdated",
+    "message": "検査結果が更新されました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">追加データが必要なときは対象ロットの詳細を GET してください。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <p class="text-sm">対象の検査前データが見つからない場合に返ります。</p>
@@ -620,7 +732,7 @@ http://10.100.54.170:3001/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</co
             </section>
 
             <!-- 10. 検査結果一括登録(ばねどめ検査用) -->
-            <section id="post-before-inspection-image">
+            <section id="post-before-inspection-image2">
                 <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">10. 検査結果一括登録(ばねどめ検査用)</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex items-center space-x-4 mb-4">
@@ -699,6 +811,14 @@ except Exception:
     "lot_id": "MAT-00125",
     "filename": "MAT-00125_B-spring01_1.jpg"
 }</code></pre>
+
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">一括登録が完了すると <code>inspection:batchUploaded</code> を配信します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "inspection:batchUploaded",
+    "message": "検査結果が一括で登録されました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">必要に応じて最新の検査結果を GET し、詳細情報を取得してください。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (404 Not Found)</h3>
                     <pre><code class="language-json">{
@@ -827,6 +947,14 @@ except Exception:
     "updated_count": 18
 }</code></pre>
 
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">リセット完了後に <code>inspection:lotReset</code> を通知します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "inspection:lotReset",
+    "message": "検査ロットがリセットされました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">更新後のショット一覧を反映する場合はロット詳細を再取得してください。</p>
+
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
                     <p class="text-sm mb-1">404 Not Found（指定された <code>lot_id</code> が存在しない）</p>
                     <pre><code class="language-json">{
@@ -894,6 +1022,14 @@ except Exception:
     "message": "ロット MAT-00110 を削除しました。"
 }</code></pre>
 
+                    <h3 class="text-lg font-semibold mt-6 mb-2">SSEイベント</h3>
+                    <p class="text-sm mb-2">削除成功時に <code>inspection:lotDeleted</code> を配信して他クライアントへ同期します。</p>
+                    <pre><code class="language-json">{
+    "ivent": "inspection:lotDeleted",
+    "message": "検査ロットが削除されました"
+}</code></pre>
+                    <p class="text-xs text-slate-600 mt-2">依存画面は通知を受けたら一覧を再取得してください。</p>
+
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス</h3>
                     <p class="text-sm mb-1">404 Not Found（指定ロットが存在しない）</p>
                     <pre><code class="language-json">{
@@ -914,111 +1050,6 @@ except Exception:
                             <li>関連レポート等で参照される場合は別途連携テーブルの整合性にも注意。</li>
                         </ul>
                     </div>
-                </div>
-            </section>
-
-
-            <!-- 14. サーバー送信イベント（SSE） -->
-            <section id="sse-events">
-                <h2 class="text-2xl font-bold border-b-2 border-indigo-500 pb-2 mb-4">14. サーバー送信イベント（SSE）連携</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4">リアルタイムにフロントエンドへ通知を届けるため、バックエンドはサーバー送信イベント（SSE）を通じて主要オペレーションを配信します。イベントの完全なペイロード例は
-                        <span class="font-mono">docs/API設計/sse-events.md</span>
-                        を参照してください。ここでは本ドキュメントで定義したエンドポイントと紐づくイベントの要約を示します。</p>
-
-                    <div class="p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 rounded-r-lg text-sm mb-4">
-                        <p class="font-semibold">基本ポリシー</p>
-                        <ul class="list-disc list-inside space-y-1 mt-2">
-                            <li>SSE ストリームは <span class="font-mono">GET /api/events</span> で公開し、<code>EventSource</code>
-                                から <code>withCredentials: true</code> で接続します。</li>
-                            <li>全イベント共通で <span class="font-mono">timestamp</span>（UNIX milliseconds）と <span
-                                    class="font-mono">type</span> を含みます。クライアントは <code>type</code> をキーに処理を分岐します。</li>
-                            <li>接続直後には疎通確認用の <span class="font-mono">sse:connected</span> を必ず送出し、監視 UI のステータス更新に利用します。
-                            </li>
-                        </ul>
-                    </div>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">接続時イベント</h3>
-                    <pre><code class="language-json">{
-    "type": "sse:connected",
-    "connectedAt": "2025-12-10T06:14:22.126Z"
-}</code></pre>
-                    <p class="text-sm text-slate-600 mt-2">ヘルスチェック兼ステータス表示用。クライアントはこのイベントを受信した時点で UI を「受信中」に切り替えます。</p>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">イベント一覧（ダイジェスト）</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr>
-                                    <th class="border-b-2 p-2">Event <code>type</code></th>
-                                    <th class="border-b-2 p-2">発火トリガー</th>
-                                    <th class="border-b-2 p-2">主なペイロード</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:imageUploaded</td>
-                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/{lot_id}</code></td>
-                                    <td class="border-b p-2">lotId, filename, sectionCode, cameraId</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:lotCreated</td>
-                                    <td class="border-b p-2"><code>POST /api/ingress/inspection</code></td>
-                                    <td class="border-b p-2">lotId, sectionCode, filenames[]</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:batchUploaded</td>
-                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/batch/{lot_id}</code>
-                                    </td>
-                                    <td class="border-b p-2">lotId, filename, status</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:resultUpdated</td>
-                                    <td class="border-b p-2"><code>PUT /api/ingress/inspection/result/{filename}</code>
-                                    </td>
-                                    <td class="border-b p-2">filename, status, details</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:lotReset</td>
-                                    <td class="border-b p-2"><code>POST /api/ingress/inspection/{lot_id}/reset</code>
-                                    </td>
-                                    <td class="border-b p-2">lotId, updatedCount</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">inspection:lotDeleted</td>
-                                    <td class="border-b p-2"><code>DELETE /api/ingress/inspection/{lot_id}</code></td>
-                                    <td class="border-b p-2">lotId, deletedFiles</td>
-                                </tr>
-                                <tr>
-                                    <td class="border-b p-2 font-mono">production:lotIncremented</td>
-                                    <td class="border-b p-2"><code>POST /api/machines/{id}/increment-production</code>
-                                    </td>
-                                    <td class="border-b p-2">machineId, lotId, section, todayProductionCount</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="text-xs text-slate-600 mt-2">※ 上記に挙げたフィールドは「最低限の確認用」です。完全な JSON は <span
-                            class="font-mono">sse-events.md</span> に掲載しています。</p>
-
-                    <h3 class="text-lg font-semibold mt-6 mb-2">クライアント側ハンドリング例</h3>
-                    <div class="code-block-wrapper">
-                        <pre><code class="language-javascript">const source = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001'}/api/events`, {
-  withCredentials: true
-});
-
-source.addEventListener('inspection:resultUpdated', event => {
-  const payload = JSON.parse(event.data);
-  // TODO: 任意の状態管理へ反映する
-});
-
-source.onerror = () => {
-  // TODO: UI 上で切断状態を表示し、必要に応じてリトライを実装する
-  source.close();
-};</code></pre>
-                    </div>
-                    <p class="text-xs text-slate-600 mt-2">開発環境では <span class="font-mono">NEXT_PUBLIC_API_BASE</span>
-                        を設定すると、ダッシュボード以外のクライアントからも同一 SSE ストリームを共有できます。</p>
                 </div>
             </section>
         </div>
