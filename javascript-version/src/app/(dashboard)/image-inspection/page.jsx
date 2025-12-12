@@ -58,6 +58,7 @@ const SECTION_TAB_INDEX = {
 const ImageInspection = () => {
   // 現在選択中のタブインデックス
   const [activeTab, setActiveTab] = useState(0)
+  const [syncedLotIdForTab, setSyncedLotIdForTab] = useState(null)
 
   // 検査ロット関連のデータ取得・操作関数
   const {
@@ -69,6 +70,7 @@ const ImageInspection = () => {
     getLotShotsByCamera,
     getLotShots,
     getLotShotsStatus,
+    getLotShotsSummary,
     getAvailableDates,
     ensureLotShotsLoaded,
     getLotById,
@@ -88,12 +90,19 @@ const ImageInspection = () => {
   const selectedLotInfo = useMemo(() => getLotById(selectedLotId), [getLotById, selectedLotId])
 
   useEffect(() => {
-    if (!selectedLotInfo) return
-    const targetIndex = SECTION_TAB_INDEX[selectedLotInfo.section]
-    if (typeof targetIndex === 'number' && targetIndex !== activeTab) {
-      setActiveTab(targetIndex)
+    if (!selectedLotInfo) {
+      if (syncedLotIdForTab !== null) setSyncedLotIdForTab(null)
+      return
     }
-  }, [selectedLotInfo, activeTab])
+
+    const targetIndex = SECTION_TAB_INDEX[selectedLotInfo.section]
+    if (typeof targetIndex !== 'number') return
+
+    if (syncedLotIdForTab === selectedLotInfo.lotId) return
+
+    setActiveTab(targetIndex)
+    setSyncedLotIdForTab(selectedLotInfo.lotId)
+  }, [selectedLotInfo, syncedLotIdForTab])
 
   const handleSectionCardClick = sectionKey => {
     const targetIndex = SECTION_TAB_INDEX[sectionKey]
@@ -254,6 +263,7 @@ const ImageInspection = () => {
       getLotShotsByCamera={getLotShotsByCamera}
       getLotShots={getLotShots}
       getLotShotsStatus={getLotShotsStatus}
+      getLotShotsSummary={getLotShotsSummary}
       ensureLotShotsLoaded={ensureLotShotsLoaded}
       getSectionStats={getSectionStats}
       getFailReasons={getFailReasons}

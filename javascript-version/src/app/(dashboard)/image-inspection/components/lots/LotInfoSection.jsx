@@ -5,6 +5,9 @@ import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 
+import ShotsSummaryBlock from './ShotsSummaryBlock'
+import { normalizeShotSummary } from '../../utils/summaryUtils'
+
 const resolveDisplayName = (item, index) => {
   const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
   for (const candidate of candidates) {
@@ -23,6 +26,10 @@ const LotInfoSection = ({
   setLightbox,
   getChipColor,
   statusItems,
+  summary,
+  summaryItems,
+  summaryLabel = '検査サマリー',
+  additionalSummaries = [],
 }) => {
   if (!lot) return null
 
@@ -37,15 +44,20 @@ const LotInfoSection = ({
   }
 
   const chips = Array.isArray(statusItems) && statusItems.length > 0 ? statusItems : lot.cameras || []
+  const normalizedAdditionalSummaries = Array.isArray(additionalSummaries) ? additionalSummaries : []
 
-  const hasCameraDetails = chips.some(item => {
-    const normalizedStatus = (item?.status || '').toString().trim().toUpperCase()
-    return (
-      normalizedStatus !== 'OK' &&
-      normalizedStatus !== 'PASS' &&
-      item?.details &&
-      item.details !== '-'
-    )
+  const summaryBlocks = []
+  const primaryFallbackItems = Array.isArray(summaryItems) ? summaryItems : chips
+  const primarySummary = normalizeShotSummary(summary, primaryFallbackItems)
+  if (primarySummary) {
+    summaryBlocks.push({ label: summaryLabel, data: primarySummary })
+  }
+
+  normalizedAdditionalSummaries.forEach((entry, index) => {
+    const resolved = normalizeShotSummary(entry?.summary, entry?.items)
+    if (resolved) {
+      summaryBlocks.push({ label: entry?.label || `サマリー${index + 1}`, data: resolved })
+    }
   })
 
   return (
@@ -70,6 +82,14 @@ const LotInfoSection = ({
         />
       </Box>
 
+      {summaryBlocks.length > 0 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {summaryBlocks.map((block, index) => (
+            <ShotsSummaryBlock key={block.label || index} title={block.label} summary={block.data} />
+          ))}
+        </Box>
+      )}
+
       <Divider flexItem />
 
       <Box>
@@ -93,31 +113,6 @@ const LotInfoSection = ({
             )
           })}
         </Box>
-        {hasCameraDetails && (
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {chips
-              .filter(item => {
-                const normalizedStatus = (item?.status || '').toString().trim().toUpperCase()
-                return (
-                  normalizedStatus !== 'OK' &&
-                  normalizedStatus !== 'PASS' &&
-                  item?.details &&
-                  item.details !== '-'
-                )
-              })
-              .map((item, index) => {
-                const normalizedStatus = (item?.status || '').toString().trim().toUpperCase()
-                const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
-                const label = resolveDisplayName(item, index)
-
-                return (
-                  <Typography key={index} variant="body2" color={detailColor}>
-                    {label}: {item.details}
-                  </Typography>
-                )
-              })}
-          </Box>
-        )}
       </Box>
     </Box>
   )

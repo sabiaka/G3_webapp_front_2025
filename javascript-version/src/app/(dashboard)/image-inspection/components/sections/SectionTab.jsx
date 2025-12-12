@@ -1,6 +1,6 @@
 // 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -42,6 +42,7 @@ const SectionTab = ({
   selectedLotInfo,
   onOpenLot,
   onCloseLot,
+  getLotShotsSummary,
 }) => {
   // 日付切替（セクション別に）
   const availableDatesRaw = useMemo(() => getAvailableDates(section) || [], [getAvailableDates, section])
@@ -52,6 +53,7 @@ const SectionTab = ({
     }
     return availableDatesRaw
   }, [availableDatesRaw, selectedLotInfo, section])
+
   const [selectedDateIndex, setSelectedDateIndex] = useState(0)
   const [manualDate, setManualDate] = useState('')
   const selectedDate = manualDate || (availableDates[selectedDateIndex] || undefined)
@@ -59,7 +61,6 @@ const SectionTab = ({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentModalLotId, setCurrentModalLotId] = useState(null)
   const [localLotSnapshot, setLocalLotSnapshot] = useState(null)
-  const closingLotIdRef = useRef(null)
 
   useEffect(() => {
     if (!manualDate) return
@@ -191,38 +192,13 @@ const SectionTab = ({
   }, [selectedLot, section, currentModalLotId])
 
   useEffect(() => {
-    const targetedByUrl = Boolean(
-      selectedLotId && (
-        (selectedLotInfo && selectedLotInfo.section === section) ||
-        (selectedLot && selectedLot.section === section)
-      )
-    )
+    if (selectedLotId) return
+    if (!isModalOpen && !currentModalLotId && !localLotSnapshot) return
 
-    if (targetedByUrl) {
-      if (closingLotIdRef.current === selectedLotId) return
-      setCurrentModalLotId(prev => (prev === selectedLotId ? prev : selectedLotId))
-      if (!isModalOpen) setIsModalOpen(true)
-      if (selectedLotInfo && selectedLotInfo.lotId === selectedLotId) {
-        setLocalLotSnapshot(prev => (prev && prev.lotId === selectedLotId ? prev : selectedLotInfo))
-      } else if (selectedLot && selectedLot.lotId === selectedLotId) {
-        setLocalLotSnapshot(prev => (prev && prev.lotId === selectedLotId ? prev : selectedLot))
-      }
-    } else if (selectedLotId) {
-      if (currentModalLotId === selectedLotId && !isModalOpen) setIsModalOpen(true)
-      return
-    } else {
-      const routerPending = currentModalLotId && closingLotIdRef.current === null && isModalOpen
-      if (routerPending) return
-      closingLotIdRef.current = null
-      if (isModalOpen) setIsModalOpen(false)
-      if (currentModalLotId) setCurrentModalLotId(null)
-      if (localLotSnapshot) setLocalLotSnapshot(null)
-    }
-
-    if (selectedLotId && closingLotIdRef.current && closingLotIdRef.current !== selectedLotId) {
-      closingLotIdRef.current = null
-    }
-  }, [selectedLotId, selectedLotInfo, selectedLot, section, currentModalLotId, isModalOpen, localLotSnapshot])
+    if (isModalOpen) setIsModalOpen(false)
+    if (currentModalLotId) setCurrentModalLotId(null)
+    if (localLotSnapshot) setLocalLotSnapshot(null)
+  }, [selectedLotId, isModalOpen, currentModalLotId, localLotSnapshot])
 
   useEffect(() => {
     if (!isModalOpen || !currentModalLotId || !ensureLotShotsLoaded) return
@@ -254,8 +230,17 @@ const SectionTab = ({
     return getLotShots(modalLotId, { type: '4K' })
   }, [modalLotId, section, getLotShots])
 
+  const selectedLotShotsSummary = useMemo(() => {
+    if (!modalLotId) return null
+    return getLotShotsSummary(modalLotId)
+  }, [modalLotId, getLotShotsSummary])
+
+  const selectedLotShots4KSummary = useMemo(() => {
+    if (!modalLotId || section !== 'A層') return null
+    return getLotShotsSummary(modalLotId, { type: '4K' })
+  }, [modalLotId, section, getLotShotsSummary])
+
   const handleOpenLot = lot => {
-    closingLotIdRef.current = null
     setIsModalOpen(true)
     setCurrentModalLotId(lot.lotId)
     setLocalLotSnapshot(lot)
@@ -270,7 +255,6 @@ const SectionTab = ({
 
   const handleCloseLotModal = () => {
     const lotIdToClose = modalLotId
-    if (lotIdToClose) closingLotIdRef.current = lotIdToClose
     setIsModalOpen(false)
     setCurrentModalLotId(null)
     setLocalLotSnapshot(null)
@@ -429,6 +413,7 @@ const SectionTab = ({
           lotStatus={selectedLotStatus}
           shots4k={selectedLotShots4K}
           shotsStatus={lotShotsStatus}
+          shots4kSummary={selectedLotShots4KSummary}
           onClose={handleCloseLotModal}
           setLightbox={setLightbox}
         />
@@ -439,6 +424,7 @@ const SectionTab = ({
           lotStatus={selectedLotStatus}
           shotsByCamera={selectedLotShotsByCamera}
           shotsStatus={lotShotsStatus}
+          lotSummary={selectedLotShotsSummary}
           onClose={handleCloseLotModal}
           setLightbox={setLightbox}
         />
