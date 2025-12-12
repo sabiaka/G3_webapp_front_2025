@@ -155,6 +155,9 @@
       mediaQuery.addListener(handleMediaChange);
     }
 
+    const listLinks = Array.prototype.slice.call(nav.querySelectorAll('.docs-side-nav__link'));
+    let isProgrammaticScroll = false;
+
     const setActiveLink = function(id) {
       listLinks.forEach(function(link) {
         if (link.getAttribute('href') === '#' + id) {
@@ -165,10 +168,77 @@
       });
     };
 
-    const listLinks = Array.prototype.slice.call(nav.querySelectorAll('.docs-side-nav__link'));
+    const syncActiveToScrollPosition = function() {
+      const offsetMobile = 72;
+      const offsetDesktop = 32;
+      const offset = mediaQuery.matches ? offsetDesktop : offsetMobile;
+      const targetY = window.scrollY + offset + 1;
+      let bestId = null;
+      let bestDelta = Number.POSITIVE_INFINITY;
+
+      navItems.forEach(function(item) {
+        const element = item.element;
+        if (!element) return;
+        const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+        const delta = Math.abs(absoluteTop - targetY);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestId = item.id;
+        }
+      });
+
+      if (bestId) {
+        setActiveLink(bestId);
+      }
+    };
+
+    let scrollSyncFrame = null;
+    const scheduleScrollSync = function() {
+      if (scrollSyncFrame !== null) {
+        cancelAnimationFrame(scrollSyncFrame);
+        scrollSyncFrame = null;
+      }
+
+      let stableFrames = 0;
+      let lastPosition = window.scrollY;
+      const maxFrames = 240; // ~4s at 60fps safeguard
+      let frameCount = 0;
+
+      const step = function() {
+        frameCount += 1;
+        const currentPosition = window.scrollY;
+        if (Math.abs(currentPosition - lastPosition) < 0.5) {
+          stableFrames += 1;
+          if (stableFrames >= 6) {
+            syncActiveToScrollPosition();
+            isProgrammaticScroll = false;
+            scrollSyncFrame = null;
+            return;
+          }
+        } else {
+          stableFrames = 0;
+          lastPosition = currentPosition;
+        }
+
+        if (frameCount >= maxFrames) {
+          syncActiveToScrollPosition();
+          isProgrammaticScroll = false;
+          scrollSyncFrame = null;
+          return;
+        }
+
+        scrollSyncFrame = requestAnimationFrame(step);
+      };
+
+      scrollSyncFrame = requestAnimationFrame(step);
+    };
+
     const scrollToSection = function(targetId) {
       const target = document.getElementById(targetId);
-      if (!target) return;
+      if (!target) {
+        isProgrammaticScroll = false;
+        return;
+      }
       const rect = target.getBoundingClientRect();
       const offsetMobile = 72;
       const offsetDesktop = 32;
@@ -184,15 +254,17 @@
       link.addEventListener('click', function(event) {
         event.preventDefault();
         const id = link.getAttribute('href').slice(1);
+        isProgrammaticScroll = true;
         scrollToSection(id);
         setActiveLink(id);
+        scheduleScrollSync();
         closeNav();
       });
     });
 
     const observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !isProgrammaticScroll) {
           const currentId = entry.target.id;
           if (currentId) {
             setActiveLink(currentId);
