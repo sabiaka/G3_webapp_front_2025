@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -114,6 +114,7 @@ const useInspectionEvents = ({
 const statusChipConfig = {
   connecting: { label: '接続中', color: 'warning' },
   open: { label: '受信中', color: 'success' },
+  retrying: { label: '再接続待機中', color: 'warning' },
   error: { label: '切断', color: 'error' }
 }
 
@@ -124,7 +125,11 @@ const SSEMonitoringPage = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [retryToken, setRetryToken] = useState(0)
   const [connectionInfo, setConnectionInfo] = useState(null)
+  const [retryAttempt, setRetryAttempt] = useState(0)
+  const [nextRetryInMs, setNextRetryInMs] = useState(null)
   const isClient = typeof window !== 'undefined'
+  const reconnectTimeoutRef = useRef(null)
+  const retryAttemptRef = useRef(0)
 
   const streamUrl = useMemo(() => {
     const trimmedApiBase = CONFIG_API_BASE ? CONFIG_API_BASE.replace(/\/$/, '') : null
@@ -148,15 +153,46 @@ const SSEMonitoringPage = () => {
     return `${protocol}://${host}${portSegment}${EVENT_STREAM_PATH}`
   }, [isClient])
 
-  const handleConnecting = useCallback(() => {
-    setStatus('connecting')
-    setErrorMessage(null)
+  const clearScheduledReconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+    setNextRetryInMs(null)
   }, [])
 
+  const scheduleReconnect = useCallback(() => {
+    clearScheduledReconnect()
+
+    retryAttemptRef.current += 1
+    setRetryAttempt(retryAttemptRef.current)
+
+    // Exponential backoff capped at 30 seconds keeps retry cadence sane even when the backend flaps
+    const baseDelay = 2000
+    const maxDelay = 30000
+    const computedDelay = Math.min(maxDelay, baseDelay * 2 ** (retryAttemptRef.current - 1))
+
+    setStatus('retrying')
+    setNextRetryInMs(computedDelay)
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      setRetryToken(token => token + 1)
+    }, computedDelay)
+  }, [clearScheduledReconnect])
+
+  const handleConnecting = useCallback(() => {
+    clearScheduledReconnect()
+    setStatus('connecting')
+    setErrorMessage(null)
+  }, [clearScheduledReconnect])
+
   const handleOpen = useCallback(() => {
+    clearScheduledReconnect()
+    retryAttemptRef.current = 0
+    setRetryAttempt(0)
     setStatus('open')
     setErrorMessage(null)
-  }, [])
+  }, [clearScheduledReconnect])
 
   const handleEvent = useCallback(payload => {
     setEvents(prev => {
@@ -175,7 +211,8 @@ const SSEMonitoringPage = () => {
   const handleError = useCallback(() => {
     setStatus('error')
     setErrorMessage('SSE接続でエラーが発生しました。ブラウザのコンソールログを確認してください。')
-  }, [])
+    scheduleReconnect()
+  }, [scheduleReconnect])
 
   const handleConnectionInfo = useCallback(update => {
     setConnectionInfo(prev => ({ ...(prev || {}), ...update }))
@@ -247,10 +284,32 @@ const SSEMonitoringPage = () => {
   }, [])
 
   const reconnect = useCallback(() => {
+    clearScheduledReconnect()
+    retryAttemptRef.current = 0
+    setRetryAttempt(0)
+    setStatus('connecting')
     setRetryToken(token => token + 1)
-  }, [])
+  }, [clearScheduledReconnect])
 
   const statusChip = statusChipConfig[status] || statusChipConfig.connecting
+
+  useEffect(() => {
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const nextRetryLabel = useMemo(() => {
+    if (!retryAttempt || !nextRetryInMs) {
+      return null
+    }
+
+    const seconds = Math.ceil(nextRetryInMs / 1000)
+
+    return `自動再接続 ${retryAttempt} 回目: 約 ${seconds} 秒後に再試行します。`
+  }, [retryAttempt, nextRetryInMs])
 
   return (
     <Grid container spacing={6} sx={{ pb: 6 }}>
@@ -277,6 +336,11 @@ const SSEMonitoringPage = () => {
             </Button>
           </Stack>
         </Stack>
+        {nextRetryLabel ? (
+          <Typography variant='caption' color='text.secondary' sx={{ mt: 2, display: 'block' }}>
+            {nextRetryLabel}
+          </Typography>
+        ) : null}
       </Grid>
 
       {errorMessage ? (
