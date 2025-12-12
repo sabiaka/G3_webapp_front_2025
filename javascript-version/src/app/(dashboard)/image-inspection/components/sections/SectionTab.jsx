@@ -1,6 +1,6 @@
 // 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -61,6 +61,7 @@ const SectionTab = ({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentModalLotId, setCurrentModalLotId] = useState(null)
   const [localLotSnapshot, setLocalLotSnapshot] = useState(null)
+  const prevSelectedLotIdRef = useRef(selectedLotId)
 
   useEffect(() => {
     if (!manualDate) return
@@ -192,12 +193,16 @@ const SectionTab = ({
   }, [selectedLot, section, currentModalLotId])
 
   useEffect(() => {
-    if (selectedLotId) return
-    if (!isModalOpen && !currentModalLotId && !localLotSnapshot) return
+    // Close modal when URL loses the lot parameter (e.g., via back navigation).
+    const prevSelectedLotId = prevSelectedLotIdRef.current
 
-    if (isModalOpen) setIsModalOpen(false)
-    if (currentModalLotId) setCurrentModalLotId(null)
-    if (localLotSnapshot) setLocalLotSnapshot(null)
+    if (!selectedLotId && prevSelectedLotId) {
+      if (isModalOpen) setIsModalOpen(false)
+      if (currentModalLotId) setCurrentModalLotId(null)
+      if (localLotSnapshot) setLocalLotSnapshot(null)
+    }
+
+    prevSelectedLotIdRef.current = selectedLotId
   }, [selectedLotId, isModalOpen, currentModalLotId, localLotSnapshot])
 
   useEffect(() => {
