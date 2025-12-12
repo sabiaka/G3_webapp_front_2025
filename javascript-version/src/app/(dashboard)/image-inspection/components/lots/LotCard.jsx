@@ -1,12 +1,13 @@
 // ロットカード表示コンポーネント
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
+import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 
 import { getFallbackImageBase, toImageUrl } from '../../utils/imageUrl'
@@ -14,6 +15,7 @@ import { getFallbackImageBase, toImageUrl } from '../../utils/imageUrl'
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
+const SUMMARY_THRESHOLD = 8
 
 const normalizeRelativePath = path => {
   if (!path) return null
@@ -38,6 +40,16 @@ const getChipColor = status => {
   return 'default'
 }
 
+const getStatusPriority = status => {
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'NG') return 0
+  if (normalized === 'MISSING') return 1
+  if (normalized === 'FAIL') return 2
+  if (normalized === 'OK') return 3
+  if (normalized === 'UNKNOWN') return 4
+  return 5
+}
+
 const resolveDisplayName = (item, index) => {
   const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
   for (const candidate of candidates) {
@@ -55,6 +67,14 @@ const LotCard = ({
   onOpen,
   isActive = false,
 }) => {
+  const cameraList = lot.cameras || []
+  const shouldSummarize = cameraList.length > SUMMARY_THRESHOLD
+  const [showAllCameras, setShowAllCameras] = useState(false)
+  const showDetailedView = !shouldSummarize || showAllCameras
+
+  useEffect(() => {
+    setShowAllCameras(false)
+  }, [lot.lotId])
 
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
@@ -81,6 +101,45 @@ const LotCard = ({
     () => buildImageSources(lot.representativeImage),
     [buildImageSources, lot.representativeImage],
   )
+
+  const cameraStatusSummary = useMemo(() => {
+    if (!shouldSummarize) return []
+    const summaryMap = new Map()
+
+    cameraList.forEach(camera => {
+      const rawLabel = (camera?.status ?? 'UNKNOWN').toString().trim()
+      const displayLabel = rawLabel || 'UNKNOWN'
+      const normalized = displayLabel.toUpperCase()
+      const current = summaryMap.get(normalized)
+
+      if (current) {
+        current.count += 1
+      } else {
+        summaryMap.set(normalized, {
+          normalized,
+          displayLabel,
+          count: 1,
+        })
+      }
+    })
+
+    return Array.from(summaryMap.values()).sort((a, b) => {
+      const priorityDiff = getStatusPriority(a.normalized) - getStatusPriority(b.normalized)
+      if (priorityDiff !== 0) return priorityDiff
+      if (b.count !== a.count) return b.count - a.count
+      return a.displayLabel.localeCompare(b.displayLabel)
+    })
+  }, [cameraList, shouldSummarize])
+
+  const problematicDetails = useMemo(() => {
+    return cameraList.reduce((accumulator, camera, index) => {
+      const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+      if (normalizedStatus !== 'OK' && camera.details && camera.details !== '-') {
+        accumulator.push({ camera, index })
+      }
+      return accumulator
+    }, [])
+  }, [cameraList])
 
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const chipColor = normalizedLotStatus === 'PASS'
@@ -139,33 +198,58 @@ const LotCard = ({
             <Typography variant="caption" color="text.secondary">
               判定要素
             </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => {
-                const normalizedCameraStatus = (camera.status || '').toString().trim().toUpperCase()
-                const label = resolveDisplayName(camera, index)
-                const statusLabel = camera?.status || 'UNKNOWN'
-
-                return (
+            {shouldSummarize && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {cameraStatusSummary.map(summary => (
                   <Chip
-                    key={`${label}-${index}`}
-                    label={`${label}: ${statusLabel}`}
+                    key={summary.normalized}
+                    label={`${summary.displayLabel}: ${summary.count}件`}
                     size="small"
-                    color={getChipColor(statusLabel)}
-                    variant={normalizedCameraStatus === 'OK' ? 'outlined' : 'filled'}
+                    color={getChipColor(summary.displayLabel)}
+                    variant={summary.normalized === 'OK' ? 'outlined' : 'filled'}
                   />
-                )
-              })}
-            </Box>
-            {(lot.cameras || []).some(c => c.status !== 'OK' && c.details && c.details !== '-') && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {(lot.cameras || []).filter(c => c.status !== 'OK' && c.details && c.details !== '-').map((c, idx) => {
-                  const normalizedStatus = (c.status || '').toString().trim().toUpperCase()
-                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
-                  const label = resolveDisplayName(c, idx)
+                ))}
+              </Box>
+            )}
+            {showDetailedView && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {cameraList.map((camera, index) => {
+                  const normalizedCameraStatus = (camera.status || '').toString().trim().toUpperCase()
+                  const label = resolveDisplayName(camera, index)
+                  const statusLabel = camera?.status || 'UNKNOWN'
 
                   return (
-                    <Typography key={idx} variant="caption" color={detailColor}>
-                      {label}: {c.details}
+                    <Chip
+                      key={`${label}-${index}`}
+                      label={`${label}: ${statusLabel}`}
+                      size="small"
+                      color={getChipColor(statusLabel)}
+                      variant={normalizedCameraStatus === 'OK' ? 'outlined' : 'filled'}
+                    />
+                  )
+                })}
+              </Box>
+            )}
+            {shouldSummarize && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setShowAllCameras(prev => !prev)}
+                sx={{ alignSelf: 'flex-start', mt: 1, px: 0 }}
+              >
+                {showAllCameras ? '概要に戻す' : `詳細を見る (${cameraList.length}項目)`}
+              </Button>
+            )}
+            {showDetailedView && problematicDetails.length > 0 && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {problematicDetails.map(({ camera, index }) => {
+                  const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
+                  const label = resolveDisplayName(camera, index)
+
+                  return (
+                    <Typography key={`${label}-${index}-detail`} variant="caption" color={detailColor}>
+                      {label}: {camera.details}
                     </Typography>
                   )
                 })}
