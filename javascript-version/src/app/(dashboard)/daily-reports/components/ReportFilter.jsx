@@ -2,13 +2,27 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
+// ★ 追加インポート
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
 
-export default function ReportFilter({ searchUser, searchDate, searchProduct, onChange }) {
+export default function ReportFilter({ 
+  searchUser, 
+  searchDate, 
+  searchProduct, 
+  sortOrder,       // ★追加: ソート状態を受け取る
+  onChange, 
+  onSortChange     // ★追加: ソート変更関数を受け取る
+}) {
   return (
-    <Card sx={{ mb: 6, borderRadius: 3, boxShadow: 3 }}>
+    <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 3 }}>
       <CardContent>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6} lg={6}>
+          
+          {/* 1. 担当者 (幅を 3/12 に変更) */}
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               label="担当者"
               value={searchUser}
@@ -19,7 +33,9 @@ export default function ReportFilter({ searchUser, searchDate, searchProduct, on
               variant="outlined"
             />
           </Grid>
-          <Grid item xs={12} md={3} lg={3}>
+
+          {/* 2. 日付 (幅を 3/12 に変更) */}
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               label="日付"
               type="date"
@@ -31,7 +47,9 @@ export default function ReportFilter({ searchUser, searchDate, searchProduct, on
               variant="outlined"
             />
           </Grid>
-          <Grid item xs={12} md={3} lg={3}>
+
+          {/* 3. 製品名 (幅を 3/12 に変更) */}
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               label="製品名"
               value={searchProduct}
@@ -42,6 +60,22 @@ export default function ReportFilter({ searchUser, searchDate, searchProduct, on
               variant="outlined"
             />
           </Grid>
+
+          {/* 4. 並び替え (★ここに追加！) */}
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth size="small" variant="outlined">
+              <InputLabel>並び替え</InputLabel>
+              <Select
+                value={sortOrder}
+                label="並び替え"
+                onChange={(e) => onSortChange(e.target.value)}
+              >
+                <MenuItem value="date_desc">日付が新しい順</MenuItem>
+                <MenuItem value="date_asc">日付が古い順</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
         </Grid>
       </CardContent>
     </Card>

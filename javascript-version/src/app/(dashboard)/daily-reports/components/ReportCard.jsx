@@ -4,13 +4,39 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
-export default function ReportCard({ report, dateFormatter, onViewDetail }) {
+const dateFormatter = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  });
+};
+
+// ★ currentUser, isAdmin を受け取る
+export default function ReportCard({ report, onViewDetail, onDelete, onEdit, currentUser, isAdmin }) {
   const handleDetailClick = () => {
-    if (onViewDetail) {
-      onViewDetail(report);
-    }
+    if (onViewDetail) onViewDetail(report);
   };
+
+  // --- 権限チェックロジック ---
+  
+  // 自分が作成した日報かどうか (安全のため文字列化して比較)
+  const isOwner = currentUser?.employee_id && 
+                  String(currentUser.employee_id) === String(report.employee_id);
+
+  // 編集できるか？ (管理者 または 本人)
+  const canEdit = isAdmin || isOwner;
+
+  // 削除できるか？ (管理者のみ)
+  const canDelete = isAdmin;
 
   return (
     <Card
@@ -40,7 +66,7 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
               width: 48,
               height: 48,
               borderRadius: '50%',
-              bgcolor: report.avatarColor,
+              bgcolor: report.avatarColor || '#ccc',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -67,12 +93,7 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
           </strong>{' '}
           <span style={{ fontWeight: 600 }}>{report.product}</span>
         </Box>
-        <Box sx={{ fontSize: 15, color: 'text.secondary', mb: 1 }}>
-          <strong style={{ width: 60, display: 'inline-block', color: '#6b7280' }}>
-            生産実績:
-          </strong>{' '}
-          <span style={{ fontWeight: 600 }}>{report.result}</span>
-        </Box>
+        
         <Box sx={{ mt: 1 }}>
           <strong style={{ color: '#6b7280', marginBottom: 4, display: 'inline-block' }}>
             作業内容:
@@ -91,7 +112,32 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
           </Typography>
         </Box>
       </CardContent>
-      <CardActions sx={{ justifyContent: 'flex-end' }}>
+      <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+        <Box>
+           {/* ★ 編集ボタン: 管理者 OR 本人のみ表示 */}
+           {canEdit && (
+             <IconButton 
+              aria-label="edit" 
+              color="primary" 
+              onClick={() => onEdit(report)}
+              sx={{ mr: 1 }}
+            >
+              <EditIcon />
+            </IconButton>
+           )}
+
+          {/* ★ 削除ボタン: 管理者のみ表示 */}
+          {canDelete && (
+            <IconButton 
+              aria-label="delete" 
+              color="error" 
+              onClick={() => onDelete(report.id)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          )}
+        </Box>
+
         <Button size="small" color="primary" sx={{ fontWeight: 'bold' }} onClick={handleDetailClick}>
           詳細を見る &rarr;
         </Button>
