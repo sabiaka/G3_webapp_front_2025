@@ -1,8 +1,8 @@
 import Grid from '@mui/material/Grid';
 import ReportCard from './ReportCard';
 
-// ★ props に onEdit を追加して受け取ります
-export default function ReportList({ reports, onDelete, onViewDetail, onEdit }) {
+// ★ currentUser, isAdmin を受け取る
+export default function ReportList({ reports, onDelete, onViewDetail, onEdit, currentUser, isAdmin }) {
   return (
     <Grid container spacing={3}>
       {reports.map((report) => (
@@ -11,7 +11,10 @@ export default function ReportList({ reports, onDelete, onViewDetail, onEdit }) 
             report={report} 
             onDelete={onDelete}
             onViewDetail={onViewDetail}
-            onEdit={onEdit} // ★ これを追加して、ReportCardに渡します！
+            onEdit={onEdit}
+            // ★ カードに渡す
+            currentUser={currentUser}
+            isAdmin={isAdmin}
           /> 
         </Grid>
       ))}

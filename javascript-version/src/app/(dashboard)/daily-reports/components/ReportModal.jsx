@@ -7,8 +7,15 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+
+// ★修正: 正しいパスに変更しました
+import useAuthMe from '@core/hooks/useAuthMe';
 
 export default function ReportModal({ open, onClose, onSubmit, initialData }) {
+  // ログインユーザー情報を取得
+  const { user } = useAuthMe();
+
   const [formData, setFormData] = useState({
     employee_id: '',
     line_id: '',
@@ -16,32 +23,21 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
     notes: ''
   });
 
-  const [employeeList, setEmployeeList] = useState([]);
   const [lineList, setLineList] = useState([]);
 
   // 編集モード判定
   const isEditMode = Boolean(initialData);
 
-  // マスタデータ取得
+  // マスタデータ取得 (ライン一覧のみ)
   useEffect(() => {
     if (open) {
       const fetchMasters = async () => {
         try {
-          const [empRes, lineRes] = await Promise.all([
-            fetch('/api/employees'),
-            fetch('/api/lines')      
-          ]);
-
-          if (empRes.ok) {
-            const data = await empRes.json();
-            setEmployeeList(data.employees || (Array.isArray(data) ? data : []));
-          }
-
+          const lineRes = await fetch('/api/lines');      
           if (lineRes.ok) {
             const data = await lineRes.json();
             setLineList(Array.isArray(data) ? data : (data.lines || []));
           }
-
         } catch (error) {
           console.error('マスタデータ取得エラー:', error);
         }
@@ -50,10 +46,11 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
     }
   }, [open]);
 
-  // 編集データがあればフォームにセット
+  // フォーム初期値の設定
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // --- 編集モード ---
         setFormData({
             employee_id: initialData.employee_id || '',
             line_id: initialData.line_id || '',
@@ -61,15 +58,20 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
             notes: initialData.work || '' 
         });
       } else {
+        // --- 新規登録モード ---
+        // ログインユーザーのIDを自動セット
+        // user.employee_id がなければ user.id を使う
+        const currentUserId = user?.employee_id || user?.id || '';
+        
         setFormData({
-          employee_id: '',
+          employee_id: currentUserId, 
           line_id: '',
           report_date: new Date().toISOString().split('T')[0],
           notes: ''
         });
       }
     }
-  }, [open, initialData]);
+  }, [open, initialData, user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -77,12 +79,17 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
 
   const handleSubmit = () => {
     if (!formData.employee_id || !formData.line_id || !formData.report_date) {
-      alert('担当者、日付、製品名は必須です');
+      alert('担当者情報、日付、製品名は必須です');
       return;
     }
     onSubmit(formData);
     onClose();
   };
+
+  // 表示する担当者名
+  const displayUserName = isEditMode 
+    ? initialData?.user // 編集時は元データの名前
+    : (user?.employee_name || user?.name || user?.username || '読み込み中...');
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -91,6 +98,8 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+          
+          {/* 日付 */}
           <TextField
             label="日付"
             type="date"
@@ -100,22 +109,18 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
             fullWidth
             InputLabelProps={{ shrink: true }}
           />
-          <TextField
-            select
-            label="担当者"
-            name="employee_id"
-            value={formData.employee_id}
-            onChange={handleChange}
-            fullWidth
-          >
-            {employeeList.length === 0 && <MenuItem disabled>読み込み中...</MenuItem>}
-            {employeeList.map((emp) => (
-              <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                {/* ★修正: ID表示を削除し、名前だけにしました */}
-                {emp.employee_name}
-              </MenuItem>
-            ))}
-          </TextField>
+
+          {/* 担当者 (自動入力表示) */}
+          <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              担当者 (自動入力)
+            </Typography>
+            <Typography variant="body1" fontWeight="bold">
+              {displayUserName}
+            </Typography>
+          </Box>
+
+          {/* 製品名 (ライン) */}
           <TextField
             select
             label="製品名 (ライン)"
@@ -131,6 +136,8 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
               </MenuItem>
             ))}
           </TextField>
+
+          {/* 作業内容 */}
           <TextField
             label="作業内容"
             name="notes"
@@ -145,7 +152,13 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
       </DialogContent>
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose} color="inherit">キャンセル</Button>
-        <Button onClick={handleSubmit} variant="contained" color="primary">
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          color="primary"
+          // IDがセットされるまでボタンを押せないようにする
+          disabled={!formData.employee_id}
+        >
           {isEditMode ? '更新する' : '登録する'}
         </Button>
       </DialogActions>

@@ -11,7 +11,13 @@ import ReportModal from './components/ReportModal';
 import ReportDetailModal from './components/ReportDetailModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 
+// ★権限管理フック
+import useAuthMe from '@core/hooks/useAuthMe';
+
 export default function DailyReportsPage() {
+  // ★ 権限情報を取得
+  const { user, isAdmin } = useAuthMe();
+
   const [uiReports, setUiReports] = useState([]); 
   const [loading, setLoading] = useState(true);
   
@@ -23,7 +29,7 @@ export default function DailyReportsPage() {
   // 選択データ管理
   const [selectedReport, setSelectedReport] = useState(null); // 詳細用
   const [deleteTargetId, setDeleteTargetId] = useState(null); // 削除用
-  const [editingReport, setEditingReport] = useState(null);   // ★編集用
+  const [editingReport, setEditingReport] = useState(null);   // 編集用
 
   const [filters, setFilters] = useState({
     employee_name: '',
@@ -49,10 +55,10 @@ export default function DailyReportsPage() {
       const rawData = await res.json();
       const dataArray = rawData.reports || (Array.isArray(rawData) ? rawData : []);
 
-      // ★重要: ここで employee_id と line_id も持たせる
+      // データ整形
       const formattedData = dataArray.map((item) => ({
         id: item.report_id,
-        // 編集時に必要なID
+        // ★権限判定のために employee_id が必須
         employee_id: item.employee_id, 
         line_id: item.line_id,
         
@@ -116,7 +122,7 @@ export default function DailyReportsPage() {
     }
   };
 
-  // --- ★ 4. 更新処理 (PUT) ---
+  // --- 4. 更新処理 (PUT) ---
   const handleUpdate = async (formData) => {
     if (!editingReport) return;
     try {
@@ -130,19 +136,17 @@ export default function DailyReportsPage() {
       
       await fetchReports();
       setOpen(false);
-      setEditingReport(null); // クリア
+      setEditingReport(null);
     } catch (error) {
       alert('更新に失敗しました');
     }
   };
 
-  // ★ 編集ボタンクリック時の処理
   const handleEditClick = (report) => {
-    setEditingReport(report); // 編集対象をセット
-    setOpen(true);            // モーダルを開く
+    setEditingReport(report);
+    setOpen(true);
   };
 
-  // 詳細表示
   const handleViewDetail = (report) => {
     setSelectedReport(report);
     setDetailOpen(true);
@@ -190,7 +194,10 @@ export default function DailyReportsPage() {
           reports={uiReports} 
           onDelete={handleClickDelete}
           onViewDetail={handleViewDetail} 
-          onEdit={handleEditClick} // ★ここを追加
+          onEdit={handleEditClick}
+          // ★ここで権限情報をリストへ渡す
+          currentUser={user}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -202,7 +209,7 @@ export default function DailyReportsPage() {
           width: 64, height: 64, boxShadow: 6
         }}
         onClick={() => {
-          setEditingReport(null); // 新規なのでクリア
+          setEditingReport(null);
           setOpen(true);
         }}
       >
@@ -212,9 +219,7 @@ export default function DailyReportsPage() {
       <ReportModal 
         open={open} 
         onClose={() => { setOpen(false); setEditingReport(null); }} 
-        // 編集モードならUpdate、そうでなければAdd
         onSubmit={editingReport ? handleUpdate : handleAdd} 
-        // 編集データを渡す
         initialData={editingReport}
       />
 

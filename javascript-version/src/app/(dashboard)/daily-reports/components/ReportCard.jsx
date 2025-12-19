@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit'; // ★追加
+import EditIcon from '@mui/icons-material/Edit';
 
 const dateFormatter = (dateStr) => {
   if (!dateStr) return '';
@@ -20,11 +20,23 @@ const dateFormatter = (dateStr) => {
   });
 };
 
-// ★ onEdit を追加
-export default function ReportCard({ report, onViewDetail, onDelete, onEdit }) {
+// ★ currentUser, isAdmin を受け取る
+export default function ReportCard({ report, onViewDetail, onDelete, onEdit, currentUser, isAdmin }) {
   const handleDetailClick = () => {
     if (onViewDetail) onViewDetail(report);
   };
+
+  // --- 権限チェックロジック ---
+  
+  // 自分が作成した日報かどうか (安全のため文字列化して比較)
+  const isOwner = currentUser?.employee_id && 
+                  String(currentUser.employee_id) === String(report.employee_id);
+
+  // 編集できるか？ (管理者 または 本人)
+  const canEdit = isAdmin || isOwner;
+
+  // 削除できるか？ (管理者のみ)
+  const canDelete = isAdmin;
 
   return (
     <Card
@@ -102,24 +114,28 @@ export default function ReportCard({ report, onViewDetail, onDelete, onEdit }) {
       </CardContent>
       <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
         <Box>
-           {/* ★編集ボタン (青色) */}
-           <IconButton 
-            aria-label="edit" 
-            color="primary" 
-            onClick={() => onEdit(report)}
-            sx={{ mr: 1 }}
-          >
-            <EditIcon />
-          </IconButton>
+           {/* ★ 編集ボタン: 管理者 OR 本人のみ表示 */}
+           {canEdit && (
+             <IconButton 
+              aria-label="edit" 
+              color="primary" 
+              onClick={() => onEdit(report)}
+              sx={{ mr: 1 }}
+            >
+              <EditIcon />
+            </IconButton>
+           )}
 
-          {/* 削除ボタン (赤色) */}
-          <IconButton 
-            aria-label="delete" 
-            color="error" 
-            onClick={() => onDelete(report.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
+          {/* ★ 削除ボタン: 管理者のみ表示 */}
+          {canDelete && (
+            <IconButton 
+              aria-label="delete" 
+              color="error" 
+              onClick={() => onDelete(report.id)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          )}
         </Box>
 
         <Button size="small" color="primary" sx={{ fontWeight: 'bold' }} onClick={handleDetailClick}>
