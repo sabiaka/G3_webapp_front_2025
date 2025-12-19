@@ -4,12 +4,26 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit'; // ★追加
 
-export default function ReportCard({ report, dateFormatter, onViewDetail }) {
+const dateFormatter = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  });
+};
+
+// ★ onEdit を追加
+export default function ReportCard({ report, onViewDetail, onDelete, onEdit }) {
   const handleDetailClick = () => {
-    if (onViewDetail) {
-      onViewDetail(report);
-    }
+    if (onViewDetail) onViewDetail(report);
   };
 
   return (
@@ -40,7 +54,7 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
               width: 48,
               height: 48,
               borderRadius: '50%',
-              bgcolor: report.avatarColor,
+              bgcolor: report.avatarColor || '#ccc',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -67,12 +81,7 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
           </strong>{' '}
           <span style={{ fontWeight: 600 }}>{report.product}</span>
         </Box>
-        <Box sx={{ fontSize: 15, color: 'text.secondary', mb: 1 }}>
-          <strong style={{ width: 60, display: 'inline-block', color: '#6b7280' }}>
-            生産実績:
-          </strong>{' '}
-          <span style={{ fontWeight: 600 }}>{report.result}</span>
-        </Box>
+        
         <Box sx={{ mt: 1 }}>
           <strong style={{ color: '#6b7280', marginBottom: 4, display: 'inline-block' }}>
             作業内容:
@@ -91,7 +100,28 @@ export default function ReportCard({ report, dateFormatter, onViewDetail }) {
           </Typography>
         </Box>
       </CardContent>
-      <CardActions sx={{ justifyContent: 'flex-end' }}>
+      <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+        <Box>
+           {/* ★編集ボタン (青色) */}
+           <IconButton 
+            aria-label="edit" 
+            color="primary" 
+            onClick={() => onEdit(report)}
+            sx={{ mr: 1 }}
+          >
+            <EditIcon />
+          </IconButton>
+
+          {/* 削除ボタン (赤色) */}
+          <IconButton 
+            aria-label="delete" 
+            color="error" 
+            onClick={() => onDelete(report.id)}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+
         <Button size="small" color="primary" sx={{ fontWeight: 'bold' }} onClick={handleDetailClick}>
           詳細を見る &rarr;
         </Button>

@@ -1,114 +1,154 @@
-import Backdrop from '@mui/material/Backdrop';
-import Box from '@mui/material/Box';
+import { useState, useEffect } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
-import Fade from '@mui/material/Fade';
-import Grid from '@mui/material/Grid';
-import Modal from '@mui/material/Modal';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
+import MenuItem from '@mui/material/MenuItem';
+import Box from '@mui/material/Box';
 
-export default function ReportModal({ open, form, onChange, onClose, onSave }) {
-  const handleFieldChange = (field, value) => {
-    onChange(field, value);
+export default function ReportModal({ open, onClose, onSubmit, initialData }) {
+  const [formData, setFormData] = useState({
+    employee_id: '',
+    line_id: '',
+    report_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
+  const [employeeList, setEmployeeList] = useState([]);
+  const [lineList, setLineList] = useState([]);
+
+  // 編集モード判定
+  const isEditMode = Boolean(initialData);
+
+  // マスタデータ取得
+  useEffect(() => {
+    if (open) {
+      const fetchMasters = async () => {
+        try {
+          const [empRes, lineRes] = await Promise.all([
+            fetch('/api/employees'),
+            fetch('/api/lines')      
+          ]);
+
+          if (empRes.ok) {
+            const data = await empRes.json();
+            setEmployeeList(data.employees || (Array.isArray(data) ? data : []));
+          }
+
+          if (lineRes.ok) {
+            const data = await lineRes.json();
+            setLineList(Array.isArray(data) ? data : (data.lines || []));
+          }
+
+        } catch (error) {
+          console.error('マスタデータ取得エラー:', error);
+        }
+      };
+      fetchMasters();
+    }
+  }, [open]);
+
+  // 編集データがあればフォームにセット
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData({
+            employee_id: initialData.employee_id || '',
+            line_id: initialData.line_id || '',
+            report_date: initialData.date ? initialData.date.split('T')[0] : '',
+            notes: initialData.work || '' 
+        });
+      } else {
+        setFormData({
+          employee_id: '',
+          line_id: '',
+          report_date: new Date().toISOString().split('T')[0],
+          notes: ''
+        });
+      }
+    }
+  }, [open, initialData]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.employee_id || !formData.line_id || !formData.report_date) {
+      alert('担当者、日付、製品名は必須です');
+      return;
+    }
+    onSubmit(formData);
+    onClose();
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      closeAfterTransition
-      slots={{ backdrop: Backdrop }}
-      slotProps={{ backdrop: { timeout: 300 } }}
-    >
-      <Fade in={open}>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { xs: '95vw', sm: 500 },
-            bgcolor: 'background.paper',
-            borderRadius: 3,
-            boxShadow: 24,
-            p: 4,
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}
-        >
-          <Typography variant="h6" fontWeight="bold" mb={2}>
-            日報入力
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField label="担当者" value={form.user} fullWidth size="small" InputProps={{ readOnly: true }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="日付"
-                type="date"
-                value={form.date}
-                onChange={event => handleFieldChange('date', event.target.value)}
-                fullWidth
-                size="small"
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="製品名"
-                value={form.product}
-                onChange={event => handleFieldChange('product', event.target.value)}
-                fullWidth
-                size="small"
-                placeholder="製品A-102"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="生産実績数"
-                value={form.result}
-                onChange={event => handleFieldChange('result', event.target.value)}
-                fullWidth
-                size="small"
-                placeholder="1050"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="今日の作業内容"
-                value={form.work}
-                onChange={event => handleFieldChange('work', event.target.value)}
-                fullWidth
-                size="small"
-                multiline
-                minRows={4}
-                placeholder={'箇条書きでOK！\n例：\n・製品A-102の組立\n・部品B-5の供給遅れ（30分ロス）\n・1050個完了'}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="メモ"
-                value={form.memo}
-                onChange={event => handleFieldChange('memo', event.target.value)}
-                fullWidth
-                size="small"
-                multiline
-                minRows={2}
-                placeholder="気づいた点、改善提案など"
-              />
-            </Grid>
-          </Grid>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-            <Button variant="outlined" color="inherit" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button variant="contained" color="primary" onClick={onSave}>
-              保存
-            </Button>
-          </Box>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle sx={{ fontWeight: 'bold' }}>
+        {isEditMode ? '日報の編集' : '日報の新規登録'}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+          <TextField
+            label="日付"
+            type="date"
+            name="report_date"
+            value={formData.report_date}
+            onChange={handleChange}
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            select
+            label="担当者"
+            name="employee_id"
+            value={formData.employee_id}
+            onChange={handleChange}
+            fullWidth
+          >
+            {employeeList.length === 0 && <MenuItem disabled>読み込み中...</MenuItem>}
+            {employeeList.map((emp) => (
+              <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                {/* ★修正: ID表示を削除し、名前だけにしました */}
+                {emp.employee_name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="製品名 (ライン)"
+            name="line_id"
+            value={formData.line_id}
+            onChange={handleChange}
+            fullWidth
+          >
+             {lineList.length === 0 && <MenuItem disabled>読み込み中...</MenuItem>}
+             {lineList.map((line) => (
+              <MenuItem key={line.line_id} value={line.line_id}>
+                {line.line_name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="作業内容"
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            multiline
+            rows={4}
+            fullWidth
+            placeholder="本日の作業内容..."
+          />
         </Box>
-      </Fade>
-    </Modal>
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button onClick={onClose} color="inherit">キャンセル</Button>
+        <Button onClick={handleSubmit} variant="contained" color="primary">
+          {isEditMode ? '更新する' : '登録する'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
