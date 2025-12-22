@@ -236,7 +236,7 @@ const ImageInspection = () => {
                 )}
                 <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                   <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    最新のロット判定
+                    最新の画像判定
                   </Typography>
                   <SectionSummary latestLot={latest} lotStatus={lotStatus} />
                 </Box>

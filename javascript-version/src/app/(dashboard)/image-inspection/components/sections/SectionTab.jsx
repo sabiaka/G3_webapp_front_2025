@@ -282,7 +282,7 @@ const SectionTab = ({
               )}
               <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                 <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                  最新のロット判定
+                  最新の画像判定
                 </Typography>
                 <SectionSummary latestLot={latestLotForSection} lotStatus={latestLotStatus} />
               </Box>
@@ -302,7 +302,7 @@ const SectionTab = ({
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">ロット総数</Typography>
+                      <Typography variant="body2" color="text.secondary">画像総数</Typography>
                       <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
                     </SurfaceBox>
                   </Grid>
