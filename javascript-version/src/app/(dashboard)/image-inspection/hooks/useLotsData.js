@@ -4,7 +4,7 @@ import { SAMPLE_SUMMARIES } from '../data/sampleSummaries'
 import { SAMPLE_LOTS } from '../data/sampleLots'
 import { mapStatusApiToUi, normalizeShotSummary } from '../utils/summaryUtils'
 
-// 簡易トグル: trueでAPIを叩いてサマリー（総数/良品/不良/不良理由）を取得、falseでフロント側計算
+// 簡易トグル: trueでAPIを叩いてサマリー（総数/良品/不良/不良理由）を取得
 const USE_API_SUMMARY = true;
 // ロットログ（一覧）もAPIに切り替えるトグル
 const USE_API_LOTS = true;
@@ -53,19 +53,29 @@ export const useLotsData = () => {
   const [apiPayload] = useState(SAMPLE_LOTS)
 
   // ---- サマリー(API) キャッシュ ----
-  // key: `${sectionCode}|${date}`
+  // key: `${sectionCode}|${date}` または `${sectionCode}|LATEST`
   const [summaryCache, setSummaryCache] = useState({})
 
+  // ▼ 修正: dateが未指定(null/undefined)ならクエリに含めない（API側の最新自動取得に任せる）
   const fetchSummary = async (sectionDisplayName, date) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) return Promise.reject(new Error(`Unknown section: ${sectionDisplayName}`))
-    const ymd = date || todayYMD()
-    const cacheKey = `${sectionCode}|${ymd}`
+    
+    // dateが無い場合は 'LATEST' をキーにする
+    const cacheKey = `${sectionCode}|${date || 'LATEST'}`
 
     if (summaryCache[cacheKey]) return summaryCache[cacheKey]
 
     const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
-    const qs = new URLSearchParams({ section: sectionCode, date: ymd }).toString()
+    
+    // クエリパラメータの構築
+    const params = { section: sectionCode }
+    if (date) {
+      params.date = date
+    }
+    // dateがない場合はパラメータに含めない -> APIが最新を返す
+    
+    const qs = new URLSearchParams(params).toString()
     const res = await fetch(`${base}/api/inspections/summary?${qs}`)
     if (!res.ok) throw new Error(`Failed to fetch summary ${res.status}`)
     const data = await res.json()
@@ -252,20 +262,20 @@ export const useLotsData = () => {
 
   // ---- ロット一覧(API) 対応 ----
   // raw: APIの返却をページ結合して保存、ui: アダプト済み配列
-  const [lotsRawCache, setLotsRawCache] = useState({}) // key: `${sectionCode}|${date}` -> { total_pages, lots: [...] }
-  const [lotsUiCache, setLotsUiCache] = useState({})   // key: `${section}|${date}` (表示名) -> adapted[]
-  const [lotRawIndex, setLotRawIndex] = useState({})   // key: lot_id -> raw lot
-  const [lotUiIndex, setLotUiIndex] = useState({})     // key: lot_id -> adapted lot
-  const [lotShotsCache, setLotShotsCache] = useState({}) // key: `${lot_id}|${shotType}` -> { shots, summary }
-  const [lotShotsStatus, setLotShotsStatus] = useState({}) // key: `${lot_id}|${shotType}` -> 'idle' | 'loading' | 'success' | 'error'
-  const [datesCache, setDatesCache] = useState({})      // key: section display name -> [YYYY-MM-DD]
+  const [lotsRawCache, setLotsRawCache] = useState({}) 
+  const [lotsUiCache, setLotsUiCache] = useState({})   
+  const [lotRawIndex, setLotRawIndex] = useState({})   
+  const [lotUiIndex, setLotUiIndex] = useState({})     
+  const [lotShotsCache, setLotShotsCache] = useState({}) 
+  const [lotShotsStatus, setLotShotsStatus] = useState({}) 
+  const [datesCache, setDatesCache] = useState({})      
 
-  // in-flight guards to prevent request storms
-  const inFlightSummaryRef = useRef(new Set()) // keys: `${section}|${date}` (display name)
-  const inFlightLotsRef = useRef(new Set())    // keys: `${sectionCode}|${date}`
-  const inFlightShotsRef = useRef(new Set())   // keys: `${lot_id}|${shotType}`
-  const inFlightDatesRef = useRef(new Set())   // keys: section display name
-  const inFlightLotDetailRef = useRef(new Set()) // keys: lot_id
+  // in-flight guards
+  const inFlightSummaryRef = useRef(new Set()) 
+  const inFlightLotsRef = useRef(new Set())    
+  const inFlightShotsRef = useRef(new Set())   
+  const inFlightDatesRef = useRef(new Set())   
+  const inFlightLotDetailRef = useRef(new Set()) 
 
   const fetchLotsAllPages = async (sectionDisplayName, date, limit = 200) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
@@ -295,7 +305,6 @@ export const useLotsData = () => {
     const rawJoined = { total_pages: totalPages, current_page: 1, lots: allLots }
     setLotsRawCache(prev => ({ ...prev, [cacheKeyRaw]: rawJoined }))
 
-    // インデックス更新
     setLotRawIndex(prev => {
       const next = { ...prev }
       for (const l of allLots) next[l.lot_id] = l
@@ -346,13 +355,10 @@ export const useLotsData = () => {
       const cacheKeyUi = `${section}|${ymd}`
       const cached = lotsUiCache[cacheKeyUi]
       if (cached) return cached
-      // 取得を発火（失敗時はサイレント）。日付未指定なら今日と解釈
       fetchLotsAllPages(section, ymd).catch(() => { })
-      // フォールバック: サンプルから同期返却
       const filtered = uiLots.filter(l => l.section === normalized)
       return filtered.filter(l => l.date === ymd)
     }
-    // サンプルモード
     const filtered = uiLots.filter(l => l.section === normalized)
     return filtered.filter(l => l.date === ymd)
   }
@@ -381,54 +387,59 @@ export const useLotsData = () => {
   // 同期API: UI互換のため、最新取得済みのAPI値を返却し、未取得ならリクエストを発火してローカル計算をフォールバック
   const [latestSummary, setLatestSummary] = useState({}) // key: `${section}|${date}` -> { total_count, pass_count, ... }
 
+  // ▼ 修正: dateを指定してデータを取得（未指定ならLATESTとして扱う）
   const primeSummary = (section, date) => {
-    const ymd = date || todayYMD()
-    const key = `${section}|${ymd}`
+    // dateが無い場合は 'LATEST' をキーにする
+    const key = `${section}|${date || 'LATEST'}`
+
     if (latestSummary[key]) return
     if (inFlightSummaryRef.current.has(key)) return
+
     if (USE_API_SUMMARY) {
       inFlightSummaryRef.current.add(key)
-      fetchSummary(section, ymd)
+      // dateがnull/undefinedならそのまま渡す（fetchSummary側で処理）
+      fetchSummary(section, date)
         .then(data => setLatestSummary(prev => ({ ...prev, [key]: data })))
         .catch(() => { /* サイレント失敗 */ })
         .finally(() => { inFlightSummaryRef.current.delete(key) })
     } else {
-      const local = buildLocalSummary(section, ymd)
+      const local = buildLocalSummary(section, date)
       setLatestSummary(prev => ({ ...prev, [key]: local }))
     }
   }
 
-  const getSectionStats = (section, _date) => {
-    // サマリーは常に「今日」を対象とする
-    const ymd = todayYMD()
-    const key = `${section}|${ymd}`
+  // ▼ 修正: date引数を無視せず、渡された日付（またはundefined）を使うように変更
+// 修正前と修正後の違い： return オブジェクトに date: api.date を追加しました
+  const getSectionStats = (section, date) => {
+    // 引数のdateを使う（指定なしならLATEST）
+    const key = `${section}|${date || 'LATEST'}`
+    
     let api = latestSummary[key]
     if (!api) {
-      // 値がなければ取得/生成
-      primeSummary(section, ymd)
-      // 即時用フォールバック（ローカル計算でAPI形）
-      if (!USE_API_SUMMARY) api = buildLocalSummary(section, ymd)
+      primeSummary(section, date)
+      if (!USE_API_SUMMARY) api = buildLocalSummary(section, date)
     }
     if (api) {
       return {
         total: api.total_count ?? 0,
         pass: api.pass_count ?? 0,
         fail: api.fail_count ?? 0,
-        passRate: api.pass_rate ?? (api.total_count ? Math.round((api.pass_count / api.total_count) * 100) : 100)
+        passRate: api.pass_rate ?? (api.total_count ? Math.round((api.pass_count / api.total_count) * 100) : 100),
+        date: api.date // ★ここを追加！APIが返した日付情報をUIに渡す
       }
     }
     // 最後の保険: 空
-    return { total: 0, pass: 0, fail: 0, passRate: 100 }
+    return { total: 0, pass: 0, fail: 0, passRate: 100, date: null }
   }
 
-  const getFailReasons = (section, _date) => {
-    // サマリーは常に「今日」を対象とする
-    const ymd = todayYMD()
-    const key = `${section}|${ymd}`
+  // ▼ 修正: こちらも同様に date引数を使うように変更
+  const getFailReasons = (section, date) => {
+    const key = `${section}|${date || 'LATEST'}`
+    
     let api = latestSummary[key]
     if (!api) {
-      primeSummary(section, ymd)
-      if (!USE_API_SUMMARY) api = buildLocalSummary(section, ymd)
+      primeSummary(section, date)
+      if (!USE_API_SUMMARY) api = buildLocalSummary(section, date)
     }
     if (api && Array.isArray(api.fail_reasons)) {
       const total = api.fail_reasons.reduce((s, r) => s + (r.count || 0), 0) || 0
@@ -448,7 +459,6 @@ export const useLotsData = () => {
     if (USE_API_LOTS) {
       const cached = datesCache[section]
       if (cached) return cached
-      // 未取得ならAPI発火し、フォールバックとしてサンプル由来の日付を返す
       fetchAvailableDates(section).catch(() => { })
     }
     const lots = getSectionLots(section)
@@ -459,12 +469,10 @@ export const useLotsData = () => {
   // ---- 詳細表示向けヘルパ ----
   const getLotShots = (lotId, options = {}) => {
     const shotTypeNormalized = normalizeShotType(options?.type)
-    // APIモードでは詳細は遅延取得; キャッシュがなければ空配列を返す
     if (USE_API_LOTS) {
       const cached = lotShotsCache[buildShotCacheKey(lotId, shotTypeNormalized)]
       return Array.isArray(cached?.shots) ? cached.shots : []
     }
-    // サンプルモード: sampleLotsの埋め込み詳細を返却
     const lot = (apiPayload?.lots || []).find(l => l.lot_id === lotId)
     if (!lot) return []
 
@@ -630,16 +638,21 @@ export const useLotsData = () => {
     return uiLots.find(l => l.lotId === lotId) || null
   }, [lotUiIndex, lotRawIndex, uiLots])
 
-  // 初期プリフェッチ（APIモード時）: セクションごと最新日を先読み
+  // 初期プリフェッチ（APIモード時）
   useEffect(() => {
     const sections = Object.keys(SECTION_TO_CODE)
     const ymd = todayYMD()
-    // サマリー（今日）: 既にin-flight or 取得済みならスキップ
+    
+    // ▼ 修正: サマリーは「最新(date=null)」をデフォルトで取得するように変更
     sections.forEach(sec => {
-      const key = `${sec}|${ymd}`
-      if (!latestSummary[key] && !inFlightSummaryRef.current.has(key)) primeSummary(sec, ymd)
+      // dateなし（LATEST）でプリフェッチ
+      const key = `${sec}|LATEST`
+      if (!latestSummary[key] && !inFlightSummaryRef.current.has(key)) primeSummary(sec, null)
     })
-    // ロット（今日）: 既にキャッシュ or in-flightならスキップ
+
+    // ロット（今日）: 
+    // ※今回はサマリーの修正を優先しましたが、ロット一覧も最新化したい場合は
+    // fetchLotsAllPagesの呼び出し側も調整が必要です（現状は今日を維持）
     if (USE_API_LOTS) {
       sections.forEach(sec => {
         const code = SECTION_TO_CODE[sec]
