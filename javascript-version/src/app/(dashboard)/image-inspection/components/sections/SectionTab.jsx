@@ -272,9 +272,11 @@ const SectionTab = ({
         <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                リアルタイム監視: {section}検査（{cameraNamesForGrid.length}カメラ）
-              </Typography>
+              {/* 修正前: <Typography variant="h6" gutterBottom>サマリー（最新日）</Typography> */}
+
+<Typography variant="h6" gutterBottom>
+  サマリー（{statsLatest.date ? statsLatest.date : 'データなし'}）
+</Typography>
               {cameraNamesForGrid.length === 0 ? (
                 <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
               ) : (
@@ -294,8 +296,8 @@ const SectionTab = ({
             <CardContent sx={{ '& > * + *': { mt: 3 } }}>
               <Box>
                 <Typography variant="h6" gutterBottom>
-                  サマリー（最新日）
-                </Typography>
+  サマリー（最新日{statsLatest.date ? `: ${statsLatest.date}` : ''}）
+</Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                   <DonutChart percentage={statsLatest.passRate} />
                 </Box>
