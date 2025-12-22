@@ -9,8 +9,6 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -160,141 +158,171 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
           <Chip label={normalizedLotStatus || '-'} color={getLotStatusColor(normalizedLotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
-      <DialogContent dividers sx={{ '& > * + *': { mt: 4 } }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <DialogContent
+            dividers
+            sx={{
+              p: 0,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: 'stretch',
+                gap: { xs: 4, md: 6 },
+                p: { xs: 4, md: 6 },
+                boxSizing: 'border-box',
+              }}
+            >
               <Box
                 sx={{
-                  width: '100%',
-                  aspectRatio: '16/9',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                  cursor: 'zoom-in',
-                }}
-                onClick={() => {
-                  if (setLightbox) {
-                    setLightbox({
-                      open: true,
-                      src: representativeSources.primary,
-                      fallback: representativeSources.fallback,
-                      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
-                    })
-                  }
+                  flexBasis: { md: '40%' },
+                  flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
                 }}
               >
-                <img
-                  src={representativeSources.primary}
-                  alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
-                  onError={e => handleImageError(e, representativeSources.fallback)}
-                  draggable={false}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </Box>
-              {normalizedLotSummary && (
-                <ShotsSummaryBlock title="検査サマリー" summary={normalizedLotSummary} />
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              判定要素
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => {
-                const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
-
-                return (
-                  <Chip
-                    key={`${camera.name}-${index}`}
-                    label={`${camera.name}: ${camera.status}`}
-                    size="small"
-                    color={getChipColor(camera.status)}
-                    variant={normalizedStatus === 'OK' ? 'outlined' : 'filled'}
+                <Box
+                  sx={{
+                    width: '100%',
+                    aspectRatio: '16/9',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
+                    cursor: 'zoom-in',
+                  }}
+                  onClick={() => {
+                    if (setLightbox) {
+                      setLightbox({
+                        open: true,
+                        src: representativeSources.primary,
+                        fallback: representativeSources.fallback,
+                        alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
+                      })
+                    }
+                  }}
+                >
+                  <img
+                    src={representativeSources.primary}
+                    alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
+                    onError={e => handleImageError(e, representativeSources.fallback)}
+                    draggable={false}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                )
-              })}
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Divider />
-
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            撮影・検査履歴
-          </Typography>
-          {shotEntries.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              詳細データを取得中です…
-            </Typography>
-          ) : (
-            <Table size="small" aria-label="lot shots table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>カメラ/シーケンス</TableCell>
-                  <TableCell>結果</TableCell>
-                  <TableCell>詳細</TableCell>
-                  <TableCell align="right">画像</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {shotEntries.flatMap(([key, shots]) =>
-                  shots.map((shot, idx) => {
-                    const sources = buildShotSources(shot)
-                    const statusColor = getShotStatusColor(shot.status)
-
-                    return (
-                      <TableRow key={`${key}-${idx}`}>
-                        <TableCell sx={{ fontWeight: 500 }}>{key}</TableCell>
-                        <TableCell>
-                          <Chip label={shot.status || '-'} size="small" color={statusColor} />
-                        </TableCell>
-                        <TableCell>{shot.details || '-'}</TableCell>
-                        <TableCell align="right" sx={{ width: 240 }}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}
-                            >
-                              {shot.image_path || '-'}
-                            </Typography>
-                            <Box
-                              sx={{
-                                width: 140,
-                                aspectRatio: '16/9',
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                                cursor: 'zoom-in',
-                              }}
-                              onClick={() => {
-                                if (setLightbox) {
-                                  setLightbox({ open: true, src: sources.primary, fallback: sources.fallback, alt: shot.image_path || 'shot' })
-                                }
-                              }}
-                            >
-                              <img
-                                src={sources.primary}
-                                alt={shot.image_path || 'shot'}
-                                onError={e => handleImageError(e, sources.fallback)}
-                                draggable={false}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </Box>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
+                </Box>
+                {normalizedLotSummary && (
+                  <ShotsSummaryBlock title="検査サマリー" summary={normalizedLotSummary} />
                 )}
-              </TableBody>
-            </Table>
-          )}
-        </Box>
-      </DialogContent>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    判定要素
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {(lot.cameras || []).map((camera, index) => {
+                      const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+
+                      return (
+                        <Chip
+                          key={`${camera.name}-${index}`}
+                          label={`${camera.name}: ${camera.status}`}
+                          size="small"
+                          color={getChipColor(camera.status)}
+                          variant={normalizedStatus === 'OK' ? 'outlined' : 'filled'}
+                        />
+                      )
+                    })}
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  minHeight: 0,
+                }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      撮影・検査履歴
+                    </Typography>
+                    {shotEntries.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        詳細データを取得中です…
+                      </Typography>
+                    ) : null}
+                  </Box>
+                  {shotEntries.length > 0 && (
+                    <Box sx={{ flexGrow: 1, minHeight: 0, overflowY: { xs: 'visible', md: 'auto' } }}>
+                      <Table size="small" aria-label="lot shots table" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>カメラ/シーケンス</TableCell>
+                            <TableCell>結果</TableCell>
+                            <TableCell>詳細</TableCell>
+                            <TableCell align="right">画像</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {shotEntries.flatMap(([key, shots]) =>
+                            shots.map((shot, idx) => {
+                              const sources = buildShotSources(shot)
+                              const statusColor = getShotStatusColor(shot.status)
+
+                              return (
+                                <TableRow key={`${key}-${idx}`}>
+                                  <TableCell sx={{ fontWeight: 500 }}>{key}</TableCell>
+                                  <TableCell>
+                                    <Chip label={shot.status || '-'} size="small" color={statusColor} />
+                                  </TableCell>
+                                  <TableCell>{shot.details || '-'}</TableCell>
+                                  <TableCell align="right" sx={{ width: 240 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}
+                                      >
+                                        {shot.image_path || '-'}
+                                      </Typography>
+                                      <Box
+                                        sx={{
+                                          width: 140,
+                                          aspectRatio: '16/9',
+                                          borderRadius: 1,
+                                          overflow: 'hidden',
+                                          bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
+                                          cursor: 'zoom-in',
+                                        }}
+                                        onClick={() => {
+                                          if (setLightbox) {
+                                            setLightbox({ open: true, src: sources.primary, fallback: sources.fallback, alt: shot.image_path || 'shot' })
+                                          }
+                                        }}
+                                      >
+                                        <img
+                                          src={sources.primary}
+                                          alt={shot.image_path || 'shot'}
+                                          onError={e => handleImageError(e, sources.fallback)}
+                                          draggable={false}
+                                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                      </Box>
+                                    </Box>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">
           閉じる
