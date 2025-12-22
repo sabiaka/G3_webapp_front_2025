@@ -112,8 +112,8 @@ const aggregateCameras = cameras => {
         type: 'camera',
       })
     } else {
-      const nextIsFail = statusUi !== 'OK'
-      const prevIsFail = prev.status !== 'OK'
+      const nextIsFail = statusUi !== 'PASS'
+      const prevIsFail = prev.status !== 'PASS'
 
       if (nextIsFail && !prevIsFail) {
         prev.status = statusUi
@@ -196,7 +196,7 @@ export const useLotsData = () => {
     const fail = total - pass
     const passRate = total > 0 ? Math.round((pass / total) * 100) : 100
 
-    const failedCameras = lots.flatMap(l => l.cameras.filter(c => c.status !== 'OK' && c.details && c.details !== '-'))
+    const failedCameras = lots.flatMap(l => l.cameras.filter(c => mapStatusApiToUi(c.status) !== 'PASS' && c.details && c.details !== '-'))
     const reasonCounts = failedCameras.reduce((acc, c) => {
       acc[c.details] = (acc[c.details] || 0) + 1
       return acc
@@ -362,7 +362,12 @@ export const useLotsData = () => {
     return filtered.filter(l => l.date === ymd)
   }
 
-  const normalizeUiStatus = value => (value || '').toString().trim().toUpperCase()
+  const normalizeUiStatus = value => {
+    const normalized = (value || '').toString().trim().toUpperCase()
+    if (normalized === 'OK') return 'PASS'
+    if (normalized === 'NG') return 'FAIL'
+    return normalized
+  }
 
   const getLotStatus = lot => {
     if (!lot) return 'UNKNOWN'
@@ -370,13 +375,13 @@ export const useLotsData = () => {
     const overallStatus = normalizeUiStatus(lot.overallStatus)
     const cameraStatuses = (lot.cameras || []).map(camera => normalizeUiStatus(camera.status))
 
-    if (cameraStatuses.includes('NG') || overallStatus === 'FAIL') return 'FAIL'
+    if (cameraStatuses.includes('FAIL') || overallStatus === 'FAIL') return 'FAIL'
     if (cameraStatuses.includes('MISSING') || overallStatus === 'MISSING') return 'MISSING'
     if (overallStatus === 'PASS') return 'PASS'
 
     if (cameraStatuses.length === 0) return overallStatus || 'UNKNOWN'
 
-    if (cameraStatuses.every(status => status === 'OK')) return 'PASS'
+    if (cameraStatuses.every(status => status === 'PASS')) return 'PASS'
 
     if (cameraStatuses.some(status => status)) return 'FAIL'
 

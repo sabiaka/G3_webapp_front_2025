@@ -1,6 +1,6 @@
 // バネどめ検査 ロット詳細モーダル
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -9,8 +9,6 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -43,8 +41,8 @@ const normalizeRelativePath = path => {
 
 const getChipColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'OK') return 'success'
-  if (normalized === 'NG') return 'error'
+  if (normalized === 'OK' || normalized === 'PASS') return 'success'
+  if (normalized === 'NG' || normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
@@ -65,8 +63,106 @@ const getShotStatusColor = status => {
   return 'default'
 }
 
+const dummyImageSvg = encodeURIComponent(`
+  <svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-3xl">
+    <g transform="translate(50, 0)">
+        <style>
+            .title {
+                font-size: 28px;
+                font-weight: bold;
+                font-family: 'Noto Sans JP', sans-serif;
+                fill: #3730a3;
+            }
+
+            .label {
+                font-size: 16px;
+                font-family: 'Inter', sans-serif;
+                fill: #312e81;
+            }
+
+            .camera-box {
+                fill: #e0e7ff;
+                stroke: #4338ca;
+                stroke-width: 6;
+                rx: 20;
+            }
+
+            .camera-label {
+                font-size: 24px;
+                font-weight: bold;
+                fill: #4338ca;
+                text-anchor: middle;
+                dominant-baseline: central;
+            }
+
+            .center-box {
+                fill: #e0e7ff;
+                stroke: #4338ca;
+                stroke-width: 6;
+                rx: 20;
+            }
+
+            .center-label {
+                font-size: 26px;
+                font-weight: bold;
+                fill: #4338ca;
+                text-anchor: middle;
+                dominant-baseline: central;
+            }
+
+            .line {
+                stroke: #4f46e5;
+                stroke-width: 2;
+            }
+        </style>
+        <text x="300" y="40" text-anchor="middle" class="title">バネどめ検査カメラ</text>
+
+        <!-- Center Box -->
+        <rect x="120" y="180" width="360" height="150" class="center-box" />
+        <text x="300" y="255" class="center-label">押し上げ部</text>
+
+        <!-- Camera 1 (Left) -->
+        <g>
+            <rect x="40" y="160" width="70" height="190" class="camera-box" />
+            <text x="75" y="255" class="camera-label">1</text>
+            <!-- <line x1="40" y1="255" x2="-20" y2="255" class="line" /> -->
+            <text x="115" y="380" text-anchor="end" class="label">B-spring01</text>
+        </g>
+
+        <!-- Camera 2 (Top-Left) -->
+        <g>
+            <rect x="140" y="90" width="150" height="70" class="camera-box" />
+            <text x="215" y="125" class="camera-label">2</text>
+            <line x1="215" y1="90" x2="215" y2="70" class="line" />
+            <line x1="215" y1="70" x2="120" y2="70" class="line" />
+            <text x="110" y="70" text-anchor="end" class="label">B-spring02</text>
+        </g>
+
+        <!-- Camera 3 (Top-Right) -->
+        <g>
+            <rect x="310" y="90" width="150" height="70" class="camera-box" />
+            <text x="385" y="125" class="camera-label">3</text>
+            <line x1="385" y1="90" x2="385" y2="70" class="line" />
+            <line x1="385" y1="70" x2="480" y2="70" class="line" />
+            <text x="490" y="70" class="label">B-spring03</text>
+        </g>
+
+        <!-- Camera 4 (Right) -->
+        <g>
+            <rect x="490" y="160" width="70" height="190" class="camera-box" />
+            <text x="525" y="255" class="camera-label">4</text>
+            <!-- <line x1="560" y1="255" x2="620" y2="255" class="line" /> -->
+            <text x="480" y="380" class="label">B-spring04</text>
+        </g>
+    </g>
+</svg>
+`)
+
+const DUMMY_SCREENSHOT_SRC = `data:image/svg+xml,${dummyImageSvg}`
+
 const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, lotSummary, onClose, setLightbox }) => {
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
+  const [showTable, setShowTable] = useState(false)
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -143,10 +239,23 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     [lotSummary, flattenedShots],
   )
 
+  const hasShotEntries = shotEntries.length > 0
+
+  useEffect(() => {
+    if (!open) {
+      setShowTable(false)
+    }
+  }, [open])
+
   if (!lot) return null
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xl"
+    >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Box>
@@ -160,139 +269,225 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
           <Chip label={normalizedLotStatus || '-'} color={getLotStatusColor(normalizedLotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
-      <DialogContent dividers sx={{ '& > * + *': { mt: 4 } }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Box
-                sx={{
-                  width: '100%',
-                  aspectRatio: '16/9',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                  cursor: 'zoom-in',
-                }}
-                onClick={() => {
-                  if (setLightbox) {
-                    setLightbox({
-                      open: true,
-                      src: representativeSources.primary,
-                      fallback: representativeSources.fallback,
-                      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
-                    })
-                  }
-                }}
-              >
-                <img
-                  src={representativeSources.primary}
-                  alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
-                  onError={e => handleImageError(e, representativeSources.fallback)}
-                  draggable={false}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </Box>
-              {normalizedLotSummary && (
-                <ShotsSummaryBlock title="検査サマリー" summary={normalizedLotSummary} />
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              判定要素
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {(lot.cameras || []).map((camera, index) => {
-                const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
-
-                return (
-                  <Chip
-                    key={`${camera.name}-${index}`}
-                    label={`${camera.name}: ${camera.status}`}
-                    size="small"
-                    color={getChipColor(camera.status)}
-                    variant={normalizedStatus === 'OK' ? 'outlined' : 'filled'}
-                  />
-                )
-              })}
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Divider />
-
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            撮影・検査履歴
-          </Typography>
-          {shotEntries.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              詳細データを取得中です…
-            </Typography>
-          ) : (
-            <Table size="small" aria-label="lot shots table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>カメラ/シーケンス</TableCell>
-                  <TableCell>結果</TableCell>
-                  <TableCell>詳細</TableCell>
-                  <TableCell align="right">画像</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {shotEntries.flatMap(([key, shots]) =>
-                  shots.map((shot, idx) => {
-                    const sources = buildShotSources(shot)
-                    const statusColor = getShotStatusColor(shot.status)
-
-                    return (
-                      <TableRow key={`${key}-${idx}`}>
-                        <TableCell sx={{ fontWeight: 500 }}>{key}</TableCell>
-                        <TableCell>
-                          <Chip label={shot.status || '-'} size="small" color={statusColor} />
-                        </TableCell>
-                        <TableCell>{shot.details || '-'}</TableCell>
-                        <TableCell align="right" sx={{ width: 240 }}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}
-                            >
-                              {shot.image_path || '-'}
-                            </Typography>
-                            <Box
-                              sx={{
-                                width: 140,
-                                aspectRatio: '16/9',
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
-                                cursor: 'zoom-in',
-                              }}
-                              onClick={() => {
-                                if (setLightbox) {
-                                  setLightbox({ open: true, src: sources.primary, fallback: sources.fallback, alt: shot.image_path || 'shot' })
-                                }
-                              }}
-                            >
-                              <img
-                                src={sources.primary}
-                                alt={shot.image_path || 'shot'}
-                                onError={e => handleImageError(e, sources.fallback)}
-                                draggable={false}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </Box>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    )
+      <DialogContent
+        dividers
+        sx={{
+          p: 0,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: 'stretch',
+            gap: { xs: 4, md: 6 },
+            p: { xs: 4, md: 6 },
+            boxSizing: 'border-box',
+            height: { md: '70vh' },
+          }}
+        >
+          <Box
+            sx={{
+              flexBasis: { md: '40%' },
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              position: { md: 'sticky' },
+              top: { md: 24 },
+            }}
+          >
+            <Box
+              sx={{
+                width: '100%',
+                aspectRatio: '16/9',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
+                cursor: 'zoom-in',
+              }}
+              onClick={() => {
+                if (setLightbox) {
+                  setLightbox({
+                    open: true,
+                    src: representativeSources.primary,
+                    fallback: representativeSources.fallback,
+                    alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
                   })
+                }
+              }}
+            >
+              <img
+                src={representativeSources.primary}
+                alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
+                onError={e => handleImageError(e, representativeSources.fallback)}
+                draggable={false}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </Box>
+            {normalizedLotSummary && (
+              <ShotsSummaryBlock title="検査サマリー" summary={normalizedLotSummary} />
+            )}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                判定要素
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {(lot.cameras || []).map((camera, index) => {
+                  const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+                  const canonicalStatus = normalizedStatus === 'OK'
+                    ? 'PASS'
+                    : normalizedStatus === 'NG'
+                      ? 'FAIL'
+                      : normalizedStatus || 'UNKNOWN'
+                  const isPass = canonicalStatus === 'PASS'
+
+                  return (
+                    <Chip
+                      key={`${camera.name}-${index}`}
+                      label={`${camera.name}: ${canonicalStatus}`}
+                      size="small"
+                      color={getChipColor(canonicalStatus)}
+                      variant={isPass ? 'outlined' : 'filled'}
+                    />
+                  )
+                })}
+              </Box>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              flexGrow: 1,
+              minHeight: 0,
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
+                  撮影・検査履歴
+                </Typography>
+                {showTable ? (
+                  <Button size="small" variant="outlined" onClick={() => setShowTable(false)}>
+                    画像に戻る
+                  </Button>
+                ) : null}
+              </Box>
+              <Box sx={{ flexGrow: 1, minHeight: 0, overflowY: { xs: 'visible', md: 'auto' } }}>
+                {showTable ? (
+                  hasShotEntries ? (
+                    <Table size="small" aria-label="lot shots table" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>カメラ/シーケンス</TableCell>
+                          <TableCell>結果</TableCell>
+                          <TableCell>詳細</TableCell>
+                          <TableCell align="right">画像</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {shotEntries.flatMap(([key, shots]) =>
+                          shots.map((shot, idx) => {
+                            const sources = buildShotSources(shot)
+                            const statusColor = getShotStatusColor(shot.status)
+
+                            return (
+                              <TableRow key={`${key}-${idx}`}>
+                                <TableCell sx={{ fontWeight: 500 }}>{key}</TableCell>
+                                <TableCell>
+                                  <Chip label={shot.status || '-'} size="small" color={statusColor} />
+                                </TableCell>
+                                <TableCell>{shot.details || '-'}</TableCell>
+                                <TableCell align="right" sx={{ width: 240 }}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ maxWidth: '100%', wordBreak: 'break-all', textAlign: 'right' }}
+                                    >
+                                      {shot.image_path || '-'}
+                                    </Typography>
+                                    <Box
+                                      sx={{
+                                        width: 140,
+                                        aspectRatio: '16/9',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        bgcolor: theme => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200'),
+                                        cursor: 'zoom-in',
+                                      }}
+                                      onClick={() => {
+                                        if (setLightbox) {
+                                          setLightbox({ open: true, src: sources.primary, fallback: sources.fallback, alt: shot.image_path || 'shot' })
+                                        }
+                                      }}
+                                    >
+                                      <img
+                                        src={sources.primary}
+                                        alt={shot.image_path || 'shot'}
+                                        onError={e => handleImageError(e, sources.fallback)}
+                                        draggable={false}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      />
+                                    </Box>
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        詳細データを取得中です…
+                      </Typography>
+                    </Box>
+                  )
+                ) : (
+                  <Box
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 2,
+                      cursor: hasShotEntries ? 'pointer' : 'default',
+                    }}
+                    onClick={() => {
+                      if (hasShotEntries) {
+                        setShowTable(true)
+                      }
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={DUMMY_SCREENSHOT_SRC}
+                      alt="spring inspection layout"
+                      sx={{
+                        width: '100%',
+                        maxWidth: 880,
+                        borderRadius: 2,
+                        boxShadow: theme => theme.shadows[4],
+                        border: theme => `1px solid ${theme.palette.divider}`,
+                        userSelect: 'none',
+                      }}
+                    />
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                      画像をクリックすると詳細が表示されます
+                    </Typography>
+                    {!hasShotEntries && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        詳細データを取得中です…
+                      </Typography>
+                    )}
+                  </Box>
                 )}
-              </TableBody>
-            </Table>
-          )}
+              </Box>
+            </Box>
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions>

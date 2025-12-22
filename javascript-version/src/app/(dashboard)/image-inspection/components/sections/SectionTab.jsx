@@ -118,9 +118,11 @@ const SectionTab = ({
       const fallback = SECTION_CONFIG[section]?.cameras || []
       const normalizedLotStatus = (latestLotStatus || '').toString().trim().toUpperCase()
       const statusForCamera = (() => {
-        if (normalizedLotStatus === 'PASS') return 'OK'
-        if (normalizedLotStatus === 'FAIL') return 'NG'
+        if (normalizedLotStatus === 'PASS') return 'PASS'
+        if (normalizedLotStatus === 'FAIL') return 'FAIL'
         if (normalizedLotStatus === 'MISSING') return 'MISSING'
+        if (normalizedLotStatus === 'OK') return 'PASS'
+        if (normalizedLotStatus === 'NG') return 'FAIL'
         return normalizedLotStatus || ''
       })()
       if (!statusForCamera) return {}
@@ -272,6 +274,9 @@ const SectionTab = ({
         <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
             <CardContent>
+              <Typography variant="h6" gutterBottom>
+                最新ログ: {section}検査（{cameraNamesForGrid.length}カメラ）
+              </Typography>
               {/* 修正前: <Typography variant="h6" gutterBottom>サマリー（最新日）</Typography> */}
 
 <Typography variant="h6" gutterBottom>
@@ -284,7 +289,7 @@ const SectionTab = ({
               )}
               <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                 <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                  最新のロット判定
+                  最新の画像判定
                 </Typography>
                 <SectionSummary latestLot={latestLotForSection} lotStatus={latestLotStatus} />
               </Box>
@@ -304,7 +309,7 @@ const SectionTab = ({
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">ロット総数</Typography>
+                      <Typography variant="body2" color="text.secondary">画像総数</Typography>
                       <Typography variant="h4" fontWeight="bold">{statsLatest.total}</Typography>
                     </SurfaceBox>
                   </Grid>

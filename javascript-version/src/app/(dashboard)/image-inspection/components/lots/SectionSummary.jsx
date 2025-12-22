@@ -7,12 +7,18 @@ import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 
-const normalizeStatus = status => (status || '').toString().trim().toUpperCase()
+const normalizeStatus = status => {
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (!normalized) return ''
+  if (normalized === 'OK') return 'PASS'
+  if (normalized === 'NG') return 'FAIL'
+  return normalized
+}
 
 const cameraChipColor = status => {
   const normalized = normalizeStatus(status)
-  if (normalized === 'OK') return 'success'
-  if (normalized === 'NG') return 'error'
+  if (normalized === 'PASS') return 'success'
+  if (normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
@@ -20,13 +26,12 @@ const cameraChipColor = status => {
 const SUMMARY_THRESHOLD = 8
 
 const getStatusPriority = status => {
-  const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'NG') return 0
+  const normalized = normalizeStatus(status)
+  if (normalized === 'FAIL') return 0
   if (normalized === 'MISSING') return 1
-  if (normalized === 'FAIL') return 2
-  if (normalized === 'OK') return 3
-  if (normalized === 'UNKNOWN') return 4
-  return 5
+  if (normalized === 'PASS') return 2
+  if (normalized === 'UNKNOWN') return 3
+  return 4
 }
 
 const resolveDisplayName = (item, index) => {
@@ -63,16 +68,16 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
         ? 'warning.main'
         : 'text.secondary'
 
-  const failedCams = cameraList.filter(c => normalizeStatus(c.status) !== 'OK')
+  const failedCams = cameraList.filter(c => normalizeStatus(c.status) !== 'PASS')
 
   const chipSummary = useMemo(() => {
     if (!shouldSummarize) return []
     const summaryMap = new Map()
 
     cameraList.forEach(item => {
-      const statusValue = (item?.status ?? 'UNKNOWN').toString().trim()
-      const displayLabel = statusValue || 'UNKNOWN'
-      const normalized = displayLabel.toUpperCase()
+      const statusValue = item?.status ?? 'UNKNOWN'
+      const normalized = normalizeStatus(statusValue) || 'UNKNOWN'
+      const displayLabel = normalized
       const existing = summaryMap.get(normalized)
 
       if (existing) {
@@ -135,7 +140,7 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
                 label={`${summary.displayLabel}: ${summary.count}件`}
                 size="small"
                 color={cameraChipColor(summary.displayLabel)}
-                variant={summary.normalized === 'OK' ? 'outlined' : 'filled'}
+                variant={summary.normalized === 'PASS' ? 'outlined' : 'filled'}
               />
             ))}
           </Box>
@@ -144,14 +149,14 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
           <Box sx={{ display: 'flex', gap: 1, mt: shouldSummarize ? 1 : 1, justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: '100%' }}>
             {cameraList.map((c, i) => {
               const label = resolveDisplayName(c, i)
-              const statusLabel = c?.status || 'UNKNOWN'
+              const statusLabel = normalizeStatus(c?.status) || 'UNKNOWN'
               return (
                 <Chip
                   key={`${label}-${i}`}
                   label={`${label}: ${statusLabel}`}
                   size="small"
                   color={cameraChipColor(statusLabel)}
-                  variant={normalizeStatus(statusLabel) === 'OK' ? 'outlined' : 'filled'}
+                  variant={statusLabel === 'PASS' ? 'outlined' : 'filled'}
                 />
               )
             })}
