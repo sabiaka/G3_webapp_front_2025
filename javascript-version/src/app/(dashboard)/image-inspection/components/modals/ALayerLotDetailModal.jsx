@@ -1,4 +1,4 @@
-// A層ロット詳細モーダル
+// A層ロット詳細モーダル マップ表示
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -19,7 +19,7 @@ import LotInfoSection from '../lots/LotInfoSection'
 const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
-const MIN_GRID_ROWS = 6
+const MIN_GRID_ROWS = 5
 const MIN_GRID_COLS = 4
 
 const normalizeRelativePath = path => {
