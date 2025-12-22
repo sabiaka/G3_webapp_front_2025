@@ -99,7 +99,7 @@
 // 状態管理・API通信・フィルタリング・イベントハンドラをカスタムフック
 
 // 必要なReactフックや外部ライブラリをインポート
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import confetti from 'canvas-confetti'
 
 // ユーティリティ関数や初期データをインポート
@@ -132,6 +132,10 @@ export default function useShippingInstructions() {
     const [line, setLine] = useState('すべて') // ラインフィルター
     const [completed, setCompleted] = useState('all') // 完了状態フィルター
     const [date, setDate] = useState(() => formatLocalYmd()) // 日付フィルター
+    const initialDateRef = useRef(null)
+    if (initialDateRef.current === null) {
+        initialDateRef.current = date
+    }
     const [modalOpen, setModalOpen] = useState(false) // モーダルの開閉状態
     const [form, setForm] = useState({ id: '', productName: '', size: '', title: '', line: 'マット', completed: false, remarks: '', color: '', shippingMethod: '', destination: '', includedItems: '', springType: '', quantity: 1 }) // フォームデータ
     const [editMode, setEditMode] = useState(false) // 編集モードのフラグ
@@ -282,6 +286,46 @@ export default function useShippingInstructions() {
         run()
         return () => controller.abort()
     }, [dataSource, line, completed, reloadTick])
+
+    // 初回表示時に、今日にもっとも近い利用可能日を自動選択（DB基準）
+    useEffect(() => {
+        if (dataSource !== 'api') return
+        if (!availableDateItems.length) return
+        if (date !== initialDateRef.current) return
+
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const candidates = availableDateItems
+            .map(item => {
+                const candidateDate = item?.date
+                if (!candidateDate) return null
+                const parsed = new Date(`${candidateDate}T00:00:00`)
+                if (Number.isNaN(parsed.getTime())) return null
+                const time = parsed.getTime()
+                return {
+                    date: candidateDate,
+                    time,
+                    diff: Math.abs(time - today.getTime()),
+                    isFuture: time >= today.getTime()
+                }
+            })
+            .filter(Boolean)
+
+        if (!candidates.length) return
+
+        candidates.sort((a, b) => {
+            if (a.diff !== b.diff) return a.diff - b.diff
+            if (a.isFuture !== b.isFuture) return a.isFuture ? -1 : 1
+            if (a.isFuture) return a.time - b.time
+            return b.time - a.time
+        })
+
+        const closest = candidates[0]
+        if (closest && closest.date !== date) {
+            setDate(closest.date)
+        }
+    }, [availableDateItems, dataSource, date])
 
     // 日付ナビゲーション
     // - 現在の日付が availableDates に含まれない場合でも、
