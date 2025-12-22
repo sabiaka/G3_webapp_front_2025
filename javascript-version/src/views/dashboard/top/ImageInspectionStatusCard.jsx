@@ -33,6 +33,18 @@ const getSectionName = (code) => {
   }
 };
 
+// 日付文字列 (YYYY-MM-DD) を短い形式 (M/D) に変換するヘルパー関数
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const [year, month, day] = dateStr.split('-');
+    // parseIntを使って 01月 -> 1月 のように変換
+    return `${parseInt(month, 10)}/${parseInt(day, 10)}`;
+  } catch (e) {
+    return '';
+  }
+};
+
 const ImageInspectionStatusCard = () => {
   // --- ▼ Stateを定義 ▼ ---
   const [inspectionData, setInspectionData] = useState(null);
@@ -57,7 +69,7 @@ const ImageInspectionStatusCard = () => {
       setIsLoading(true); // データを取得開始時にローディング中にする
       setError(null);
       try {
-        // ★変更点: URLを state の `currentSection` から動的に構築★
+        // APIを叩く (useLotsData修正によりAPI側で最新日付が自動選択される)
         const res = await fetch(`/api/inspections/summary?section=${currentSection}`);
         
         if (!res.ok) {
@@ -78,7 +90,7 @@ const ImageInspectionStatusCard = () => {
     
     fetchStatus();
     
-  // ★変更点: `currentSection` が変わるたびにこの処理を実行する★
+  // currentSection が変わるたびに再取得
   }, [currentSection]); 
 
 
@@ -144,12 +156,17 @@ const ImageInspectionStatusCard = () => {
     );
   };
 
+  // タイトルに日付を追加するための準備
+  const dateLabel = (inspectionData?.date) 
+    ? ` (${formatDateShort(inspectionData.date)})` 
+    : '';
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       
-      {/* --- ▼ CardHeader に subheader と action (切替ボタン) を追加 ▼ --- */}
+      {/* --- ▼ CardHeader 修正: タイトルに日付を表示 ▼ --- */}
       <CardHeader
-        title="画像検査ステータス"
+        title={`画像検査ステータス${dateLabel}`} 
         subheader={getSectionName(currentSection)} // 選択中のセクション名を表示
         action={
           <Tooltip title="表示セクション切り替え">
@@ -159,10 +176,7 @@ const ImageInspectionStatusCard = () => {
               onChange={handleSectionChange}
               aria-label="セクション切り替え"
               size="small"
-              sx={{ 
-                // CardHeaderのpaddingに負けないようにマージン調整
-                mr: 1 
-              }} 
+              sx={{ mr: 1 }} 
             >
               <ToggleButton value="spring" aria-label="バネどめ機">
                 バネ
@@ -175,18 +189,15 @@ const ImageInspectionStatusCard = () => {
         }
         sx={{ minHeight: headerMinHeight }}
       />
-      {/* --- ▲ CardHeader 修正 ▲ --- */}
 
-      {/* --- ▼ CardActionArea の href を修正 ▼ --- */}
       <CardActionArea 
         component={Link} 
-        href="/image-inspection" // ★変更点: 常に画像検査ページに飛ぶよう固定
+        href="/image-inspection"
         sx={{ 
           height: '100%', 
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'stretch',
-          // CardHeader の分、高さを調整
           flexGrow: 1 
         }}
       >
@@ -194,7 +205,6 @@ const ImageInspectionStatusCard = () => {
           {renderContent()}
         </CardContent>
       </CardActionArea>
-      {/* --- ▲ CardActionArea 修正 ▲ --- */}
     </Card>
   );
 };
