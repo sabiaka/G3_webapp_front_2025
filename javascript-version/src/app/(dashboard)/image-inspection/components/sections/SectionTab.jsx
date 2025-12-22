@@ -273,7 +273,7 @@ const SectionTab = ({
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                リアルタイム監視: {section}検査（{cameraNamesForGrid.length}カメラ）
+                最新ログ: {section}検査（{cameraNamesForGrid.length}カメラ）
               </Typography>
               {cameraNamesForGrid.length === 0 ? (
                 <Typography color="text.secondary">カメラ構成が取得できません。</Typography>

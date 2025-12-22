@@ -223,7 +223,7 @@ const ImageInspection = () => {
             >
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography variant="h6" gutterBottom>
-                  リアルタイム監視: {title}（{cameraCount}カメラ）
+                  最新ログ: {title}（{cameraCount}カメラ）
                 </Typography>
                 {cameraNames.length === 0 ? (
                   <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
