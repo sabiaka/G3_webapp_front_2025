@@ -164,9 +164,11 @@ const ImageInspection = () => {
         if (sectionKey === 'A層') {
           const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
           const mappedStatus = (() => {
-            if (normalizedLotStatus === 'PASS') return 'OK'
-            if (normalizedLotStatus === 'FAIL') return 'NG'
+            if (normalizedLotStatus === 'PASS') return 'PASS'
+            if (normalizedLotStatus === 'FAIL') return 'FAIL'
             if (normalizedLotStatus === 'MISSING') return 'MISSING'
+            if (normalizedLotStatus === 'OK') return 'PASS'
+            if (normalizedLotStatus === 'NG') return 'FAIL'
             return normalizedLotStatus || ''
           })()
           if (!mappedStatus) return {}

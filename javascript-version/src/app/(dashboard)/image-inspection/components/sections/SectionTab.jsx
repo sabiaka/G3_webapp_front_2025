@@ -118,9 +118,11 @@ const SectionTab = ({
       const fallback = SECTION_CONFIG[section]?.cameras || []
       const normalizedLotStatus = (latestLotStatus || '').toString().trim().toUpperCase()
       const statusForCamera = (() => {
-        if (normalizedLotStatus === 'PASS') return 'OK'
-        if (normalizedLotStatus === 'FAIL') return 'NG'
+        if (normalizedLotStatus === 'PASS') return 'PASS'
+        if (normalizedLotStatus === 'FAIL') return 'FAIL'
         if (normalizedLotStatus === 'MISSING') return 'MISSING'
+        if (normalizedLotStatus === 'OK') return 'PASS'
+        if (normalizedLotStatus === 'NG') return 'FAIL'
         return normalizedLotStatus || ''
       })()
       if (!statusForCamera) return {}

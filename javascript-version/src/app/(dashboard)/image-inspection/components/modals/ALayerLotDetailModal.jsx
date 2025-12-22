@@ -31,8 +31,15 @@ const normalizeRelativePath = path => {
   return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
 }
 
-const getLotStatusColor = status => {
+const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'OK') return 'PASS'
+  if (normalized === 'NG') return 'FAIL'
+  return normalized
+}
+
+const getLotStatusColor = status => {
+  const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
   if (normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
@@ -40,15 +47,15 @@ const getLotStatusColor = status => {
 }
 
 const getChipColor = status => {
-  const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'OK' || normalized === 'PASS') return 'success'
-  if (normalized === 'NG' || normalized === 'FAIL') return 'error'
+  const normalized = normalizeStatusLabel(status)
+  if (normalized === 'PASS') return 'success'
+  if (normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
 const getShotStatusColor = status => {
-  const normalized = (status || '').toString().toUpperCase()
+  const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
   if (normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
@@ -226,7 +233,7 @@ const pickRepresentativeShot = shots => {
   if (!Array.isArray(shots) || shots.length === 0) return null
   const normalized = shots
     .map(shot => {
-      const status = (shot?.status || '').toString().toUpperCase()
+      const status = normalizeStatusLabel(shot?.status)
       const priority = STATUS_PRIORITY.indexOf(status)
       return {
         shot,
@@ -244,8 +251,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
     if (!Array.isArray(shots4k) || shots4k.length === 0) return []
 
     const priorityOf = status => {
-      const normalized = (status || '').toString().trim().toUpperCase()
-      if (normalized === 'NG') return 0
+      const normalized = normalizeStatusLabel(status)
       const index = STATUS_PRIORITY.indexOf(normalized)
       return index >= 0 ? index : STATUS_PRIORITY.length
     }
@@ -257,7 +263,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
       const parsedSequence = parseShotSequence(seqRaw)
       const labelSource = parsedSequence?.label || (typeof seqRaw === 'string' && seqRaw.trim()) || shot?.camera_id || '-'
       const label = labelSource || '-'
-      const normalizedStatus = (shot?.status || '').toString().trim().toUpperCase() || 'UNKNOWN'
+      const normalizedStatus = normalizeStatusLabel(shot?.status) || 'UNKNOWN'
       const detail = shot?.details && shot.details !== '-' ? shot.details : ''
 
       const existing = groups.get(label)

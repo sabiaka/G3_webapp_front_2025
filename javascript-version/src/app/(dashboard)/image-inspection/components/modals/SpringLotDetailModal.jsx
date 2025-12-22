@@ -41,8 +41,8 @@ const normalizeRelativePath = path => {
 
 const getChipColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'OK') return 'success'
-  if (normalized === 'NG') return 'error'
+  if (normalized === 'OK' || normalized === 'PASS') return 'success'
+  if (normalized === 'NG' || normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
@@ -335,14 +335,20 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {(lot.cameras || []).map((camera, index) => {
                   const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
+                  const canonicalStatus = normalizedStatus === 'OK'
+                    ? 'PASS'
+                    : normalizedStatus === 'NG'
+                      ? 'FAIL'
+                      : normalizedStatus || 'UNKNOWN'
+                  const isPass = canonicalStatus === 'PASS'
 
                   return (
                     <Chip
                       key={`${camera.name}-${index}`}
-                      label={`${camera.name}: ${camera.status}`}
+                      label={`${camera.name}: ${canonicalStatus}`}
                       size="small"
-                      color={getChipColor(camera.status)}
-                      variant={normalizedStatus === 'OK' ? 'outlined' : 'filled'}
+                      color={getChipColor(canonicalStatus)}
+                      variant={isPass ? 'outlined' : 'filled'}
                     />
                   )
                 })}

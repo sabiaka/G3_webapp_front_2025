@@ -27,16 +27,27 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
-const CameraTile = ({ name, status = 'OK', isSingle = false, imagePath }) => {
-  const normalizedStatus = (status || '').toString().trim().toUpperCase()
+const normalizeStatusLabel = status => {
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (!normalized) return ''
+  if (normalized === 'OK') return 'PASS'
+  if (normalized === 'NG') return 'FAIL'
+  return normalized
+}
 
-  const chipColor = normalizedStatus === 'OK'
+const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
+  const canonicalStatus = normalizeStatusLabel(status)
+  const normalizedStatus = canonicalStatus || (status || '').toString().trim().toUpperCase() || 'UNKNOWN'
+
+  const chipColor = normalizedStatus === 'PASS'
     ? 'success'
     : normalizedStatus === 'MISSING'
       ? 'warning'
-      : 'error'
+      : normalizedStatus === 'UNKNOWN'
+        ? 'default'
+        : 'error'
 
-  const label = normalizedStatus || 'UNKNOWN'
+  const label = normalizedStatus
 
   const buildImageSources = useCallback(() => {
     const normalizedPath = normalizeRelativePath(imagePath)
@@ -71,7 +82,7 @@ const CameraTile = ({ name, status = 'OK', isSingle = false, imagePath }) => {
     let pair
     if (normalizedStatus === 'MISSING') {
       pair = ensureUrl(buildPair((path, options) => toBeforeTestUrl(path, options)))
-    } else if (normalizedStatus === 'PASS' || normalizedStatus === 'OK' || normalizedStatus === 'FAIL' || normalizedStatus === 'NG') {
+    } else if (normalizedStatus === 'PASS' || normalizedStatus === 'FAIL') {
       pair = ensureUrl(buildPair((path, options) => toAfterTestUrl(path, options)))
     } else {
       pair = ensureUrl(buildPair((path, options) => toImageUrl(path, options)))

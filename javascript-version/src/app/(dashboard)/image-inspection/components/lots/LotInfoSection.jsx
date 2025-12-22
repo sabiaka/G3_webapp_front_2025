@@ -24,14 +24,21 @@ const resolveDisplayName = (item, index) => {
 
 const SUMMARY_THRESHOLD = 8
 
-const getStatusPriority = status => {
+const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'NG') return 0
+  if (!normalized) return ''
+  if (normalized === 'OK') return 'PASS'
+  if (normalized === 'NG') return 'FAIL'
+  return normalized
+}
+
+const getStatusPriority = status => {
+  const normalized = normalizeStatusLabel(status)
+  if (normalized === 'FAIL') return 0
   if (normalized === 'MISSING') return 1
-  if (normalized === 'FAIL') return 2
-  if (normalized === 'OK') return 3
-  if (normalized === 'UNKNOWN') return 4
-  return 5
+  if (normalized === 'PASS') return 2
+  if (normalized === 'UNKNOWN') return 3
+  return 4
 }
 
 const LotInfoSection = ({
@@ -70,9 +77,9 @@ const LotInfoSection = ({
     const summaryMap = new Map()
 
     chips.forEach(item => {
-      const statusValue = (item?.status ?? 'UNKNOWN').toString().trim()
-      const displayLabel = statusValue || 'UNKNOWN'
-      const normalized = displayLabel.toUpperCase()
+      const statusValue = item?.status ?? 'UNKNOWN'
+      const normalized = normalizeStatusLabel(statusValue) || 'UNKNOWN'
+      const displayLabel = normalized
       const existing = summaryMap.get(normalized)
 
       if (existing) {
@@ -169,7 +176,7 @@ const LotInfoSection = ({
                 label={`${summary.displayLabel}: ${summary.count}件`}
                 size="small"
                 color={getChipColor(summary.displayLabel)}
-                variant={summary.normalized === 'OK' ? 'outlined' : 'filled'}
+                variant={summary.normalized === 'PASS' ? 'outlined' : 'filled'}
               />
             ))}
           </Box>
@@ -177,9 +184,9 @@ const LotInfoSection = ({
         {showDetailedChips && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {chips.map((item, index) => {
-              const normalizedStatus = (item?.status || '').toString().trim().toUpperCase()
+              const normalizedStatus = normalizeStatusLabel(item?.status) || 'UNKNOWN'
               const label = resolveDisplayName(item, index)
-              const statusLabel = item?.status || 'UNKNOWN'
+              const statusLabel = normalizedStatus || 'UNKNOWN'
 
               return (
                 <Chip
@@ -187,7 +194,7 @@ const LotInfoSection = ({
                   label={`${label}: ${statusLabel}`}
                   size="small"
                   color={getChipColor(statusLabel)}
-                  variant={normalizedStatus === 'OK' || normalizedStatus === 'PASS' ? 'outlined' : 'filled'}
+                  variant={normalizedStatus === 'PASS' ? 'outlined' : 'filled'}
                 />
               )
             })}

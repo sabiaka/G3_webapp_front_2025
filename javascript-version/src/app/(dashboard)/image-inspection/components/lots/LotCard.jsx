@@ -32,22 +32,29 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
-const getChipColor = status => {
+const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'OK') return 'success'
-  if (normalized === 'NG') return 'error'
+  if (!normalized) return ''
+  if (normalized === 'OK') return 'PASS'
+  if (normalized === 'NG') return 'FAIL'
+  return normalized
+}
+
+const getChipColor = status => {
+  const normalized = normalizeStatusLabel(status)
+  if (normalized === 'PASS') return 'success'
+  if (normalized === 'FAIL') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
 }
 
 const getStatusPriority = status => {
-  const normalized = (status || '').toString().trim().toUpperCase()
-  if (normalized === 'NG') return 0
+  const normalized = normalizeStatusLabel(status)
+  if (normalized === 'FAIL') return 0
   if (normalized === 'MISSING') return 1
-  if (normalized === 'FAIL') return 2
-  if (normalized === 'OK') return 3
-  if (normalized === 'UNKNOWN') return 4
-  return 5
+  if (normalized === 'PASS') return 2
+  if (normalized === 'UNKNOWN') return 3
+  return 4
 }
 
 const resolveDisplayName = (item, index) => {
@@ -110,9 +117,9 @@ const LotCard = ({
     const summaryMap = new Map()
 
     cameraList.forEach(camera => {
-      const rawLabel = (camera?.status ?? 'UNKNOWN').toString().trim()
-      const displayLabel = rawLabel || 'UNKNOWN'
-      const normalized = displayLabel.toUpperCase()
+      const rawLabel = camera?.status ?? 'UNKNOWN'
+      const normalized = normalizeStatusLabel(rawLabel) || 'UNKNOWN'
+      const displayLabel = normalized
       const current = summaryMap.get(normalized)
 
       if (current) {
@@ -136,9 +143,9 @@ const LotCard = ({
 
   const problematicDetails = useMemo(() => {
     return cameraList.reduce((accumulator, camera, index) => {
-      const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
-      if (normalizedStatus !== 'OK' && camera.details && camera.details !== '-') {
-        accumulator.push({ camera, index })
+      const normalizedStatus = normalizeStatusLabel(camera.status)
+      if (normalizedStatus !== 'PASS' && camera.details && camera.details !== '-') {
+        accumulator.push({ camera, index, status: normalizedStatus })
       }
       return accumulator
     }, [])
@@ -211,7 +218,7 @@ const LotCard = ({
                     label={`${summary.displayLabel}: ${summary.count}件`}
                     size="small"
                     color={getChipColor(summary.displayLabel)}
-                    variant={summary.normalized === 'OK' ? 'outlined' : 'filled'}
+                    variant={summary.normalized === 'PASS' ? 'outlined' : 'filled'}
                   />
                 ))}
               </Box>
@@ -219,9 +226,9 @@ const LotCard = ({
             {showDetailedView && (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {cameraList.map((camera, index) => {
-                  const normalizedCameraStatus = (camera.status || '').toString().trim().toUpperCase()
+                  const normalizedCameraStatus = normalizeStatusLabel(camera.status) || 'UNKNOWN'
                   const label = resolveDisplayName(camera, index)
-                  const statusLabel = camera?.status || 'UNKNOWN'
+                  const statusLabel = normalizedCameraStatus || 'UNKNOWN'
 
                   return (
                     <Chip
@@ -229,7 +236,7 @@ const LotCard = ({
                       label={`${label}: ${statusLabel}`}
                       size="small"
                       color={getChipColor(statusLabel)}
-                      variant={normalizedCameraStatus === 'OK' ? 'outlined' : 'filled'}
+                      variant={normalizedCameraStatus === 'PASS' ? 'outlined' : 'filled'}
                     />
                   )
                 })}
@@ -247,9 +254,8 @@ const LotCard = ({
             )}
             {showDetailedView && problematicDetails.length > 0 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {problematicDetails.map(({ camera, index }) => {
-                  const normalizedStatus = (camera.status || '').toString().trim().toUpperCase()
-                  const detailColor = normalizedStatus === 'MISSING' ? 'warning.main' : 'error.main'
+                {problematicDetails.map(({ camera, index, status }) => {
+                  const detailColor = status === 'MISSING' ? 'warning.main' : 'error.main'
                   const label = resolveDisplayName(camera, index)
 
                   return (
