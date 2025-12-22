@@ -67,14 +67,17 @@ const LotCard = ({
   onOpen,
   isActive = false,
 }) => {
-  const cameraList = lot.cameras || []
+  const cameraList = useMemo(() => {
+    if (!lot || !Array.isArray(lot.cameras)) return []
+    return lot.cameras
+  }, [lot])
   const shouldSummarize = cameraList.length > SUMMARY_THRESHOLD
   const [showAllCameras, setShowAllCameras] = useState(false)
   const showDetailedView = !shouldSummarize || showAllCameras
 
   useEffect(() => {
     setShowAllCameras(false)
-  }, [lot.lotId])
+  }, [lot?.lotId])
 
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
@@ -98,8 +101,8 @@ const LotCard = ({
   }
 
   const representativeSources = useMemo(
-    () => buildImageSources(lot.representativeImage),
-    [buildImageSources, lot.representativeImage],
+    () => buildImageSources(lot?.representativeImage),
+    [buildImageSources, lot?.representativeImage],
   )
 
   const cameraStatusSummary = useMemo(() => {
@@ -140,6 +143,8 @@ const LotCard = ({
       return accumulator
     }, [])
   }, [cameraList])
+
+  if (!lot) return null
 
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const chipColor = normalizedLotStatus === 'PASS'

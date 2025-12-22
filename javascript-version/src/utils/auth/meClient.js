@@ -76,8 +76,10 @@ export async function fetchMeCached(options = {}) {
   return inFlight
 }
 
-export default {
+const meClient = {
   fetchMeCached,
   invalidateMeCache,
   seedMeCache
 }
+
+export default meClient

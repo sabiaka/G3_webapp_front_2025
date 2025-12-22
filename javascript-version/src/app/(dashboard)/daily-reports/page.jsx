@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
@@ -38,8 +38,17 @@ export default function DailyReportsPage() {
   });
   const [sortOrder, setSortOrder] = useState('date_desc');
 
+  const stringToColor = useCallback((string) => {
+    let hash = 0;
+    for (let i = 0; i < string.length; i++) {
+      hash = string.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+  }, []);
+
   // --- 1. データ取得 (GET) ---
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -79,7 +88,7 @@ export default function DailyReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, sortOrder, stringToColor]);
 
   // --- 2. 削除処理 (DELETE) ---
   const handleClickDelete = (id) => {
@@ -165,16 +174,7 @@ export default function DailyReportsPage() {
   useEffect(() => {
     const timer = setTimeout(() => fetchReports(), 500);
     return () => clearTimeout(timer);
-  }, [filters, sortOrder]);
-
-  const stringToColor = (string) => {
-    let hash = 0;
-    for (let i = 0; i < string.length; i++) {
-      hash = string.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const c = (hash & 0x00ffffff).toString(16).toUpperCase();
-    return '#' + '00000'.substring(0, 6 - c.length) + c;
-  };
+  }, [fetchReports]);
 
   return (
     <Box sx={{ p: 3, pb: 10 }}>

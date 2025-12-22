@@ -147,7 +147,7 @@ const AccountDetails = () => {
     })()
 
     return () => ac.abort()
-  }, [])
+  }, [apiBase])
 
   const togglePasswordShown = () => setIsPasswordShown(s => !s)
 
@@ -264,7 +264,7 @@ const AccountDetails = () => {
     })()
 
     return () => ac.abort()
-  }, [user?.employee_id])
+  }, [apiBase, user?.employee_id])
 
   // 役割/ラインの名称からIDを初期設定（一覧が取得できてから反映）
   useEffect(() => {

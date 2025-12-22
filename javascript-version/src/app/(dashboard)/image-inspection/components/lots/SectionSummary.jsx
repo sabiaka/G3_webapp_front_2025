@@ -41,9 +41,11 @@ const resolveDisplayName = (item, index) => {
 }
 
 const SectionSummary = ({ latestLot, lotStatus }) => {
-  if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
+  const cameraList = useMemo(() => {
+    if (latestLot && Array.isArray(latestLot.cameras)) return latestLot.cameras
+    return []
+  }, [latestLot])
 
-  const cameraList = latestLot.cameras || []
   const shouldSummarize = cameraList.length > SUMMARY_THRESHOLD
   const [showAllChips, setShowAllChips] = useState(false)
   const showDetailedChips = !shouldSummarize || showAllChips
@@ -91,6 +93,8 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
       return a.displayLabel.localeCompare(b.displayLabel)
     })
   }, [cameraList, shouldSummarize])
+
+  if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
 
   return (
     <Box

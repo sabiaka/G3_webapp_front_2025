@@ -1,6 +1,6 @@
 // モーダル内ロット情報セクションコンポーネント
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -46,20 +46,16 @@ const LotInfoSection = ({
   summaryLabel = '検査サマリー',
   additionalSummaries = [],
 }) => {
-  if (!lot) return null
+  const chips = useMemo(() => {
+    if (Array.isArray(statusItems) && statusItems.length > 0) return statusItems
+    if (lot && Array.isArray(lot.cameras)) return lot.cameras
+    return []
+  }, [lot, statusItems])
 
-  const handlePreview = () => {
-    if (!setLightbox) return
-    setLightbox({
-      open: true,
-      src: representativeSources.primary,
-      fallback: representativeSources.fallback,
-      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
-    })
-  }
-
-  const chips = Array.isArray(statusItems) && statusItems.length > 0 ? statusItems : lot.cameras || []
-  const normalizedAdditionalSummaries = Array.isArray(additionalSummaries) ? additionalSummaries : []
+  const normalizedAdditionalSummaries = useMemo(
+    () => (Array.isArray(additionalSummaries) ? additionalSummaries : []),
+    [additionalSummaries],
+  )
 
   const shouldSummarize = chips.length > SUMMARY_THRESHOLD
   const [showAllChips, setShowAllChips] = useState(false)
@@ -98,6 +94,23 @@ const LotInfoSection = ({
     })
   }, [chips, shouldSummarize])
 
+  const previewSources = useMemo(
+    () => representativeSources || { primary: '', fallback: '' },
+    [representativeSources],
+  )
+
+  const handlePreview = useCallback(() => {
+    if (!setLightbox || !lot) return
+    setLightbox({
+      open: true,
+      src: previewSources.primary,
+      fallback: previewSources.fallback,
+      alt: lot.representativeImage ? `${lot.lotId} representative` : 'placeholder',
+    })
+  }, [lot, previewSources, setLightbox])
+
+  if (!lot) return null
+
   const summaryBlocks = []
   const primaryFallbackItems = Array.isArray(summaryItems) ? summaryItems : chips
   const primarySummary = normalizeShotSummary(summary, primaryFallbackItems)
@@ -126,9 +139,9 @@ const LotInfoSection = ({
         onClick={handlePreview}
       >
         <img
-          src={representativeSources.primary}
+          src={previewSources.primary}
           alt={lot.representativeImage ? `${lot.lotId} representative` : 'placeholder'}
-          onError={e => handleImageError(e, representativeSources.fallback)}
+          onError={e => handleImageError(e, previewSources.fallback)}
           draggable={false}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
