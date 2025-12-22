@@ -1,8 +1,11 @@
 // 最新ロットの結果と各カメラの判定をまとめて表示するサマリー行コンポーネント
 
+import { useEffect, useMemo, useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
 
 const normalizeStatus = status => (status || '').toString().trim().toUpperCase()
 
@@ -12,6 +15,18 @@ const cameraChipColor = status => {
   if (normalized === 'NG') return 'error'
   if (normalized === 'MISSING') return 'warning'
   return 'default'
+}
+
+const SUMMARY_THRESHOLD = 8
+
+const getStatusPriority = status => {
+  const normalized = (status || '').toString().trim().toUpperCase()
+  if (normalized === 'NG') return 0
+  if (normalized === 'MISSING') return 1
+  if (normalized === 'FAIL') return 2
+  if (normalized === 'OK') return 3
+  if (normalized === 'UNKNOWN') return 4
+  return 5
 }
 
 const resolveDisplayName = (item, index) => {
@@ -28,6 +43,15 @@ const resolveDisplayName = (item, index) => {
 const SectionSummary = ({ latestLot, lotStatus }) => {
   if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
 
+  const cameraList = latestLot.cameras || []
+  const shouldSummarize = cameraList.length > SUMMARY_THRESHOLD
+  const [showAllChips, setShowAllChips] = useState(false)
+  const showDetailedChips = !shouldSummarize || showAllChips
+
+  useEffect(() => {
+    setShowAllChips(false)
+  }, [latestLot?.lotId])
+
   const normalizedLotStatus = normalizeStatus(lotStatus)
   const lotStatusColor = normalizedLotStatus === 'PASS'
     ? 'success.main'
@@ -37,7 +61,36 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
         ? 'warning.main'
         : 'text.secondary'
 
-  const failedCams = (latestLot.cameras || []).filter(c => normalizeStatus(c.status) !== 'OK')
+  const failedCams = cameraList.filter(c => normalizeStatus(c.status) !== 'OK')
+
+  const chipSummary = useMemo(() => {
+    if (!shouldSummarize) return []
+    const summaryMap = new Map()
+
+    cameraList.forEach(item => {
+      const statusValue = (item?.status ?? 'UNKNOWN').toString().trim()
+      const displayLabel = statusValue || 'UNKNOWN'
+      const normalized = displayLabel.toUpperCase()
+      const existing = summaryMap.get(normalized)
+
+      if (existing) {
+        existing.count += 1
+      } else {
+        summaryMap.set(normalized, {
+          normalized,
+          displayLabel,
+          count: 1,
+        })
+      }
+    })
+
+    return Array.from(summaryMap.values()).sort((a, b) => {
+      const priorityDiff = getStatusPriority(a.normalized) - getStatusPriority(b.normalized)
+      if (priorityDiff !== 0) return priorityDiff
+      if (b.count !== a.count) return b.count - a.count
+      return a.displayLabel.localeCompare(b.displayLabel)
+    })
+  }, [cameraList, shouldSummarize])
 
   return (
     <Box
@@ -70,20 +123,46 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
         <Typography variant="h4" fontWeight="bold" color={lotStatusColor}>
           {normalizedLotStatus || '-'}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: '100%' }}>
-          {(latestLot.cameras || []).map((c, i) => {
-            const label = resolveDisplayName(c, i)
-            const statusLabel = c?.status || 'UNKNOWN'
-            return (
+        {shouldSummarize && (
+          <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: '100%' }}>
+            {chipSummary.map(summary => (
               <Chip
-                key={`${label}-${i}`}
-                label={`${label}: ${statusLabel}`}
+                key={summary.normalized}
+                label={`${summary.displayLabel}: ${summary.count}件`}
                 size="small"
-                color={cameraChipColor(statusLabel)}
+                color={cameraChipColor(summary.displayLabel)}
+                variant={summary.normalized === 'OK' ? 'outlined' : 'filled'}
               />
-            )
-          })}
-        </Box>
+            ))}
+          </Box>
+        )}
+        {showDetailedChips && (
+          <Box sx={{ display: 'flex', gap: 1, mt: shouldSummarize ? 1 : 1, justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: '100%' }}>
+            {cameraList.map((c, i) => {
+              const label = resolveDisplayName(c, i)
+              const statusLabel = c?.status || 'UNKNOWN'
+              return (
+                <Chip
+                  key={`${label}-${i}`}
+                  label={`${label}: ${statusLabel}`}
+                  size="small"
+                  color={cameraChipColor(statusLabel)}
+                  variant={normalizeStatus(statusLabel) === 'OK' ? 'outlined' : 'filled'}
+                />
+              )
+            })}
+          </Box>
+        )}
+        {shouldSummarize && (
+          <Button
+            size="small"
+            variant="text"
+            onClick={() => setShowAllChips(prev => !prev)}
+            sx={{ mt: 1, px: 0 }}
+          >
+            {showAllChips ? '概要に戻す' : `詳細を見る (${cameraList.length}項目)`}
+          </Button>
+        )}
       </Box>
     </Box>
   )
