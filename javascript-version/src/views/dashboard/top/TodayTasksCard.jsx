@@ -86,10 +86,11 @@ const TodayTasksCard = () => {
             return 0;
         });
 
-        // 2. 上位4件のみを取得
-        const top4Tasks = sortedData.slice(0, 4);
+        // 2. 上位6件 (横3 x 縦2) を取得
+        // ★変更点: 4 -> 6 に変更
+        const topTasks = sortedData.slice(0, 6);
 
-        setTasks(top4Tasks);
+        setTasks(topTasks);
 
       } catch (err) {
         console.error(err);
@@ -133,8 +134,8 @@ const TodayTasksCard = () => {
     return (
       <Grid container spacing={2} alignItems="stretch">
         {tasks.map((task) => (
-          // xs=12 (スマホ等では1列), md=6 (PC等では2列) => 4件あれば2x2
-          <Grid item xs={12} md={6} key={task.id}>
+          // ★変更点: md={4} にすることで、1行に3つ (12 / 4 = 3) 並びます
+          <Grid item xs={12} md={4} key={task.id}>
             <SurfaceBox
               p={2}
               borderRadius={2}
@@ -176,13 +177,13 @@ const TodayTasksCard = () => {
     );
   };
 
-  // ★変更点: 表示用の日付文字列を取得
+  // 表示用の日付文字列を取得
   const todayStr = getTodayDateString();
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-        {/* ★変更点: タイトルに日付を含める */}
+        {/* タイトルに日付を含める */}
         <CardHeader title={`本日のタスク (${todayStr})`} />
         
         <CardContent sx={{ flexGrow: 1 }}>
