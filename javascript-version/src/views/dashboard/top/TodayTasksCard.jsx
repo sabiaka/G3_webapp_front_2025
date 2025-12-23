@@ -79,10 +79,17 @@ const TodayTasksCard = () => {
         
         const data = await res.json(); // APIは配列 ( [...] ) を返す
         
-        // --- ▼ 変更点 ▼ ---
-        // ★変更: APIから取得したタスクを「すべて」表示する★
-        setTasks(data); // .slice(0, 2) を削除
-        // --- ▲ 変更点 ▲ ---
+        // 1. created_at (作成日時) の古い順 (昇順) にソート
+        const sortedData = data.sort((a, b) => {
+            if (a.created_at < b.created_at) return -1;
+            if (a.created_at > b.created_at) return 1;
+            return 0;
+        });
+
+        // 2. 上位4件のみを取得
+        const top4Tasks = sortedData.slice(0, 4);
+
+        setTasks(top4Tasks);
 
       } catch (err) {
         console.error(err);
@@ -122,35 +129,43 @@ const TodayTasksCard = () => {
       );
     }
 
-    // データ取得成功時の表示 (全件をマッピング)
+    // データ取得成功時の表示
     return (
-      <Grid container spacing={3} alignItems="stretch">
+      <Grid container spacing={2} alignItems="stretch">
         {tasks.map((task) => (
+          // xs=12 (スマホ等では1列), md=6 (PC等では2列) => 4件あれば2x2
           <Grid item xs={12} md={6} key={task.id}>
             <SurfaceBox
-              p={3}
+              p={2}
               borderRadius={2}
               display="flex"
               justifyContent="space-between"
-              alignItems="flex-end"
-              sx={{ height: '100%' }}
+              alignItems="flex-start"
+              sx={{ height: '100%' }} // 高さを揃える
               variant="soft"
             >
-              <Box>
-                <Chip label={task.line} color={getChipColor(task.line)} size="small" />
-                <Typography fontWeight={700} mt={1}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Chip 
+                    label={task.line} 
+                    color={getChipColor(task.line)} 
+                    size="small" 
+                    sx={{ mb: 1, height: 24, fontSize: '0.75rem' }} 
+                />
+                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap title={task.product_name}>
                   {task.product_name} 
-                  <Typography component="span" variant="body2" color="text.secondary">
-                    {task.size ? ` / ${task.size}` : ''}
-                  </Typography>
                 </Typography>
-                <Typography variant="caption" color={getRemarksColor(task.remarks)} fontWeight={700} mt={0.5} display="block">
-                  {task.remarks || '（特記なし）'} {/* 備考がnullの場合の表示 */}
+                <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                    {task.size || '-'}
+                </Typography>
+                
+                <Typography variant="caption" color={getRemarksColor(task.remarks)} fontWeight={600} mt={0.5} display="block" noWrap>
+                  {task.remarks || '（特記なし）'}
                 </Typography>
               </Box>
-              <Box textAlign="right" sx={{ flexShrink: 0, ml: 1 }}>
-                <Typography variant="body2" color="text.secondary">数量</Typography>
-                <Typography variant="h4" color="primary.main" fontWeight={700}>
+              
+              <Box textAlign="right" sx={{ flexShrink: 0, ml: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: -0.5 }}>数量</Typography>
+                <Typography variant="h5" color="primary.main" fontWeight={700}>
                   {task.quantity}
                 </Typography>
               </Box>
@@ -161,12 +176,15 @@ const TodayTasksCard = () => {
     );
   };
 
+  // ★変更点: 表示用の日付文字列を取得
+  const todayStr = getTodayDateString();
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-        <CardHeader title="本日のタスク" />
-        {/* --- ▼ CardContent の中身を `renderContent()` に置き換え ▼ --- */}
+        {/* ★変更点: タイトルに日付を含める */}
+        <CardHeader title={`本日のタスク (${todayStr})`} />
+        
         <CardContent sx={{ flexGrow: 1 }}>
           {renderContent()}
         </CardContent>
