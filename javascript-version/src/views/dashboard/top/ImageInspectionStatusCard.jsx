@@ -52,8 +52,8 @@ const ImageInspectionStatusCard = () => {
   const [error, setError] = useState(null);
   
   // --- ▼ 新しいState: 現在選択中のセクションを管理 ▼ ---
-  // (初期値は 'spring' = バネどめ機)
-  const [currentSection, setCurrentSection] = useState('spring');
+  // 初期値を 'alayer' (A層) に設定
+  const [currentSection, setCurrentSection] = useState('alayer');
 
   // --- ▼ トグルボタンが押された時の処理 ▼ ---
   const handleSectionChange = (event, newSection) => {
@@ -164,7 +164,7 @@ const ImageInspectionStatusCard = () => {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       
-      {/* --- ▼ CardHeader 修正: タイトルに日付を表示 ▼ --- */}
+      {/* --- ▼ CardHeader: タイトルとトグルボタン ▼ --- */}
       <CardHeader
         title={`画像検査ステータス${dateLabel}`} 
         subheader={getSectionName(currentSection)} // 選択中のセクション名を表示
@@ -178,11 +178,13 @@ const ImageInspectionStatusCard = () => {
               size="small"
               sx={{ mr: 1 }} 
             >
-              <ToggleButton value="spring" aria-label="バネどめ機">
-                バネ
-              </ToggleButton>
+              {/* ★変更点: A層を先に配置 */}
               <ToggleButton value="alayer" aria-label="A層検査">
                 A層
+              </ToggleButton>
+              {/* ★変更点: バネを後に配置 */}
+              <ToggleButton value="spring" aria-label="バネどめ機">
+                バネ
               </ToggleButton>
             </ToggleButtonGroup>
           </Tooltip>
