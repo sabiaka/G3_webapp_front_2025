@@ -45,7 +45,7 @@ const ShotsSummaryBlock = ({ title, summary }) => {
         <Grid item xs={4}>
           <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1 }}>
             <Typography variant="caption" color="text.secondary">
-              良品
+              良品画像
             </Typography>
             <Typography variant="h6" fontWeight="bold" color="success.main">
               {okCount}
@@ -55,7 +55,7 @@ const ShotsSummaryBlock = ({ title, summary }) => {
         <Grid item xs={4}>
           <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1 }}>
             <Typography variant="caption" color="text.secondary">
-              不良
+              不良画像
             </Typography>
             <Typography variant="h6" fontWeight="bold" color="error.main">
               {ngCount}

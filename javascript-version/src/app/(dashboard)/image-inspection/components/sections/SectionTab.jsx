@@ -315,13 +315,13 @@ const SectionTab = ({
                   </Grid>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">良品</Typography>
+                      <Typography variant="body2" color="text.secondary">良品画像</Typography>
                       <Typography variant="h4" fontWeight="bold" color="success.main">{statsLatest.pass}</Typography>
                     </SurfaceBox>
                   </Grid>
                   <Grid item xs={4}>
                     <SurfaceBox variant="soft" sx={{ p: 1.5, borderRadius: 1, textAlign:  'center' }}>
-                      <Typography variant="body2" color="text.secondary">不良品</Typography>
+                      <Typography variant="body2" color="text.secondary">不良品画像</Typography>
                       <Typography variant="h4" fontWeight="bold" color="error.main">{statsLatest.fail}</Typography>
                     </SurfaceBox>
                   </Grid>
