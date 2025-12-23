@@ -316,7 +316,7 @@ return { ...prev, lineId: '' }
       })()
 
     return () => ac.abort()
-  }, [])
+  }, [apiBase])
 
   // 部署（ライン）フィルタの選択肢
   const departmentOptions = useMemo(() => {

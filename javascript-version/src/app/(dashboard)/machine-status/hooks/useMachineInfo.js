@@ -146,7 +146,7 @@ return () => {
         // baseTs が未設定なら「今」を基準に 0 秒からスタート
         if (uptimeAnchorRef.current.mode === 'base' && uptimeAnchorRef.current.baseTs === 0) {
             uptimeAnchorRef.current = { ...uptimeAnchorRef.current, baseTs: Date.now() }
-            if (uptimeSeconds == null) setUptimeSeconds(0)
+            setUptimeSeconds((prev) => (prev == null ? 0 : prev))
         }
 
         const tick = () => {

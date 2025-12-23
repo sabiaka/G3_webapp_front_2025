@@ -149,8 +149,8 @@ const ImageInspectionStatusCard = () => {
         </Box>
         <Box>
           <Typography variant="body1">検査総数: {inspectionData.total_count.toLocaleString()}</Typography>
-          <Typography variant="body1" color="info.main" fontWeight={700}>良品: {inspectionData.pass_count.toLocaleString()}</Typography>
-          <Typography variant="body1" color="error.main" fontWeight={700}>不良: {inspectionData.fail_count.toLocaleString()}</Typography>
+          <Typography variant="body1" color="info.main" fontWeight={700}>良品画像: {inspectionData.pass_count.toLocaleString()}</Typography>
+          <Typography variant="body1" color="error.main" fontWeight={700}>不良画像: {inspectionData.fail_count.toLocaleString()}</Typography>
         </Box>
       </Box>
     );

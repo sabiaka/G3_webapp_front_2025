@@ -14,7 +14,7 @@ import CameraTile from './CameraTile'
  * 
  * @param {Object} props - コンポーネントのプロパティ
  * @param {string[]} props.cameraNames - 表示するカメラの名前リスト
- * @param {Object.<string, string>} props.statusByName - カメラ名ごとのステータス（例: { "Camera1": "OK", "Camera2": "Error" }）
+ * @param {Object.<string, string>} props.statusByName - カメラ名ごとのステータス（例: { "Camera1": "PASS", "Camera2": "FAIL" }）
  * @returns {JSX.Element} グリッドレイアウトでカメラタイルを表示するReact要素
  */
 

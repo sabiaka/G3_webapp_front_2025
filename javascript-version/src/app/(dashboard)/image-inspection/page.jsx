@@ -164,9 +164,11 @@ const ImageInspection = () => {
         if (sectionKey === 'A層') {
           const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
           const mappedStatus = (() => {
-            if (normalizedLotStatus === 'PASS') return 'OK'
-            if (normalizedLotStatus === 'FAIL') return 'NG'
+            if (normalizedLotStatus === 'PASS') return 'PASS'
+            if (normalizedLotStatus === 'FAIL') return 'FAIL'
             if (normalizedLotStatus === 'MISSING') return 'MISSING'
+            if (normalizedLotStatus === 'OK') return 'PASS'
+            if (normalizedLotStatus === 'NG') return 'FAIL'
             return normalizedLotStatus || ''
           })()
           if (!mappedStatus) return {}
@@ -223,7 +225,7 @@ const ImageInspection = () => {
             >
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography variant="h6" gutterBottom>
-                  リアルタイム監視: {title}（{cameraCount}カメラ）
+                  最新ログ: {title}（{cameraCount}カメラ）
                 </Typography>
                 {cameraNames.length === 0 ? (
                   <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
@@ -236,7 +238,7 @@ const ImageInspection = () => {
                 )}
                 <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
                   <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    最新のロット判定
+                    最新の画像判定
                   </Typography>
                   <SectionSummary latestLot={latest} lotStatus={lotStatus} />
                 </Box>

@@ -23,6 +23,17 @@ const todayYMD = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+const resolveDateKey = value => {
+  if (value === null || value === undefined) return 'LATEST'
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed ? trimmed : 'LATEST'
+  }
+  return value ? value : 'LATEST'
+}
+
+const buildCacheKey = (prefix, date) => `${prefix}|${resolveDateKey(date)}`
+
 const normalizeImagePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -47,6 +58,105 @@ const normalizeShotType = type => {
 }
 
 const buildShotCacheKey = (lotId, shotType) => `${lotId}|${normalizeShotType(shotType)}`
+
+const normalizeSection = section => {
+  if (!section) return section
+  const mapped = CODE_TO_SECTION[section] || section
+  return mapped.replace(/検査$/, '')
+}
+
+const toHHMMSS = iso => {
+  try {
+    const d = new Date(iso)
+    const pad = n => String(n).padStart(2, '0')
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch {
+    return ''
+  }
+}
+
+const toYMD = iso => {
+  try {
+    const d = new Date(iso)
+    const pad = n => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  } catch {
+    return ''
+  }
+}
+
+const deriveSequenceLabel = value => {
+  if (!value) return ''
+  const raw = String(value).trim()
+  if (!raw) return ''
+  const match = raw.match(/^([A-Za-z]+)[-_]?(\d+)$/)
+  if (match) {
+    const [, rowRaw, colRaw] = match
+    const row = rowRaw.toUpperCase()
+    const col = parseInt(colRaw, 10)
+    if (Number.isFinite(col) && col > 0) {
+      return `${row}-${col}`
+    }
+  }
+  return raw
+}
+
+const aggregateCameras = cameras => {
+  const byId = new Map()
+
+  for (const raw of cameras || []) {
+    const cameraId = raw?.camera_id || raw?.cameraId || raw?.name
+    if (!cameraId) continue
+    const statusUi = mapStatusApiToUi(raw?.status)
+    const detailTextRaw = typeof raw?.details === 'string' ? raw.details.trim() : ''
+    const details = detailTextRaw || '-'
+    const imagePath = raw?.image_path || null
+    const prev = byId.get(cameraId)
+
+    if (!prev) {
+      byId.set(cameraId, {
+        name: cameraId,
+        status: statusUi,
+        rawStatus: raw?.status ?? '',
+        details,
+        image_path: imagePath,
+        type: 'camera',
+      })
+    } else {
+      const nextIsFail = statusUi !== 'PASS'
+      const prevIsFail = prev.status !== 'PASS'
+
+      if (nextIsFail && !prevIsFail) {
+        prev.status = statusUi
+        prev.rawStatus = raw?.status ?? prev.rawStatus
+        if (details !== '-' || prev.details === '-' || !prev.details) {
+          prev.details = details
+        }
+        prev.image_path = imagePath || prev.image_path
+      }
+    }
+  }
+
+  return Array.from(byId.values())
+}
+
+const mapFourKSequences = sequences => (sequences || []).map(seq => {
+  const rawSequence = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
+  const label = deriveSequenceLabel(rawSequence)
+  const statusUi = mapStatusApiToUi(seq?.status)
+  const detailTextRaw = typeof seq?.details === 'string' ? seq.details.trim() : ''
+  const detailText = detailTextRaw || '-'
+
+  return {
+    name: label || seq?.camera_id || rawSequence || '-',
+    label: label || seq?.camera_id || rawSequence || '-',
+    status: statusUi,
+    rawStatus: seq?.status ?? '',
+    details: detailText,
+    type: 'sequence',
+    rawSequence: rawSequence || '',
+  }
+})
 
 export const useLotsData = () => {
   // API仕様に合わせたダミー応答（将来は fetch で置き換え）
@@ -97,7 +207,7 @@ export const useLotsData = () => {
     const fail = total - pass
     const passRate = total > 0 ? Math.round((pass / total) * 100) : 100
 
-    const failedCameras = lots.flatMap(l => l.cameras.filter(c => c.status !== 'OK' && c.details && c.details !== '-'))
+    const failedCameras = lots.flatMap(l => l.cameras.filter(c => mapStatusApiToUi(c.status) !== 'PASS' && c.details && c.details !== '-'))
     const reasonCounts = failedCameras.reduce((acc, c) => {
       acc[c.details] = (acc[c.details] || 0) + 1
       return acc
@@ -118,107 +228,7 @@ export const useLotsData = () => {
   }
 
   // ---- アダプト層：APIデータ => 既存UI互換データ ----
-  const normalizeSection = section => {
-    if (!section) return section
-    const mapped = CODE_TO_SECTION[section] || section
-    return mapped.replace(/検査$/, '')
-  }
-
-  const toHHMMSS = iso => {
-    try {
-      const d = new Date(iso)
-      const pad = n => String(n).padStart(2, '0')
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-    } catch {
-      return ''
-    }
-  }
-
-  const toYMD = iso => {
-    try {
-      const d = new Date(iso)
-      const pad = n => String(n).padStart(2, '0')
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    } catch {
-      return ''
-    }
-  }
-
-  // 同一 camera_id が複数ある場合はワースト優先（FAILが1つでもあればNG）
-  const aggregateCameras = cameras => {
-    const byId = new Map()
-
-    for (const raw of cameras || []) {
-      const cameraId = raw?.camera_id || raw?.cameraId || raw?.name
-      if (!cameraId) continue
-      const statusUi = mapStatusApiToUi(raw?.status)
-      const detailTextRaw = typeof raw?.details === 'string' ? raw.details.trim() : ''
-      const details = detailTextRaw || '-'
-      const imagePath = raw?.image_path || null
-      const prev = byId.get(cameraId)
-
-      if (!prev) {
-        byId.set(cameraId, {
-          name: cameraId,
-          status: statusUi,
-          rawStatus: raw?.status ?? '',
-          details,
-          image_path: imagePath,
-          type: 'camera',
-        })
-      } else {
-        const nextIsFail = statusUi !== 'OK'
-        const prevIsFail = prev.status !== 'OK'
-
-        if (nextIsFail && !prevIsFail) {
-          prev.status = statusUi
-          prev.rawStatus = raw?.status ?? prev.rawStatus
-          if (details !== '-' || prev.details === '-' || !prev.details) {
-            prev.details = details
-          }
-          prev.image_path = imagePath || prev.image_path
-        }
-      }
-    }
-
-    return Array.from(byId.values())
-  }
-
-  const deriveSequenceLabel = value => {
-    if (!value) return ''
-    const raw = String(value).trim()
-    if (!raw) return ''
-    const match = raw.match(/^([A-Za-z]+)[-_]?(\d+)$/)
-    if (match) {
-      const [, rowRaw, colRaw] = match
-      const row = rowRaw.toUpperCase()
-      const col = parseInt(colRaw, 10)
-      if (Number.isFinite(col) && col > 0) {
-        return `${row}-${col}`
-      }
-    }
-    return raw
-  }
-
-  const mapFourKSequences = sequences => (sequences || []).map(seq => {
-    const rawSequence = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
-    const label = deriveSequenceLabel(rawSequence)
-    const statusUi = mapStatusApiToUi(seq?.status)
-    const detailTextRaw = typeof seq?.details === 'string' ? seq.details.trim() : ''
-    const detailText = detailTextRaw || '-'
-
-    return {
-      name: label || seq?.camera_id || rawSequence || '-',
-      label: label || seq?.camera_id || rawSequence || '-',
-      status: statusUi,
-      rawStatus: seq?.status ?? '',
-      details: detailText,
-      type: 'sequence',
-      rawSequence: rawSequence || '',
-    }
-  })
-
-  const adaptLotToUi = lot => {
+  const adaptLotToUi = useCallback((lot) => {
     const sectionDisplay = normalizeSection(lot.section)
     const overallStatus = typeof lot.pass === 'boolean' ? (lot.pass ? 'PASS' : 'FAIL') : undefined
     const cameraLikeItems = Array.isArray(lot.four_k_sequences) && lot.four_k_sequences.length > 0
@@ -236,14 +246,14 @@ export const useLotsData = () => {
       overallStatus,
       representativeImage: normalizeImagePath(lot.representative_image),
     }
-  }
+  }, [])
 
   // セクションごとに時刻降順で整形したUI向けロット配列（サンプルデータベース）
   const uiLots = useMemo(() => {
     const lots = (apiPayload?.lots || []).map(adaptLotToUi)
     // captured_at 降順
     return lots.sort((a, b) => b.timestamp - a.timestamp)
-  }, [apiPayload])
+  }, [adaptLotToUi, apiPayload])
 
   useEffect(() => {
     if (!uiLots.length) return
@@ -280,9 +290,10 @@ export const useLotsData = () => {
   const fetchLotsAllPages = async (sectionDisplayName, date, limit = 200) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) throw new Error(`Unknown section: ${sectionDisplayName}`)
-    const ymd = date || todayYMD()
-    const cacheKeyRaw = `${sectionCode}|${ymd}`
-    const cacheKeyUi = `${sectionDisplayName}|${ymd}`
+    const dateKey = resolveDateKey(date)
+    const hasDate = dateKey !== 'LATEST'
+    const cacheKeyRaw = buildCacheKey(sectionCode, date)
+    const cacheKeyUi = buildCacheKey(sectionDisplayName, date)
     if (lotsRawCache[cacheKeyRaw] && lotsUiCache[cacheKeyUi]) return lotsUiCache[cacheKeyUi]
     if (inFlightLotsRef.current.has(cacheKeyRaw)) return undefined
     inFlightLotsRef.current.add(cacheKeyRaw)
@@ -293,7 +304,9 @@ export const useLotsData = () => {
     const allLots = []
 
     while (page <= totalPages) {
-      const qs = new URLSearchParams({ section: sectionCode, date: ymd, page: String(page), limit: String(limit) }).toString()
+      const params = { section: sectionCode, page: String(page), limit: String(limit ?? 200) }
+      if (hasDate) params.date = dateKey
+      const qs = new URLSearchParams(params).toString()
       const res = await fetch(`${base}/api/inspections/lots?${qs}`)
       if (!res.ok) throw new Error(`Failed to fetch lots ${res.status}`)
       const data = await res.json()
@@ -324,6 +337,31 @@ export const useLotsData = () => {
       }
       return changed ? next : prev
     })
+    if (adapted.length) {
+      const uniqueDates = Array.from(new Set(adapted.map(l => l.date).filter(Boolean)))
+      if (uniqueDates.length) {
+        setDatesCache(prev => {
+          const existing = prev[sectionDisplayName] || []
+          const merged = Array.from(new Set([...existing, ...uniqueDates]))
+            .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+          return merged.length === existing.length && merged.every((d, idx) => d === existing[idx]) ? prev : { ...prev, [sectionDisplayName]: merged }
+        })
+      }
+    }
+
+    if (!hasDate) {
+      setLotsUiCache(prev => {
+        const latestKey = buildCacheKey(sectionDisplayName, null)
+        if (latestKey === cacheKeyUi) return prev
+        return { ...prev, [latestKey]: adapted }
+      })
+      setLotsRawCache(prev => {
+        const latestKey = buildCacheKey(sectionCode, null)
+        if (latestKey === cacheKeyRaw) return prev
+        return { ...prev, [latestKey]: rawJoined }
+      })
+    }
+
     inFlightLotsRef.current.delete(cacheKeyRaw)
     return adapted
   }
@@ -350,20 +388,31 @@ export const useLotsData = () => {
 
   const getSectionLots = (section, date) => {
     const normalized = normalizeSection(section)
-    const ymd = date || todayYMD()
+    const normalizedDateInput = typeof date === 'string' ? date.trim() : date
+    const hasExplicitDate = Boolean(normalizedDateInput)
+    const resolvedDate = hasExplicitDate ? normalizedDateInput : null
+
     if (USE_API_LOTS) {
-      const cacheKeyUi = `${section}|${ymd}`
+      const cacheKeyUi = buildCacheKey(section, resolvedDate)
       const cached = lotsUiCache[cacheKeyUi]
       if (cached) return cached
-      fetchLotsAllPages(section, ymd).catch(() => { })
+      fetchLotsAllPages(section, resolvedDate).catch(() => { })
       const filtered = uiLots.filter(l => l.section === normalized)
-      return filtered.filter(l => l.date === ymd)
+      if (hasExplicitDate) return filtered.filter(l => l.date === resolvedDate)
+      return filtered.sort((a, b) => b.timestamp - a.timestamp)
     }
+
     const filtered = uiLots.filter(l => l.section === normalized)
-    return filtered.filter(l => l.date === ymd)
+    if (hasExplicitDate) return filtered.filter(l => l.date === resolvedDate)
+    return filtered.sort((a, b) => b.timestamp - a.timestamp)
   }
 
-  const normalizeUiStatus = value => (value || '').toString().trim().toUpperCase()
+  const normalizeUiStatus = value => {
+    const normalized = (value || '').toString().trim().toUpperCase()
+    if (normalized === 'OK') return 'PASS'
+    if (normalized === 'NG') return 'FAIL'
+    return normalized
+  }
 
   const getLotStatus = lot => {
     if (!lot) return 'UNKNOWN'
@@ -371,13 +420,13 @@ export const useLotsData = () => {
     const overallStatus = normalizeUiStatus(lot.overallStatus)
     const cameraStatuses = (lot.cameras || []).map(camera => normalizeUiStatus(camera.status))
 
-    if (cameraStatuses.includes('NG') || overallStatus === 'FAIL') return 'FAIL'
+    if (cameraStatuses.includes('FAIL') || overallStatus === 'FAIL') return 'FAIL'
     if (cameraStatuses.includes('MISSING') || overallStatus === 'MISSING') return 'MISSING'
     if (overallStatus === 'PASS') return 'PASS'
 
     if (cameraStatuses.length === 0) return overallStatus || 'UNKNOWN'
 
-    if (cameraStatuses.every(status => status === 'OK')) return 'PASS'
+    if (cameraStatuses.every(status => status === 'PASS')) return 'PASS'
 
     if (cameraStatuses.some(status => status)) return 'FAIL'
 
@@ -629,19 +678,18 @@ export const useLotsData = () => {
     } finally {
       inFlightLotDetailRef.current.delete(lotId)
     }
-  }, [lotRawIndex, lotUiIndex, uiLots])
+  }, [adaptLotToUi, lotRawIndex, lotUiIndex, uiLots])
 
   const getLotById = useCallback((lotId) => {
     if (!lotId) return null
     if (lotUiIndex[lotId]) return lotUiIndex[lotId]
     if (lotRawIndex[lotId]) return adaptLotToUi(lotRawIndex[lotId])
     return uiLots.find(l => l.lotId === lotId) || null
-  }, [lotUiIndex, lotRawIndex, uiLots])
+  }, [adaptLotToUi, lotUiIndex, lotRawIndex, uiLots])
 
   // 初期プリフェッチ（APIモード時）
   useEffect(() => {
     const sections = Object.keys(SECTION_TO_CODE)
-    const ymd = todayYMD()
     
     // ▼ 修正: サマリーは「最新(date=null)」をデフォルトで取得するように変更
     sections.forEach(sec => {
@@ -650,16 +698,13 @@ export const useLotsData = () => {
       if (!latestSummary[key] && !inFlightSummaryRef.current.has(key)) primeSummary(sec, null)
     })
 
-    // ロット（今日）: 
-    // ※今回はサマリーの修正を優先しましたが、ロット一覧も最新化したい場合は
-    // fetchLotsAllPagesの呼び出し側も調整が必要です（現状は今日を維持）
     if (USE_API_LOTS) {
       sections.forEach(sec => {
         const code = SECTION_TO_CODE[sec]
-        const rawKey = `${code}|${ymd}`
-        const uiKey = `${sec}|${ymd}`
+        const rawKey = buildCacheKey(code, null)
+        const uiKey = buildCacheKey(sec, null)
         if (!lotsRawCache[rawKey] && !lotsUiCache[uiKey] && !inFlightLotsRef.current.has(rawKey)) {
-          fetchLotsAllPages(sec, ymd).catch(() => { })
+          fetchLotsAllPages(sec, null).catch(() => { })
         }
       })
       // 利用可能日付もプリフェッチ
