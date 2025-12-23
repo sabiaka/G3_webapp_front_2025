@@ -23,6 +23,17 @@ const todayYMD = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+const resolveDateKey = value => {
+  if (value === null || value === undefined) return 'LATEST'
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed ? trimmed : 'LATEST'
+  }
+  return value ? value : 'LATEST'
+}
+
+const buildCacheKey = (prefix, date) => `${prefix}|${resolveDateKey(date)}`
+
 const normalizeImagePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -279,9 +290,10 @@ export const useLotsData = () => {
   const fetchLotsAllPages = async (sectionDisplayName, date, limit = 200) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) throw new Error(`Unknown section: ${sectionDisplayName}`)
-    const ymd = date || todayYMD()
-    const cacheKeyRaw = `${sectionCode}|${ymd}`
-    const cacheKeyUi = `${sectionDisplayName}|${ymd}`
+    const dateKey = resolveDateKey(date)
+    const hasDate = dateKey !== 'LATEST'
+    const cacheKeyRaw = buildCacheKey(sectionCode, date)
+    const cacheKeyUi = buildCacheKey(sectionDisplayName, date)
     if (lotsRawCache[cacheKeyRaw] && lotsUiCache[cacheKeyUi]) return lotsUiCache[cacheKeyUi]
     if (inFlightLotsRef.current.has(cacheKeyRaw)) return undefined
     inFlightLotsRef.current.add(cacheKeyRaw)
@@ -292,7 +304,9 @@ export const useLotsData = () => {
     const allLots = []
 
     while (page <= totalPages) {
-      const qs = new URLSearchParams({ section: sectionCode, date: ymd, page: String(page), limit: String(limit) }).toString()
+      const params = { section: sectionCode, page: String(page), limit: String(limit ?? 200) }
+      if (hasDate) params.date = dateKey
+      const qs = new URLSearchParams(params).toString()
       const res = await fetch(`${base}/api/inspections/lots?${qs}`)
       if (!res.ok) throw new Error(`Failed to fetch lots ${res.status}`)
       const data = await res.json()
@@ -323,6 +337,31 @@ export const useLotsData = () => {
       }
       return changed ? next : prev
     })
+    if (adapted.length) {
+      const uniqueDates = Array.from(new Set(adapted.map(l => l.date).filter(Boolean)))
+      if (uniqueDates.length) {
+        setDatesCache(prev => {
+          const existing = prev[sectionDisplayName] || []
+          const merged = Array.from(new Set([...existing, ...uniqueDates]))
+            .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+          return merged.length === existing.length && merged.every((d, idx) => d === existing[idx]) ? prev : { ...prev, [sectionDisplayName]: merged }
+        })
+      }
+    }
+
+    if (!hasDate) {
+      setLotsUiCache(prev => {
+        const latestKey = buildCacheKey(sectionDisplayName, null)
+        if (latestKey === cacheKeyUi) return prev
+        return { ...prev, [latestKey]: adapted }
+      })
+      setLotsRawCache(prev => {
+        const latestKey = buildCacheKey(sectionCode, null)
+        if (latestKey === cacheKeyRaw) return prev
+        return { ...prev, [latestKey]: rawJoined }
+      })
+    }
+
     inFlightLotsRef.current.delete(cacheKeyRaw)
     return adapted
   }
@@ -349,17 +388,23 @@ export const useLotsData = () => {
 
   const getSectionLots = (section, date) => {
     const normalized = normalizeSection(section)
-    const ymd = date || todayYMD()
+    const normalizedDateInput = typeof date === 'string' ? date.trim() : date
+    const hasExplicitDate = Boolean(normalizedDateInput)
+    const resolvedDate = hasExplicitDate ? normalizedDateInput : null
+
     if (USE_API_LOTS) {
-      const cacheKeyUi = `${section}|${ymd}`
+      const cacheKeyUi = buildCacheKey(section, resolvedDate)
       const cached = lotsUiCache[cacheKeyUi]
       if (cached) return cached
-      fetchLotsAllPages(section, ymd).catch(() => { })
+      fetchLotsAllPages(section, resolvedDate).catch(() => { })
       const filtered = uiLots.filter(l => l.section === normalized)
-      return filtered.filter(l => l.date === ymd)
+      if (hasExplicitDate) return filtered.filter(l => l.date === resolvedDate)
+      return filtered.sort((a, b) => b.timestamp - a.timestamp)
     }
+
     const filtered = uiLots.filter(l => l.section === normalized)
-    return filtered.filter(l => l.date === ymd)
+    if (hasExplicitDate) return filtered.filter(l => l.date === resolvedDate)
+    return filtered.sort((a, b) => b.timestamp - a.timestamp)
   }
 
   const normalizeUiStatus = value => {
@@ -645,7 +690,6 @@ export const useLotsData = () => {
   // 初期プリフェッチ（APIモード時）
   useEffect(() => {
     const sections = Object.keys(SECTION_TO_CODE)
-    const ymd = todayYMD()
     
     // ▼ 修正: サマリーは「最新(date=null)」をデフォルトで取得するように変更
     sections.forEach(sec => {
@@ -654,16 +698,13 @@ export const useLotsData = () => {
       if (!latestSummary[key] && !inFlightSummaryRef.current.has(key)) primeSummary(sec, null)
     })
 
-    // ロット（今日）: 
-    // ※今回はサマリーの修正を優先しましたが、ロット一覧も最新化したい場合は
-    // fetchLotsAllPagesの呼び出し側も調整が必要です（現状は今日を維持）
     if (USE_API_LOTS) {
       sections.forEach(sec => {
         const code = SECTION_TO_CODE[sec]
-        const rawKey = `${code}|${ymd}`
-        const uiKey = `${sec}|${ymd}`
+        const rawKey = buildCacheKey(code, null)
+        const uiKey = buildCacheKey(sec, null)
         if (!lotsRawCache[rawKey] && !lotsUiCache[uiKey] && !inFlightLotsRef.current.has(rawKey)) {
-          fetchLotsAllPages(sec, ymd).catch(() => { })
+          fetchLotsAllPages(sec, null).catch(() => { })
         }
       })
       // 利用可能日付もプリフェッチ
