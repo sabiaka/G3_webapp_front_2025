@@ -277,11 +277,9 @@ const SectionTab = ({
               <Typography variant="h6" gutterBottom>
                 最新ログ: {section}検査（{cameraNamesForGrid.length}カメラ）
               </Typography>
-              {/* 修正前: <Typography variant="h6" gutterBottom>サマリー（最新日）</Typography> */}
-
-<Typography variant="h6" gutterBottom>
-  サマリー（{statsLatest.date ? statsLatest.date : 'データなし'}）
-</Typography>
+              
+              {/* ▼削除した行の跡地 (何も表示しない) */}
+              
               {cameraNamesForGrid.length === 0 ? (
                 <Typography color="text.secondary">カメラ構成が取得できません。</Typography>
               ) : (
@@ -300,9 +298,10 @@ const SectionTab = ({
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
             <CardContent sx={{ '& > * + *': { mt: 3 } }}>
               <Box>
+                {/* 右側のサマリータイトルは残します */}
                 <Typography variant="h6" gutterBottom>
-  サマリー（最新日{statsLatest.date ? `: ${statsLatest.date}` : ''}）
-</Typography>
+                  サマリー（最新日{statsLatest.date ? `: ${statsLatest.date}` : ''}）
+                </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                   <DonutChart percentage={statsLatest.passRate} />
                 </Box>
