@@ -97,7 +97,7 @@
             </div>
             <div class="mt-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg">
                 <p class="font-bold">対象ページ: 部品在庫管理ページ</p>
-                <p class="text-sm mt-1">このドキュメントは、「部品在庫管理ページ」の機能を実装するためのAPI仕様を定義します。箱IDは廃止したよ！</p>
+                <p class="text-sm mt-1">このドキュメントは、「部品在庫管理ページ」の機能を実装するためのAPI仕様を定義します。箱IDは廃止しています。</p>
             </div>
         </header>
 
@@ -107,7 +107,7 @@
             <section id="db-design">
                 <h2><ion-icon name="hardware-chip-outline"></ion-icon>1. DB設計</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4">DB設計はこんな感じにしてみたよ！シンプル イズ ベストっしょ！</p>
+                    <p class="mb-4">DB 設計は以下のとおりです。シンプルな構成としています。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">racks (棚) テーブル</h4>
                     <pre><code class="language-sql">CREATE TABLE racks (
     -- 棚のID、自動で番号が振られる
@@ -152,7 +152,7 @@
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/racks</span>
                     </div>
-                    <p>登録されてる棚の一覧を、ぜーんぶGETするAPI。左側のラック一覧を表示するときに使う！</p>
+                    <p>登録されている棚の一覧を取得するAPIです。左側のラック一覧を表示する際に利用します。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
                     <pre><code class="language-json">[
     {
@@ -176,7 +176,7 @@
                         <span class="method-badge get">GET</span>
                         <span class="font-mono text-lg font-semibold">/api/racks/{rack_id}</span>
                     </div>
-                    <p>指定した一つの棚の詳しい情報をGETする。中に入ってる部品（スロット）の情報も全部まとめて取れるよ！</p>
+                    <p>指定した棚の詳細情報を取得します。内部に格納されている部品（スロット）の情報もまとめて取得できます。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
                     <pre><code class="language-json">{
     "rack_id": 1,
@@ -200,7 +200,7 @@
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/racks</span>
                     </div>
-                    <p>新しい棚（ラック）を追加するときのAPI。名前とサイズを指定してPOSTするだけ！</p>
+                    <p>新しい棚（ラック）を追加するときのAPIです。名前とサイズを指定して POST します。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
                     <pre><code class="language-json">{
     "rack_name": "生地・充填材ラック",
@@ -223,7 +223,7 @@
                         <span class="method-badge delete">DELETE</span>
                         <span class="font-mono text-lg font-semibold">/api/racks/{rack_id}</span>
                     </div>
-                    <p>いらなくなった棚を削除するAPI。URLでID指定すればOK！</p>
+                    <p>不要になった棚を削除するAPIです。URL で ID を指定して実行します。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h4>
                     <pre><code class="language-json">{
     "message": "ラック「スプリング・小物資材ラック」を削除しました。"
@@ -242,7 +242,7 @@
                         <span
                             class="font-mono text-lg font-semibold">/api/racks/{rack_id}/slots/{slot_identifier}</span>
                     </div>
-                    <p>空のスロットに新しい箱を格納するときに使う！`slot_identifier`は`A-1`みたいなやつね。</p>
+                    <p>空のスロットに新しい箱を格納するときに利用します。`slot_identifier` は `A-1` のような形式です。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
                     <pre><code class="language-json">{
     "part_name": "ラテックスフォーム 40mm (D)",
@@ -270,7 +270,7 @@
                         <span
                             class="font-mono text-lg font-semibold">/api/racks/{rack_id}/slots/{slot_identifier}</span>
                     </div>
-                    <p>すでにある箱の情報を編集するときはPUTを使うよ。数量変更とか、カラー変更とかね！</p>
+                    <p>既存箱の情報を編集するときは PUT を使用します。数量変更やカラー変更などに対応します。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
                     <pre><code class="language-json">{
     "part_name": "【改】ラテックスフォーム 40mm (D)",
@@ -338,7 +338,7 @@
                         <span
                             class="font-mono text-lg font-semibold">/api/racks/{rack_id}/slots/{slot_identifier}/use</span>
                     </div>
-                    <p>部品を使ったときに、在庫数を減らすためのAPI。「何個使ったか」を伝える！</p>
+                    <p>部品を使用した際に在庫数を減らすためのAPIです。「何個使用したか」をサーバーへ伝えます。</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h4>
                     <pre><code class="language-json">{
     "quantity_to_use": 5
@@ -349,7 +349,7 @@
     "remaining_quantity": 20
 }</code></pre>
                     <div class="mt-8 p-4 bg-sky-50 border-l-4 border-sky-500 text-sky-800 rounded-r-lg">
-                        <p class="text-sm">もし使った結果、在庫が0個になったら、サーバー側で自動的にそのスロットは空っぽになるよ！</p>
+                        <p class="text-sm">使用後の在庫が 0 個になった場合、サーバー側で自動的にそのスロットを空状態として扱います。</p>
                     </div>
                 </div>
 
@@ -359,10 +359,10 @@
             <section id="qr-handling">
                 <h2><ion-icon name="qr-code-outline"></ion-icon>4. 棚QRコード仕様</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <p class="mb-4">QRコードは「棚QR」の1種類だけ！これで入庫も出庫も全部できちゃうからマジ卍。</p>
+                    <p class="mb-4">QR コードは「棚 QR」の 1 種類とし、入庫と出庫の双方に対応します。</p>
 
                     <h4 class="text-lg font-semibold mt-6 mb-2">棚QRコードのデータ構造</h4>
-                    <p class="text-sm mb-4">棚の各場所に貼るQRコードは、スキャンすると↓みたいなJSON文字列が取れるようにする！</p>
+                    <p class="text-sm mb-4">棚の各場所に貼る QR コードは、スキャンすると以下の JSON 文字列を取得できるようにします。</p>
                     <pre><code class="language-json">{
     "type": "rack_slot",
     "rack_id": 1,
@@ -374,20 +374,20 @@
                         <div>
                             <h4 class="font-bold text-lg">【補足】QR入庫の流れ</h4>
                             <ul class="mt-2 list-disc list-inside space-y-1 text-sm">
-                                <li>1. まず、モーダルで新しい部品の情報を入力する。</li>
-                                <li>2. 次に、カメラで置きたい場所の「棚QRコード」をスキャンする（フリをする）。</li>
-                                <li>3. スキャンで棚の場所（例: `rack_id: 1`, `slot_identifier: 'A-1'`）がわかる。</li>
-                                <li>4. 最後に、API (`POST /api/racks/1/slots/A-1`) を使って、1で入力した部品情報をサーバーに送って格納完了！</li>
+                                <li>1. モーダルで新しい部品の情報を入力します。</li>
+                                <li>2. カメラで配置したい場所の「棚 QR コード」をスキャンします。</li>
+                                <li>3. スキャン結果から棚の位置（例: `rack_id: 1`, `slot_identifier: 'A-1'`）を取得します。</li>
+                                <li>4. API (`POST /api/racks/1/slots/A-1`) を呼び出し、入力した部品情報をサーバーへ送信して格納を完了します。</li>
                             </ul>
                         </div>
                         <div>
                             <h4 class="font-bold text-lg">【補足】QR出庫の流れ</h4>
                             <ul class="mt-2 list-disc list-inside space-y-1 text-sm">
-                                <li>1. FABメニューから「QR出庫」を選ぶ。</li>
-                                <li>2. カメラで、出したい部品が置いてある場所の「棚QRコード」をスキャンする。</li>
-                                <li>3. スキャンで場所がわかるから、アプリがその場所の部品情報を表示する。</li>
-                                <li>4. 「部品を使用」モーダルが開くので、使った個数を入力する。</li>
-                                <li>5. API (`POST /api/racks/1/slots/A-1/use`) を使って、サーバーの在庫数を更新して完了！</li>
+                                <li>1. FAB メニューから「QR 出庫」を選択します。</li>
+                                <li>2. カメラで出庫対象の棚に貼付された「棚 QR コード」をスキャンします。</li>
+                                <li>3. スキャン結果を基にアプリが対象スロットの部品情報を表示します。</li>
+                                <li>4. 「部品を使用」モーダルで使用した数量を入力します。</li>
+                                <li>5. API (`POST /api/racks/1/slots/A-1/use`) を呼び出し、サーバー側の在庫数を更新して完了します。</li>
                             </ul>
                         </div>
                     </div>
