@@ -1,4 +1,8 @@
-// 検査セクションごとの統計・最新ロット・履歴テーブルをタブ表示するダッシュボード本体
+/*
+======== ファイル概要 ========
+検査セクション単位のカード、統計、ロット履歴、モーダル開閉をまとめて扱うタブ用コンポーネント。
+URL選択状態やAPIからの統計情報もここで橋渡しする。
+*/
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -24,6 +28,30 @@ import ALayerLotDetailModal from '../modals/ALayerLotDetailModal'
 import { SECTION_CONFIG } from '../../utils/sectionConfig'
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
+/**
+ * セクション別ダッシュボードタブ。最新統計、カメラグリッド、ロットカード群を描画し、
+ * ロット詳細モーダルの制御まで担当する。
+ * @param {object} props                                - プロパティ集合。
+ * @param {string} props.section                        - 対象セクション名。
+ * @param {Function} props.getSectionLots               - 日付別ロット取得関数。
+ * @param {Function} props.getLotStatus                 - ロット判定取得関数。
+ * @param {Function} props.getLotShotsStatus            - ショット取得状態参照関数。
+ * @param {Function} props.getLotShotsByCamera          - カメラ別ショット取得関数。
+ * @param {Function} props.getLotShots                  - ショット配列取得関数。
+ * @param {Function} props.ensureLotShotsLoaded         - ショット読み込み要求関数。
+ * @param {Function} props.getSectionStats              - 日付別統計取得関数。
+ * @param {Function} props.getFailReasons               - 不良内訳取得関数。
+ * @param {object}   props.lightbox                     - ライトボックス状態。
+ * @param {Function} props.setLightbox                  - ライトボックス更新関数。
+ * @param {Function} props.getLatestLot                 - 最新ロット取得関数。
+ * @param {Function} props.getAvailableDates            - ロット日一覧取得関数。
+ * @param {string}   [props.selectedLotId]              - 選択中ロットID。
+ * @param {object}   [props.selectedLotInfo]            - 選択中ロット詳細。
+ * @param {Function} [props.onOpenLot]                  - ロットオープン時のハンドラ。
+ * @param {Function} [props.onCloseLot]                 - ロットクローズ時のハンドラ。
+ * @param {Function} props.getLotShotsSummary           - サマリー取得関数。
+ * @returns {JSX.Element}                                セクションタブ内容。
+ */
 const SectionTab = ({
   section,
   getSectionLots,

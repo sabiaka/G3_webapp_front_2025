@@ -1,4 +1,8 @@
-// カメラごとのプレビューと状態をグリッドで並べるレイアウトコンポーネント
+/*
+======== ファイル概要 ========
+カメラごとのプレビュー画像と稼働ステータスをグリッドで並べる表示レイヤー。
+呼び出し元から受け取ったカメラ名配列と状態マップを元にレスポンシブに描画する。
+*/
 
 import Grid from '@mui/material/Grid'
 import Box from '@mui/material/Box'
@@ -6,23 +10,19 @@ import Box from '@mui/material/Box'
 import CameraTile from './CameraTile'
 
 /**
- * CameraGrid コンポーネント
- * 
- * 複数のカメラ名とそのステータスをグリッドレイアウトで表示します。
- * カメラ数が4以上の場合は2列、3以下の場合は3列で表示します。
- * 各カメラは CameraTile コンポーネントで表現されます。
- * 
- * @param {Object} props - コンポーネントのプロパティ
- * @param {string[]} props.cameraNames - 表示するカメラの名前リスト
- * @param {Object.<string, string>} props.statusByName - カメラ名ごとのステータス（例: { "Camera1": "PASS", "Camera2": "FAIL" }）
- * @returns {JSX.Element} グリッドレイアウトでカメラタイルを表示するReact要素
+ * カメラ一覧をカード状に並べ、欠番があっても見やすく扱うグリッド。
+ * @param {object} props                             - プロパティ集合。
+ * @param {string[]} props.cameraNames               - 表示するカメラ名称の配列。
+ * @param {Object.<string, string>} props.statusByName - カメラ名→判定ステータスのマップ。
+ * @param {Object.<string, string>} props.imageByName  - カメラ名→画像パスのマップ。
+ * @returns {JSX.Element}                              CameraTile を並べたグリッド。
  */
-
 const CameraGrid = ({ cameraNames = [], statusByName, imageByName = {} }) => {
   const uniqueNames = Array.from(new Set((cameraNames || []).filter(Boolean)))
   const isSingleCamera = uniqueNames.length === 1
   // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
   const needsDummy = !isSingleCamera && uniqueNames.length === 3
+  // 3台の場合は四角形レイアウトになるようダミー枠を挿入
   const items = needsDummy ? [...uniqueNames, '__dummy__'] : uniqueNames
   const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定
 

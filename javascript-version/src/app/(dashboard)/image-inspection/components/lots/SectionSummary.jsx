@@ -1,4 +1,8 @@
-// 最新ロットの結果と各カメラの判定をまとめて表示するサマリー行コンポーネント
+/*
+======== ファイル概要 ========
+セクションカード内で最新ロットの全体結果とカメラ別チップを一覧表示するサマリー行。
+カメラ数が多い場合は概要→詳細の切り替えも担う。
+*/
 
 import { useEffect, useMemo, useState } from 'react'
 
@@ -7,6 +11,11 @@ import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 
+/**
+ * 判定文字列のゆれを吸収して PASS/FAIL/MISSING に統一する。
+ * @param {string} status - 判定。
+ * @returns {string}      正規化済み判定。
+ */
 const normalizeStatus = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (!normalized) return ''
@@ -15,6 +24,11 @@ const normalizeStatus = status => {
   return normalized
 }
 
+/**
+ * ステータスに応じたChipカラーを返す。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} カラーキー。
+ */
 const cameraChipColor = status => {
   const normalized = normalizeStatus(status)
   if (normalized === 'PASS') return 'success'
@@ -25,6 +39,11 @@ const cameraChipColor = status => {
 
 const SUMMARY_THRESHOLD = 8
 
+/**
+ * FAIL優先で概要チップを並べ替えるための数値。
+ * @param {string} status - 判定。
+ * @returns {number}      並び順。
+ */
 const getStatusPriority = status => {
   const normalized = normalizeStatus(status)
   if (normalized === 'FAIL') return 0
@@ -34,6 +53,12 @@ const getStatusPriority = status => {
   return 4
 }
 
+/**
+ * カメラ/シーケンス名のフォールバックを決める。
+ * @param {object} item - カメラ情報。
+ * @param {number} index - 配列位置。
+ * @returns {string} 表示名。
+ */
 const resolveDisplayName = (item, index) => {
   const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
   for (const candidate of candidates) {
@@ -45,6 +70,13 @@ const resolveDisplayName = (item, index) => {
   return `#${index + 1}`
 }
 
+/**
+ * 最新ロットサマリー。左に時刻/ロットID、右に結果とチップ一覧を表示。
+ * @param {object} props            - プロパティ集合。
+ * @param {object} props.latestLot  - 対象ロット。
+ * @param {string} props.lotStatus  - ロット全体ステータス。
+ * @returns {JSX.Element}            サマリー行。
+ */
 const SectionSummary = ({ latestLot, lotStatus }) => {
   const cameraList = useMemo(() => {
     if (latestLot && Array.isArray(latestLot.cameras)) return latestLot.cameras

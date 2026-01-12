@@ -1,4 +1,8 @@
-// A層ロット詳細モーダル マップ表示
+/*
+======== ファイル概要 ========
+A層ロットの詳細をモーダルで表示し、4K/FHD撮影マップや代表画像・サマリーを統合的に扱う。
+シーケンス座標の補完や画像フォールバックも含めた高機能モーダル実装。
+*/
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -22,6 +26,11 @@ const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 const MIN_GRID_ROWS = 5
 const MIN_GRID_COLS = 4
 
+/**
+ * 画像パス文字列から余分なスラッシュを取り除き、絶対/相対を正規化する。
+ * @param {string} path - 元のパス。
+ * @returns {string|null} 正規化結果。
+ */
 const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -31,6 +40,11 @@ const normalizeRelativePath = path => {
   return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
 }
 
+/**
+ * OK/NGのような表記をPASS/FAIL/MISSINGへ統一する。
+ * @param {string} status - 判定。
+ * @returns {string}      正規化結果。
+ */
 const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (normalized === 'OK') return 'PASS'
@@ -38,6 +52,11 @@ const normalizeStatusLabel = status => {
   return normalized
 }
 
+/**
+ * ロット全体のChipカラーを算出する。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色キー。
+ */
 const getLotStatusColor = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
@@ -46,6 +65,11 @@ const getLotStatusColor = status => {
   return 'default'
 }
 
+/**
+ * 個別チップ表示用のカラーを返す。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色キー。
+ */
 const getChipColor = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
@@ -54,6 +78,11 @@ const getChipColor = status => {
   return 'default'
 }
 
+/**
+ * ショットカードに使う色指定を返す。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色キー。
+ */
 const getShotStatusColor = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
@@ -62,10 +91,20 @@ const getShotStatusColor = status => {
   return 'default'
 }
 
+/**
+ * Excel風の列記法(A,B...AA)を0始まりインデックスへ変換する。
+ * @param {string} letters - 行ラベル。
+ * @returns {number}        0始まりインデックス。
+ */
 const toRowIndex = letters => {
   return letters.split('').reduce((acc, char) => acc * 26 + (char.charCodeAt(0) - 64), 0) - 1
 }
 
+/**
+ * 0始まりインデックスをExcel風ラベルへ戻す。
+ * @param {number} index - 行インデックス。
+ * @returns {string}      ラベル文字列。
+ */
 const fromRowIndex = index => {
   if (!Number.isFinite(index) || index < 0) return ''
   let value = Math.floor(index) + 1
@@ -80,6 +119,11 @@ const fromRowIndex = index => {
   return label
 }
 
+/**
+ * A-12 のようなシーケンスを構造化情報へ分解する。
+ * @param {string} value - 元の表記。
+ * @returns {object|null} 行列ラベルとインデックスを含む情報。
+ */
 const parseShotSequence = value => {
   if (!value) return null
   const raw = String(value).trim().toUpperCase()
@@ -101,6 +145,12 @@ const parseShotSequence = value => {
   }
 }
 
+/**
+ * 実データがスカスカな場合でも一定行数のグリッドを保つために不足分を補完する。
+ * @param {Array} currentRows - 既存行。
+ * @param {number} [minCount=MIN_GRID_ROWS] - 最低行数。
+ * @returns {Array} 補完後行配列。
+ */
 const ensureRowCoverage = (currentRows, minCount = MIN_GRID_ROWS) => {
   if (currentRows.length === 0) {
     const baseRows = []
@@ -133,6 +183,12 @@ const ensureRowCoverage = (currentRows, minCount = MIN_GRID_ROWS) => {
   return result
 }
 
+/**
+ * 列方向の不足を補完して均一なマップを保つ。
+ * @param {Array} currentCols - 既存列。
+ * @param {number} [minCount=MIN_GRID_COLS] - 最低列数。
+ * @returns {Array} 補完後列配列。
+ */
 const ensureColCoverage = (currentCols, minCount = MIN_GRID_COLS) => {
   if (currentCols.length === 0) {
     const baseCols = []
@@ -165,6 +221,12 @@ const ensureColCoverage = (currentCols, minCount = MIN_GRID_COLS) => {
   return result
 }
 
+/**
+ * ショット配列から行列ラベルおよびセル構造を生成する。
+ * @param {Array} shots - 撮影結果配列。
+ * @param {object} [options] - シーケンス抽出方法など。
+ * @returns {object} rows/cols/cells を含む構造体。
+ */
 const buildGridStructure = (shots, options = {}) => {
   const {
     sequenceExtractor = shot => shot?.['c4k_seq'] ?? shot?.four_k_seq ?? shot?.seq,
@@ -229,6 +291,11 @@ const buildGridStructure = (shots, options = {}) => {
 }
 
 const STATUS_PRIORITY = ['FAIL', 'MISSING', 'PASS']
+/**
+ * FAIL優先で複数ショットから代表画像を選定する。
+ * @param {Array} shots - ショット配列。
+ * @returns {object|null} 代表ショット。
+ */
 const pickRepresentativeShot = shots => {
   if (!Array.isArray(shots) || shots.length === 0) return null
   const normalized = shots
@@ -245,6 +312,19 @@ const pickRepresentativeShot = shots => {
   return normalized[0]?.shot || shots[0]
 }
 
+/**
+ * A層ロット詳細モーダル。4K/FHDマップ、代表画像、サマリー、ショット読み込みを統合する。
+ * @param {object} props                      - プロパティ集合。
+ * @param {boolean} props.open                - モーダル開閉。
+ * @param {object} props.lot                  - ロット情報。
+ * @param {string} props.lotStatus            - ロット判定。
+ * @param {Array} props.shots4k               - 4Kショット配列。
+ * @param {string} [props.shotsStatus='success'] - 4Kデータ取得状態。
+ * @param {object} [props.shots4kSummary]     - 4Kサマリーデータ。
+ * @param {Function} props.onClose            - 閉じるハンドラ。
+ * @param {Function} props.setLightbox        - ライトボックス制御。
+ * @returns {JSX.Element|null}                 モーダル要素。
+ */
 const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'success', shots4kSummary, onClose, setLightbox }) => {
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const sequenceStatusItems = useMemo(() => {

@@ -1,4 +1,7 @@
-// モーダル内 撮影マップセクション（4K / FHD 共用）
+/*
+======== ファイル概要 ========
+4K/FHD撮影マップをグリッド表示し、シーケンスごとの画像プレビューや選択操作を提供するセクション。
+*/
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -14,6 +17,11 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn'
 const SQUARE_ASPECT_RATIO = '1 / 1'
 const STATUS_PRIORITY = ['FAIL', 'MISSING', 'PASS']
 
+/**
+ * FAIL→MISSING→PASSの優先度で代表ショットを選定する。
+ * @param {Array} shots - シーケンス内ショット群。
+ * @returns {object|null} 代表ショット。
+ */
 const pickDisplayShot = shots => {
   if (!Array.isArray(shots) || shots.length === 0) return null
   const prioritized = shots
@@ -30,6 +38,27 @@ const pickDisplayShot = shots => {
   return prioritized[0]?.shot || shots[0]
 }
 
+/**
+ * 撮影マップ表示コンポーネント。読み込み/エラー/空状態もここでさばく。
+ * @param {object} props                        - プロパティ集合。
+ * @param {string} [props.title='4K 撮影マップ'] - セクションタイトル。
+ * @param {string} [props.subtitle]             - サブタイトル。
+ * @param {'success'|'loading'|'error'|'idle'} props.status - データ取得状態。
+ * @param {string} [props.loadingMessage]       - ローディング時の文言。
+ * @param {string} [props.errorMessage]         - エラー文言。
+ * @param {string} [props.emptyMessage]         - データ無し時の文言。
+ * @param {string} [props.placeholderLabel]     - 未取得セルの表示。
+ * @param {object} props.gridStructure          - buildGridStructureで生成した構造。
+ * @param {Function} props.buildShotSources     - 画像URLを返す関数。
+ * @param {Function} props.getShotStatusColor   - ステータス別カラー関数。
+ * @param {Function} props.handleImageError     - 画像エラー処理。
+ * @param {Function} [props.setLightbox]        - ライトボックス制御。
+ * @param {Function} [props.onSelectSequence]   - セルクリック時のハンドラ。
+ * @param {string} [props.selectedSequenceLabel]- 選択中シーケンス。
+ * @param {Function} [props.onBack]             - 戻るボタンハンドラ。
+ * @param {boolean} [props.highlightSelected=true] - 選択中セル強調フラグ。
+ * @returns {JSX.Element}                          グリッド表示ブロック。
+ */
 const FourKMapSection = ({
   title = '4K 撮影マップ',
   subtitle,

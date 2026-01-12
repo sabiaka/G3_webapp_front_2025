@@ -1,4 +1,9 @@
-// ダミーデータ/今後API接続で置き換え予定
+/*
+======== ファイル概要 ========
+画像検査ロット関連のデータ取得・キャッシュ・整形を担うカスタムフック。
+ダミーデータからAPIへの移行を見据え、トグルで動作を切り替えられる。
+*/
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SAMPLE_SUMMARIES } from '../data/sampleSummaries'
 import { SAMPLE_LOTS } from '../data/sampleLots'
@@ -17,12 +22,21 @@ const SECTION_TO_CODE = {
 
 const CODE_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_CODE).map(([display, code]) => [code, display]))
 
+/**
+ * 現在日時を YYYY-MM-DD 文字列で返す。
+ * @returns {string} 日付文字列。
+ */
 const todayYMD = () => {
   const d = new Date()
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/**
+ * キャッシュキーで利用する日付表現を決める。未指定時は 'LATEST'。
+ * @param {string|null|undefined} value - 入力日付。
+ * @returns {string}                      正規化キー。
+ */
 const resolveDateKey = value => {
   if (value === null || value === undefined) return 'LATEST'
   if (typeof value === 'string') {
@@ -32,8 +46,19 @@ const resolveDateKey = value => {
   return value ? value : 'LATEST'
 }
 
+/**
+ * セクションやロット種別ごとのキャッシュキーを生成する。
+ * @param {string} prefix - 先頭識別子。
+ * @param {string|null} date - 日付。
+ * @returns {string} キー文字列。
+ */
 const buildCacheKey = (prefix, date) => `${prefix}|${resolveDateKey(date)}`
 
+/**
+ * API由来の画像パスのスラッシュを整え、先頭スラッシュを付けて返す。
+ * @param {string} path - 元のパス。
+ * @returns {string|null} 正規化結果。
+ */
 const normalizeImagePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -51,20 +76,41 @@ const normalizeImagePath = path => {
 
 const SHOT_DEFAULT_TYPE = 'DEFAULT'
 
+/**
+ * ショット種別を大文字化し、未指定時は DEFAULT に揃える。
+ * @param {string} type - 入力種別。
+ * @returns {string}     正規化種別。
+ */
 const normalizeShotType = type => {
   if (!type) return SHOT_DEFAULT_TYPE
   const normalized = String(type).trim()
   return normalized ? normalized.toUpperCase() : SHOT_DEFAULT_TYPE
 }
 
+/**
+ * ロットIDとショットタイプからキャッシュキーを生成する。
+ * @param {string} lotId   - ロットID。
+ * @param {string} shotType - ショットタイプ。
+ * @returns {string}        キー。
+ */
 const buildShotCacheKey = (lotId, shotType) => `${lotId}|${normalizeShotType(shotType)}`
 
+/**
+ * APIのセクションコードを表示名へ戻し、末尾の「検査」を除去する。
+ * @param {string} section - セクション文字列。
+ * @returns {string}        表示名。
+ */
 const normalizeSection = section => {
   if (!section) return section
   const mapped = CODE_TO_SECTION[section] || section
   return mapped.replace(/検査$/, '')
 }
 
+/**
+ * ISO日時を HH:MM:SS へ整形する。
+ * @param {string} iso - ISO8601文字列。
+ * @returns {string}    時刻文字列。
+ */
 const toHHMMSS = iso => {
   try {
     const d = new Date(iso)
@@ -75,6 +121,11 @@ const toHHMMSS = iso => {
   }
 }
 
+/**
+ * ISO日時を YYYY-MM-DD へ整形する。
+ * @param {string} iso - ISO8601文字列。
+ * @returns {string}    日付文字列。
+ */
 const toYMD = iso => {
   try {
     const d = new Date(iso)
@@ -85,6 +136,11 @@ const toYMD = iso => {
   }
 }
 
+/**
+ * 4K/FHDシーケンス表記から見やすいラベルを導出する。
+ * @param {string} value - 元文字列。
+ * @returns {string}      表示ラベル。
+ */
 const deriveSequenceLabel = value => {
   if (!value) return ''
   const raw = String(value).trim()
@@ -101,6 +157,11 @@ const deriveSequenceLabel = value => {
   return raw
 }
 
+/**
+ * カメラ配列をIDごとにまとめ、FAIL優先で状態を保持する。
+ * @param {Array} cameras - カメラ配列。
+ * @returns {Array}        集約結果。
+ */
 const aggregateCameras = cameras => {
   const byId = new Map()
 
@@ -140,6 +201,11 @@ const aggregateCameras = cameras => {
   return Array.from(byId.values())
 }
 
+/**
+ * 4Kシーケンス配列をUI用フォーマットへ変換する。
+ * @param {Array} sequences - 4K配列。
+ * @returns {Array}          整形済み配列。
+ */
 const mapFourKSequences = sequences => (sequences || []).map(seq => {
   const rawSequence = seq?.['4k_seq'] ?? seq?.['c4k_seq'] ?? seq?.four_k_seq ?? seq?.seq ?? ''
   const label = deriveSequenceLabel(rawSequence)
@@ -158,6 +224,11 @@ const mapFourKSequences = sequences => (sequences || []).map(seq => {
   }
 })
 
+/**
+ * 画像検査ロット関連の各種取得APIを隠蔽し、UI層向けの操作関数を提供するカスタムフック。
+ * キャッシュやフェッチ制御、ダミーデータ fallback を一箇所で管理する。
+ * @returns {object} ロット/統計/ショット取得のための関数群。
+ */
 export const useLotsData = () => {
   // API仕様に合わせたダミー応答（将来は fetch で置き換え）
   const [apiPayload] = useState(SAMPLE_LOTS)
@@ -167,6 +238,12 @@ export const useLotsData = () => {
   const [summaryCache, setSummaryCache] = useState({})
 
   // ▼ 修正: dateが未指定(null/undefined)ならクエリに含めない（API側の最新自動取得に任せる）
+  /**
+   * サマリーAPIを叩き、セクション×日付の集計を取得する。
+   * @param {string} sectionDisplayName - 表示名（例: バネ留め）。
+   * @param {string} [date]             - YYYY-MM-DD。省略で最新。
+   * @returns {Promise<object>}          APIレスポンス。
+   */
   const fetchSummary = async (sectionDisplayName, date) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) return Promise.reject(new Error(`Unknown section: ${sectionDisplayName}`))
@@ -195,6 +272,12 @@ export const useLotsData = () => {
   }
 
   // ローカル計算による API レスポンス形のサマリー生成
+  /**
+   * APIが未設定/エラーの場合のローカルサマリーを計算する。
+   * @param {string} sectionDisplayName - セクション表示名。
+   * @param {string} [date]             - 対象日付。
+   * @returns {object}                   疑似APIレスポンス。
+   */
   const buildLocalSummary = (sectionDisplayName, date) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     const ymd = date || todayYMD()
@@ -228,6 +311,11 @@ export const useLotsData = () => {
   }
 
   // ---- アダプト層：APIデータ => 既存UI互換データ ----
+  /**
+   * APIロットをUIで扱いやすい構造へ変換する。
+   * @param {object} lot - APIレスポンスロット。
+   * @returns {object}    UI向けロット。
+   */
   const adaptLotToUi = useCallback((lot) => {
     const sectionDisplay = normalizeSection(lot.section)
     const overallStatus = typeof lot.pass === 'boolean' ? (lot.pass ? 'PASS' : 'FAIL') : undefined
@@ -287,6 +375,13 @@ export const useLotsData = () => {
   const inFlightDatesRef = useRef(new Set())   
   const inFlightLotDetailRef = useRef(new Set()) 
 
+  /**
+   * 指定セクションのロット一覧をページングしながら全件取得する。
+   * @param {string} sectionDisplayName - セクション表示名。
+   * @param {string|null} date          - 日付（nullで最新）。
+   * @param {number} [limit=200]        - 1ページ当たりアイテム数。
+   * @returns {Promise<Array|undefined>} 取得済みUIロット配列。
+   */
   const fetchLotsAllPages = async (sectionDisplayName, date, limit = 200) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) throw new Error(`Unknown section: ${sectionDisplayName}`)
@@ -366,6 +461,11 @@ export const useLotsData = () => {
     return adapted
   }
 
+  /**
+   * セクション毎にロットデータが存在する日付一覧を取得する。
+   * @param {string} sectionDisplayName - セクション表示名。
+   * @returns {Promise<Array|undefined>} 取得済み日付配列。
+   */
   const fetchAvailableDates = async (sectionDisplayName) => {
     const sectionCode = SECTION_TO_CODE[sectionDisplayName]
     if (!sectionCode) throw new Error(`Unknown section: ${sectionDisplayName}`)
@@ -386,6 +486,12 @@ export const useLotsData = () => {
     }
   }
 
+  /**
+   * セクションと日付を指定してロット配列を取得する。未キャッシュならフェッチをトリガー。
+   * @param {string} section - 表示名。
+   * @param {string} [date]  - YYYY-MM-DD。
+   * @returns {Array}         UIロット配列。
+   */
   const getSectionLots = (section, date) => {
     const normalized = normalizeSection(section)
     const normalizedDateInput = typeof date === 'string' ? date.trim() : date

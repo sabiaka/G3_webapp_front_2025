@@ -1,4 +1,8 @@
-// モーダル内ロット情報セクションコンポーネント
+/*
+======== ファイル概要 ========
+ロット詳細モーダル内で代表画像プレビュー、サマリー、判定チップをまとめて表示する情報ブロック。
+サマリーの折り畳みや追加サマリーもここで一括制御する。
+*/
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -11,6 +15,12 @@ import Button from '@mui/material/Button'
 import ShotsSummaryBlock from './ShotsSummaryBlock'
 import { normalizeShotSummary } from '../../utils/summaryUtils'
 
+/**
+ * カメラ/シーケンスの表示名を推測する。
+ * @param {object} item - カメラ情報。
+ * @param {number} index - フォールバック用インデックス。
+ * @returns {string} 表示名。
+ */
 const resolveDisplayName = (item, index) => {
   const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
   for (const candidate of candidates) {
@@ -24,6 +34,11 @@ const resolveDisplayName = (item, index) => {
 
 const SUMMARY_THRESHOLD = 8
 
+/**
+ * OK/NGを含む判定をPASS/FAILへ揃える。
+ * @param {string} status - 判定。
+ * @returns {string}      正規化結果。
+ */
 const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (!normalized) return ''
@@ -32,6 +47,11 @@ const normalizeStatusLabel = status => {
   return normalized
 }
 
+/**
+ * サマリーチップを FAIL→MISSING→PASS の順に並べるための優先度。
+ * @param {string} status - 判定。
+ * @returns {number}      並び替え用数値。
+ */
 const getStatusPriority = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'FAIL') return 0
@@ -41,6 +61,21 @@ const getStatusPriority = status => {
   return 4
 }
 
+/**
+ * ロット情報セクション。代表画像、サマリー、判定チップをまとめたモジュール。
+ * @param {object} props                           - プロパティ集合。
+ * @param {object} props.lot                       - 対象ロット。
+ * @param {{primary:string,fallback:string}} props.representativeSources - プレビュー用URL。
+ * @param {Function} props.handleImageError        - 画像エラー時の処理。
+ * @param {Function} props.setLightbox             - ライトボックス制御関数。
+ * @param {Function} props.getChipColor            - ステータス別カラー取得関数。
+ * @param {Array}   [props.statusItems]            - 明示的に表示するステータス配列。
+ * @param {object}  [props.summary]                - サマリー数値。
+ * @param {Array}   [props.summaryItems]           - サマリー生成用の元配列。
+ * @param {string}  [props.summaryLabel='検査サマリー'] - メインサマリーの見出し。
+ * @param {Array}   [props.additionalSummaries=[]] - 追加サマリー。
+ * @returns {JSX.Element|null}                      レイアウト済みセクション。
+ */
 const LotInfoSection = ({
   lot,
   representativeSources,
