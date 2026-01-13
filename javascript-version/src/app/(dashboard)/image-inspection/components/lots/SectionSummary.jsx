@@ -133,6 +133,10 @@ const SectionSummary = ({ latestLot, lotStatus }) => {
 
   if (!latestLot) return <Typography color="text.secondary">本日のロットデータはありません。</Typography>
 
+  // ======== 処理ステップ: 左ブロックで時間情報 → 右ブロックで判定/チップ → 詳細ボタン ========
+  // 1. 左ブロックに時間・ロットIDを置くことで、どの結果か瞬時に遡れる。
+  // 2. 右ブロックではサマリー/詳細チップをFlexで折り返し、結果種別ごとに色分けする。
+  // 3. 詳細ボタンでshowAllChipsを切り替え、PASSが多い場合でもUIが崩れないようにする。
   return (
     <Box
       sx={{

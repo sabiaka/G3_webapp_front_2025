@@ -20,15 +20,19 @@ import CameraTile from './CameraTile'
 const CameraGrid = ({ cameraNames = [], statusByName, imageByName = {} }) => {
   const uniqueNames = Array.from(new Set((cameraNames || []).filter(Boolean)))
   const isSingleCamera = uniqueNames.length === 1
-  // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加
+  // 3台のときも2x2(=4枠)で表示するため、ダミー枠を追加する。空白を作ることで視線移動が一定になり情報量を揃えられるため。
   const needsDummy = !isSingleCamera && uniqueNames.length === 3
   // 3台の場合は四角形レイアウトになるようダミー枠を挿入
   const items = needsDummy ? [...uniqueNames, '__dummy__'] : uniqueNames
-  const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定
+  const isTwoCols = items.length >= 4 || items.length === 3 // 3台時も2列に固定してカード縦横比を保つ。
 
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
   const dummyImg = `${basePath}/images/pages/CameraNotFound.png`
 
+  // ======== 処理ステップ: レイアウト判定 → タイル描画 → ダミー補完 ========
+  // 1. レイアウト判定ではcol数とダミー枠を算出し、グリッドの視認性を維持する。
+  // 2. タイル描画ではCameraTileへ名前/状態/画像を渡して統一表示させる。
+  // 3. ダミー補完は画像欠損時の空枠を説明するため、ユーザーが未設置カメラだと分かるようにする。
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       {items.map((name, i) => {

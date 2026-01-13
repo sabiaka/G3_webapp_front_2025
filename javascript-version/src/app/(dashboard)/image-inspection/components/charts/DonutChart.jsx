@@ -18,17 +18,19 @@ import { useTheme } from '@mui/material/styles'
 const DonutChart = ({ percentage, size = 160 }) => {
     const theme = useTheme()
     // SVGの半径や円周を計算してstrokeDasharrayに使う
+    // ======== 処理ステップ: 円周計算で割合を可視化 ========
+    // 内側に余白を持たせて円の半径を決め、円周からstrokeDasharrayを割り出すことで割合に応じた弧長を描く。
     const radius = (size - 20) / 2
     const circumference = 2 * Math.PI * radius
     const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
-    // 成否の描画色はテーマから取得して、ダーク/ライト両方で一貫性を保つ
+    // 成否の描画色はテーマから取得して、ダーク/ライト両方で一貫性を保つ理由はテーマ依存色に合わせてUIが破綻しないようにするため。
     const bgStroke = theme.palette.divider
     const fgStroke = theme.palette.success.main
 
     return (
         <Box sx={{ position: 'relative', width: size, height: size }}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {/* 背景側のドーナツを描いて全体の形状を示す */}
+                {/* 背景側のドーナツを描いて全体の形状を示す。意図として割合が欠損しても基準円が見えるようにする。 */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}
@@ -37,7 +39,7 @@ const DonutChart = ({ percentage, size = 160 }) => {
                     stroke={bgStroke}
                     strokeWidth="8"
                 />
-                {/* 良品率を表す進捗用ドーナツで割合に応じた長さにする */}
+                {/* 良品率を表す進捗用ドーナツで割合に応じた長さにする。-90度回転して12時スタートに揃える。 */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}

@@ -309,6 +309,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
         }),
   }
 
+  // ======== 処理ステップ: オーバーレイ表示 → オフセット適用 → フレーム描画 ========
+  // 1. オーバーレイではEscapeやクリックで閉じられるようイベントをまとめて設定する。
+  // 2. オフセット適用ではパン位置をtranslateへ反映し、ズーム倍率との整合を保つ。
+  // 3. フレーム描画ではimgタグをcontainで収め、pointerEventsを無効にしてドラッグ操作を優先する。
   return (
     <Box
       ref={containerRef}

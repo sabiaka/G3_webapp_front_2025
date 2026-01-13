@@ -141,6 +141,10 @@ const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
   }, [imageSources.fallback])
 
   // 描画
+  // ======== 処理ステップ: ソース算出 → フォールバック制御 → オーバーレイ描画 ========
+  // 1. buildImageSourcesで最適なURLを決めておき、描画時に確実に同じ順序で利用する。
+  // 2. handleImageErrorでロード失敗時にフォールバックへ切り替え、最後の砦としてFALLBACK_IMGを使う。
+  // 3. オーバーレイ描画では名前とステータスを同じ位置に出し、どの画像か即座に理解できるようにする。
   return (
     <Box
       sx={{

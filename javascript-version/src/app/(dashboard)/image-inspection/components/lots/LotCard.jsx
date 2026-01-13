@@ -212,6 +212,10 @@ const LotCard = ({
         : 'default'
   const lotStatusLabel = normalizedLotStatus || '-'
 
+  // ======== 処理ステップ: 代表画像 → 判定概要 → 詳細チップ ========
+  // 1. 代表画像ではhandleImageErrorを紐付けて通信エラー時の視覚欠損を防ぐ。
+  // 2. 判定概要ブロックでロットID・総合結果・要約チップを表示し、問題箇所を一目で把握させる。
+  // 3. 詳細チップ/不良詳細を展開し、showAllCamerasを切り替えて情報量を制御する。
   return (
     <Card
       variant="outlined"

@@ -41,6 +41,10 @@ const ShotsSummaryBlock = ({ title, summary }) => {
   const okRate = clampPercent(summary.okRate)
   const ngRate = clampPercent(summary.ngRate ?? 100 - okRate)
 
+  // ======== 処理ステップ: KPIカード → 進捗バー → 比率テキスト ========
+  // 1. KPIカードで総数/良品/不良を個別ボックスに分け、数値の比較をしやすくする。
+  // 2. 進捗バーは良率をバーの長さで示し、不良率には背景色を使ってコントラストを取る。
+  // 3. 比率テキストで最終的なパーセンテージを示し、バー見ただけでは分からない正確値を補う。
   return (
     <Box sx={{ '& + &': { mt: 3 } }}>
       {title ? (

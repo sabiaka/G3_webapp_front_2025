@@ -687,9 +687,13 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
     handleResetFhdState()
   }, [handleResetFhdState])
 
+  // ======== 描画ガード ========
+  // ロット情報が取得できない場合はヘッダやサマリーの前提が崩れるため描画を打ち切る
   if (!lot) return null
 
   return (
+    // ======== モーダル全体の骨組みを構築 ========
+    // fullWidth + maxWidth="xl" で詳細パネルと撮影マップを横並びに見せる
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
@@ -704,6 +708,8 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
           <Chip label={normalizedLotStatus || '-'} color={getLotStatusColor(normalizedLotStatus)} size="small" variant="filled" />
         </Box>
       </DialogTitle>
+      {/* ======== 本文は2カラム構成 ======== */}
+      {/* 左列はLot情報、右列は4K/FHDマップを担保するため余白や高さを厳密に制御 */}
       <DialogContent
         dividers
         sx={{
@@ -721,6 +727,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
             boxSizing: 'border-box',
           }}
         >
+          {/* ======== 左列: Lot概要とサマリー ======== */}
           <Box
             sx={{
               flexBasis: { md: '40%' },
@@ -741,6 +748,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
             />
           </Box>
 
+          {/* ======== 右列: 撮影マップビュー ======== */}
           <Box
             sx={{
               flexGrow: 1,
@@ -749,6 +757,7 @@ const ALayerLotDetailModal = ({ open, lot, lotStatus, shots4k, shotsStatus = 'su
               pr: { md: 1 },
             }}
           >
+            {/* FHD表示時は戻りボタンや字幕を付与し、4K時はシーケンス選択を許可 */}
             <FourKMapSection
               title={isShowingFhd ? 'FHD 撮影マップ' : '4K 撮影マップ'}
               subtitle={isShowingFhd ? fhdSubtitle : undefined}

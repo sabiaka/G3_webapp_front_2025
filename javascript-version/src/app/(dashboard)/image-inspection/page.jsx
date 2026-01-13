@@ -93,6 +93,9 @@ const ImageInspection = () => {
   const searchParams = useSearchParams()
   const selectedLotId = searchParams.get('lot')
 
+  // ======== 処理ステップ: 初期フェッチとタブ同期 ========
+  // 1. URLにlotクエリがあれば該当ロットを確実にロードする。
+  // 2. ロード済みロットのセクションに合わせてタブを強制同期する。意図としてUXの混乱を避ける。
   useEffect(() => {
     if (!selectedLotId) return
     ensureLotLoaded(selectedLotId)
@@ -122,6 +125,10 @@ const ImageInspection = () => {
     setActiveTab(targetIndex)
   }
 
+  /**
+   * クエリパラメータの lot 指定と内部状態を同期する。
+   * @param {string|null} lotId - 選択したロットID。null の場合はクエリを削除する。
+   */
   const updateUrlWithLot = lotId => {
     const currentLot = searchParams.get('lot')
     const params = new URLSearchParams(searchParams.toString())
@@ -129,12 +136,7 @@ const ImageInspection = () => {
     if (lotId) {
       if (currentLot === lotId) return
       params.set('lot', lotId)
-      /**
-       * 各セクションの最新ロットを元にグリッドカードを描画する。
-       * @param {string} sectionKey - 対象となるセクションの識別子。
-       * @returns {JSX.Element} 最新ロットの概要カード。
-       */
-      const renderRealtimeCard = sectionKey => {
+    } else {
       if (!currentLot) return
       params.delete('lot')
     }
