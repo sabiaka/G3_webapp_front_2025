@@ -20,5 +20,24 @@ applyTo: '**'
   - **実装ステップの言語化：** 関数内部の処理が複雑な場合　3〜5つ程度のブロックに分け、各ブロックの冒頭に「何をしているか」を日本語でコメントして。
   - **「なぜ」の強制記述：** if文の分岐や、計算式など「なぜその条件なのか」「なぜその数値なのか」という意図を必ず添えて。
 
+コメント例
+```javascript
+/**
+ * カメラ1台分のカード。画像読み込み失敗時はフォールバックを順に試す。
+ * @param {object} props          - コンポーネント引数。
+ * @param {string} props.name     - カメラ表示名。
+ * @param {string} props.status   - 判定ステータス。
+ * @param {boolean} props.isSingle - 単独表示かどうか。
+ * @param {string} props.imagePath - 元画像パス。
+ * @returns {JSX.Element}          プレビュー付きのカメラカード。
+ */
+```
+
+```javascript
+// ======== 処理ステップ: レイアウト判定 → タイル描画 → ダミー補完 ========
+  // 1. レイアウト判定ではcol数とダミー枠を算出し、グリッドの視認性を維持する。
+  // 2. タイル描画ではCameraTileへ名前/状態/画像を渡して統一表示させる。
+  // 3. ダミー補完は画像欠損時の空枠を説明するため、ユーザーが未設置カメラだと分かるようにする。
+```
 
 Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
