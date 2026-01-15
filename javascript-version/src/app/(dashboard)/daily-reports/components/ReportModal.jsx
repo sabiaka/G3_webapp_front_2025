@@ -1,3 +1,8 @@
+/*
+======== ファイル概要 ========
+日報の登録・編集フォームをモーダル表示し、入力値をAPI送信用に整形して親へ返すコンポーネントを定義する。
+*/
+
 import { useState, useEffect } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -12,10 +17,22 @@ import Typography from '@mui/material/Typography';
 // ★修正: 正しいパスに変更しました
 import useAuthMe from '@core/hooks/useAuthMe';
 
+/**
+ * 日報の新規登録または編集を行うモーダルフォーム。
+ * @param {boolean} open                - モーダルの開閉状態。
+ * @param {Function} onClose            - モーダルを閉じるためのコールバック。
+ * @param {Function} onSubmit           - 入力内容を親へ送信するコールバック。
+ * @param {object|null} initialData     - 編集時の初期値。新規時はnull想定。
+ * @returns {JSX.Element}               - 入力フォーム付きのモーダル。
+ */
 export default function ReportModal({ open, onClose, onSubmit, initialData }) {
   // ログインユーザー情報を取得
   const { user } = useAuthMe();
 
+  // ======== 処理ステップ: 入力状態の初期化 → マスタ取得 → 初期値設定 ========
+  // 1. 入力状態の初期化では登録と編集のどちらでも使える空フォームを用意し、開閉に依存しない状態を維持する。
+  // 2. マスタ取得ではライン情報のみフェッチして選択肢を最新化する。モーダルが開いている間だけ取得し無駄なリクエストを避ける。
+  // 3. 初期値設定では編集時は既存値、新規時は利用者の情報を自動反映させ、入力の手間を減らす。
   const [formData, setFormData] = useState({
     employee_id: '',
     line_id: '',
@@ -77,8 +94,13 @@ export default function ReportModal({ open, onClose, onSubmit, initialData }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * フォーム送信時の入力チェックと親コンポーネントへの通知を実施する。
+   * 必須項目が欠ける状態ではAPIエラーになるため、事前にアラートで防ぐ。
+   */
   const handleSubmit = () => {
     if (!formData.employee_id || !formData.line_id || !formData.report_date) {
+      // API仕様で必須となっている3項目が欠けると422エラーになるため、送信前にブロックする。
       alert('担当者情報、日付、製品名は必須です');
       return;
     }

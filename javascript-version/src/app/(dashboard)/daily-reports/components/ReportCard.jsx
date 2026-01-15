@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+日報カードの見た目と操作をまとめたプレゼンテーションコンポーネントを提供する。
+閲覧・編集・削除ボタンの表示可否を制御しつつ、カードレイアウトを統一する。
+*/
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -8,6 +14,11 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 
+/**
+ * 日付文字列を日本語ローカライズした表記へ変換する。
+ * @param {string} dateStr        - ISO形式などの元日付文字列。
+ * @returns {string}              - 表示用に整形された日付文字列。
+ */
 const dateFormatter = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -21,6 +32,16 @@ const dateFormatter = (dateStr) => {
 };
 
 // ★ currentUser, isAdmin を受け取る
+/**
+ * 日報一覧で1件分の概要を表示するカード。
+ * @param {object} report                  - 表示対象の日報データ。
+ * @param {Function} onViewDetail          - 詳細モーダルを開くためのハンドラー。
+ * @param {Function} onDelete              - 削除処理を要求するハンドラー。
+ * @param {Function} onEdit                - 編集モーダルを開くためのハンドラー。
+ * @param {object} currentUser             - ログイン中ユーザー情報。権限判定に用いる。
+ * @param {boolean} isAdmin                - 管理者権限の有無。
+ * @returns {JSX.Element}                  - 権限に応じた操作ボタン付きカード。
+ */
 export default function ReportCard({ report, onViewDetail, onDelete, onEdit, currentUser, isAdmin }) {
   const handleDetailClick = () => {
     if (onViewDetail) onViewDetail(report);
