@@ -1,5 +1,10 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+ユニットごとの稼働ランプを一覧表示するプレゼンテーションコンポーネント。色とラベルを渡されたステータスから動的に決定する。
+*/
+
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
@@ -14,7 +19,14 @@ const unitLampColorMap = {
     停止中: 'default',
 }
 
+/**
+ * 4ユニット分の状態をランプ形式で描画する。
+ * @param   {object} props              - コンポーネント引数。
+ * @param   {object} props.unitStatuses - Unit1〜Unit4の状態マップ。
+ * @returns {JSX.Element}               - ユニット一覧のJSX要素。
+ */
 export function UnitStatusLamps({ unitStatuses }) {
+    // ======== 描画ステップ: 各ユニットをランプ付きカードに成形 ========
     return (
         <Box mb={2}>
             <Typography variant='subtitle2' color='text.secondary' mb={1}>
