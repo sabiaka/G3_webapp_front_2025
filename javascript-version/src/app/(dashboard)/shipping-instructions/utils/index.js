@@ -1,6 +1,16 @@
+/*
+======== ファイル概要 ========
+出荷指示データの正規化と日付フォーマット変換を担うユーティリティ群。API 応答のばらつきを吸収し、UI
+が扱いやすい形へ揃えます。
+*/
+
 // 共通ユーティリティ（正規化・日付関連）
 
-// APIの新しい仕様に合わせてデータを正規化
+/**
+ * API のばらつきあるフィールドを UI で扱いやすい形に正規化する。
+ * @param {object} apiItem - API から受け取った指示レコード。
+ * @returns {object}       - 正規化後の指示レコード。
+ */
 export function normalizeInstruction(apiItem) {
     const id = apiItem.id
     const line = apiItem.line || apiItem.line_name || 'その他'
@@ -27,7 +37,11 @@ export function normalizeInstruction(apiItem) {
     return { id, line, title, completed, color, shippingMethod, destination, remarks, note, quantity, createdAt, productName: productNameField, size: sizeField, springType, includedItems }
 }
 
-// ローカルタイムゾーンの YYYY-MM-DD を返す
+/**
+ * ローカルタイムゾーンの YYYY-MM-DD を返す。
+ * @param {Date} [dateObj=new Date()] - 基準となる日付。
+ * @returns {string}                  - YYYY-MM-DD 形式。
+ */
 export function formatLocalYmd(dateObj = new Date()) {
     const y = dateObj.getFullYear()
     const m = String(dateObj.getMonth() + 1).padStart(2, '0')
@@ -35,8 +49,12 @@ export function formatLocalYmd(dateObj = new Date()) {
     return `${y}-${m}-${d}`
 }
 
-// datetime-local 文字列("YYYY-MM-DDTHH:mm")や Date/ISO を、ローカルオフセット付きの ISO 文字列に変換
-// 例: 2025-10-17T10:30 -> 2025-10-17T10:30:00+09:00
+/**
+ * datetime-local 文字列や Date/ISO をローカルオフセット付き ISO へ変換する。
+ * 例: 2025-10-17T10:30 -> 2025-10-17T10:30:00+09:00
+ * @param {string|Date} input - 変換対象。
+ * @returns {string|null}     - オフセット付き ISO。失敗時は null。
+ */
 export function toOffsetIso(input) {
     if (!input) return null
     let d
@@ -70,7 +88,11 @@ export function toOffsetIso(input) {
     return `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}${sign}${tzh}:${tzm}`
 }
 
-// ISO文字列やDate等からローカルタイムゾーンのYYYY-MM-DDに変換
+/**
+ * ISO 文字列や Date からローカルタイムゾーンの YYYY-MM-DD へ変換する。
+ * @param {string|Date} input - 変換対象。
+ * @returns {string}          - YYYY-MM-DD 形式。失敗時は空文字。
+ */
 export function toLocalYmd(input) {
     if (!input) return ''
     let d

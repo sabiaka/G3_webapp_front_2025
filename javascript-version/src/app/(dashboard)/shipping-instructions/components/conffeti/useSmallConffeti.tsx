@@ -1,11 +1,33 @@
-'use client';
+'use client'
+
+/*
+======== ファイル概要 ========
+小規模な confetti 演出パターンを集約したカスタムフック。演出の強度や広がりを細かく調整します。
+*/
+
 import confetti from 'canvas-confetti'
-import React, { useRef, useState } from 'react';
-import { getCentralCoordinates } from './common';
+import React, { useRef, useState } from 'react'
+import { getCentralCoordinates } from './common'
 
-
+/**
+ * 小規模演出向け confetti 制御フック。
+ * @returns {{
+ *          normalConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleNormalConfetti: () => void,
+ *          allDirectionConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleAllDirectionConfetti: () => void,
+ *          weakConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleWeakConfetti: () => void,
+ *          slowConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleSlowConfetti: () => void,
+ *          coloredConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleColoredConfetti: () => void,
+ *          flashyConfetti: React.RefObject<HTMLButtonElement>,
+ *          handleFlashyConfetti: () => void
+ *        }} - ボタン参照とハンドラセット。
+ */
 export default function useSmallConffeti() {
-    const normalConfetti = useRef<HTMLButtonElement>(null);
+    const normalConfetti = useRef<HTMLButtonElement>(null)
     const handleNormalConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(normalConfetti)
@@ -14,10 +36,11 @@ export default function useSmallConffeti() {
             origin: {
                 x: centerX / window.innerWidth,
                 y: centerY / window.innerHeight
-            },
-        });
-    };
-    const weakConfetti = useRef<HTMLButtonElement>(null);
+            }
+        })
+    }
+
+    const weakConfetti = useRef<HTMLButtonElement>(null)
     const handleWeakConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(weakConfetti)
@@ -30,12 +53,12 @@ export default function useSmallConffeti() {
             origin: {
                 x: centerX / window.innerWidth,
                 y: centerY / window.innerHeight
-            },
+            }
 
-        });
-    };
+        })
+    }
 
-    const allDirectionConfetti = useRef<HTMLButtonElement>(null);
+    const allDirectionConfetti = useRef<HTMLButtonElement>(null)
     const handleAllDirectionConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(allDirectionConfetti)
@@ -62,10 +85,10 @@ export default function useSmallConffeti() {
             },
             // z-indexを指定(default:100)
             zIndex: 100
-        });
-    };
+        })
+    }
 
-    const slowConfetti = useRef<HTMLButtonElement>(null);
+    const slowConfetti = useRef<HTMLButtonElement>(null)
     const handleSlowConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(slowConfetti)
@@ -91,9 +114,10 @@ export default function useSmallConffeti() {
             },
             // z-indexを指定(default:100)
             zIndex: 100
-        });
-    };
-    const coloredConfetti = useRef<HTMLButtonElement>(null);
+        })
+    }
+
+    const coloredConfetti = useRef<HTMLButtonElement>(null)
     const handleColoredConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(coloredConfetti)
@@ -124,9 +148,10 @@ export default function useSmallConffeti() {
             // scalar: 0.8,
             // z-indexを指定(default:100)
             zIndex: 100
-        });
-    };
-    const flashyConfetti = useRef<HTMLButtonElement>(null);
+        })
+    }
+
+    const flashyConfetti = useRef<HTMLButtonElement>(null)
     const handleFlashyConfetti = () => {
         // 中心座標を取得
         const { centerX, centerY } = getCentralCoordinates(flashyConfetti)
@@ -145,8 +170,14 @@ export default function useSmallConffeti() {
             },
             // z-indexを指定(default:100)
             zIndex: 100
-        });
-    };
+        })
+    }
+
+    // ======== 処理ステップ: 座標取得 → confetti 設定 → バリエーション展開 ========
+    // 1. 各バリエーションごとに ref を保持し、クリック位置を正確に算出する。
+    // 2. 取得した座標を共通ユーティリティで正規化し、発射パラメータに利用する。
+    // 3. 速度・広がり・色調を変えることで、トリガー用途に応じた演出を提供する。
+
     return {
         normalConfetti, handleNormalConfetti,
         allDirectionConfetti, handleAllDirectionConfetti,

@@ -1,4 +1,10 @@
- 'use client'
+/*
+======== ファイル概要 ========
+製造出荷指示一覧ページのトップレベルコンポーネント。フィルターバーと指示カード、各種モーダルを束ね
+ており、このファイルから useShippingInstructions フックの状態とアクションを UI へ受け渡します。
+*/
+
+'use client'
 
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -17,6 +23,10 @@ import CalendarModal from './components/CalendarModal'
 import useShippingInstructions from './hooks/useShippingInstructions'
 import { completedOptions, lineOptions } from './data/sampleInitialInstructions'
 
+/**
+ * 製造出荷指示一覧ページ。
+ * @returns {JSX.Element}                                  製造指示の一覧と操作モーダルを含むページ全体。
+ */
 const ShippingInstructions = () => {
   const { isAdmin } = useAuthMe()
   const { state, derived, actions } = useShippingInstructions()
@@ -41,6 +51,11 @@ const ShippingInstructions = () => {
     cancelRevert, confirmRevert,
     setCalendarOpen
   } = actions
+
+  // ======== 処理ステップ: フィルター反映 → カード一覧 → 管理モーダル群 ========
+  // 1. フィルタ条件をヘッダーにまとめ、ユーザーが検索条件を即座に操作できるようにする。
+  // 2. 絞り込み済みデータをカードとして並べ、ゼロ件時は案内カードでフォローする。
+  // 3. 追加・編集・削除・日付選択の各モーダルを末尾に配置し、状態変化を一元管理する。
 
   return (
     <>
