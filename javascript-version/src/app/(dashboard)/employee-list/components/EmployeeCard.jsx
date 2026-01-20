@@ -1,5 +1,10 @@
 "use client"
 
+/*
+======== ファイル概要 ========
+単一従業員カードのプレゼンテーション層。各種属性を強調色付きで表示し、編集メニュー操作を提供する。
+*/
+
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
@@ -7,15 +12,27 @@ import Avatar from '@mui/material/Avatar'
 import IconButton from '@mui/material/IconButton'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 
+/**
+ * 氏名からカード用の頭文字を抜き出す。
+ * @param {string} name - フルネーム。
+ * @returns {string}    - 先頭語。空なら空文字。
+ */
 function getInitials(name) {
   const parts = String(name || '').trim().split(/\s+/)
 
-  
-return parts[0] || ''
+  return parts[0] || ''
 }
 
+/**
+ * 従業員情報をカード形式で表示するコンポーネント。
+ * @param {object}   props             - コンポーネント引数。
+ * @param {object}   props.employee    - 表示対象の従業員データ。
+ * @param {Function} props.onMenuClick - メニュークリック時のハンドラ。
+ * @param {boolean}  props.canEdit     - 編集操作を許可するか否か。
+ * @returns {JSX.Element}              - 従業員カード。
+ */
 const EmployeeCard = ({ employee, onMenuClick, canEdit }) => {
-  const isRetired = employee.status === '退職済'
+  const isRetired = employee.status === '退職済' // 退職済みは視覚的に弱めて現役との区別を付ける。
 
   return (
     <Card sx={{ borderRadius: 3, boxShadow: 2, opacity: isRetired ? 0.6 : 1, position: 'relative' }}>

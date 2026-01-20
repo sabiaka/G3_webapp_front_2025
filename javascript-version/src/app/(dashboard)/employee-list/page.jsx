@@ -1,5 +1,10 @@
 "use client"
 
+/*
+======== ファイル概要 ========
+従業員名簿ページのクライアントコンポーネント。検索・フィルタ・CRUD 操作を統合し、API 呼び出しと UI 更新を橋渡しする。
+*/
+
 import { useState, useEffect, useMemo, useRef } from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -26,16 +31,25 @@ const statusOptions = [
   { value: '退職済', label: '退職済' }
 ]
 
-// 氏名を「姓 名」に整形（スペース区切り）
+/**
+ * 氏名を「姓 名」形式に整形するためのユーティリティ。
+ * @param {string} ln         - 姓。空文字の場合は名のみを返す。
+ * @param {string} fn         - 名。空文字の場合は姓のみを返す。
+ * @returns {string}          - スペース区切りの氏名。両方空なら空文字。
+ */
 const getDisplayName = (ln, fn) => {
   const l = String(ln || '').trim()
   const f = String(fn || '').trim()
 
   if (!l && !f) return ''
-  
-return f ? `${l} ${f}` : l
+
+  return f ? `${l} ${f}` : l
 }
 
+/**
+ * 従業員名簿のトップレベルコンポーネント。
+ * @returns {JSX.Element} - 従業員カードと管理用ダイアログを含む UI ツリー。
+ */
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([])
   const [employeesLoading, setEmployeesLoading] = useState(false)
@@ -65,6 +79,11 @@ const EmployeeList = () => {
 
   // Password 表示切替
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+
+  /**
+   * パスワード表示状態を切り替える。入力確認の利便性向上が目的。
+   * @returns {void}
+   */
   const handleClickShowPassword = () => setIsPasswordShown(s => !s)
 
   // マスタ（役割／ライン）
@@ -79,21 +98,46 @@ const EmployeeList = () => {
 
   // スナックバー（通知）
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  /**
+   * 操作結果をスナックバーで表示する。
+  * @param {string}                                    message              - 表示する本文。
+  * @param {import('@mui/material').AlertColor} [severity='success']        - スナックバーのステータス色。
+   * @returns {void}
+   */
   const showSnack = (message, severity = 'success') => setSnackbar({ open: true, message, severity })
+
+  /**
+   * スナックバーを閉じる。
+   * @returns {void}
+   */
   const closeSnack = () => setSnackbar(s => ({ ...s, open: false }))
 
   // メニュー
+  /**
+   * メニュー表示用に対象従業員とアンカー要素を記録する。
+   * @param {import('react').MouseEvent<HTMLButtonElement>} e         - クリックイベント。
+   * @param {object}                                      employee         - 操作対象の従業員。
+   * @returns {void}
+   */
   const handleMenuClick = (e, employee) => {
     setMenuAnchor(e.currentTarget)
     setSelectedEmployee(employee)
   }
 
+  /**
+   * メニュー表示状態と選択中従業員を初期化する。
+   * @returns {void}
+   */
   const handleMenuClose = () => {
     setMenuAnchor(null)
     setSelectedEmployee(null)
   }
 
   // モーダル
+  /**
+   * 追加用モーダルを初期値で開く。
+   * @returns {void}
+   */
   const openAddModal = () => {
     if (!isAdmin) return
     setForm(prev => ({
@@ -112,6 +156,10 @@ const EmployeeList = () => {
     setModalOpen(true)
   }
 
+  /**
+   * 編集用モーダルを既存従業員値で開く。
+   * @returns {void}
+   */
   const openEditModal = () => {
     if (!isAdmin) return
 
@@ -143,9 +191,18 @@ const EmployeeList = () => {
     }
   }
 
+  /**
+   * モーダルを閉じる。
+   * @returns {void}
+   */
   const closeModal = () => setModalOpen(false)
 
   // フォーム
+  /**
+   * フォーム入力をステートへ反映する。
+   * @param {import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - 入力イベント。
+   * @returns {void}
+   */
   const handleFormChange = e => {
     const { name, value } = e.target
 
@@ -159,6 +216,10 @@ const EmployeeList = () => {
   }
 
   // 保存
+  /**
+   * フォームデータを API に送信し従業員を保存する。
+   * @returns {Promise<void>} - 保存完了後は一覧を再取得する。
+   */
   const handleSave = async () => {
     if (!isAdmin) return
 
@@ -166,7 +227,7 @@ const EmployeeList = () => {
     const requiredOk = form.employeeUserId && form.lastName && form.firstName
     const rolesOk = roles.length > 0 ? (form.roleId !== '' && form.roleId !== null && form.roleId !== undefined) : true
 
-    if (!requiredOk || !rolesOk) return
+    if (!requiredOk || !rolesOk) return // API 側で 400 を返す前に早期離脱し、フィードバック遅延を防ぐため。
 
     const displayName = getDisplayName(form.lastName, form.firstName)
 
@@ -185,6 +246,11 @@ const EmployeeList = () => {
       ...(typeof form.status === 'string' ? { is_active: form.status === '在籍中' } : {})
     }
 
+    // ======== 処理ステップ: バリデーション確認 → API 呼び出し → 一覧更新 ========
+    // 1. バリデーション確認では API で弾かれる前に必須入力をチェックし、ユーザー体験の悪化を防ぐ。
+    // 2. API 呼び出しは PUT/POST を分岐し、既存編集時はパスワードを空送信しない理由を明示する。
+    // 3. 一覧更新で再フェッチしダイアログを閉じ、最新状態を即座に反映させる。
+
     try {
       const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() }
 
@@ -199,7 +265,7 @@ const EmployeeList = () => {
         if (!res.ok) throw new Error(`PUT /employees/${editingEmployeeId} ${res.status}`)
       } else {
         // 追加（POST）: password 必須
-        if (!form.password) throw new Error('パスワードを入力してください')
+        if (!form.password) throw new Error('パスワードを入力してください') // 新規作成時は認証に必要となるため必須扱い。
 
         const res = await fetch(`${apiBase}/api/employees`, {
           method: 'POST',
@@ -224,9 +290,18 @@ const EmployeeList = () => {
   }
 
   // 削除
+  /**
+   * 選択中の従業員を削除する。
+   * @returns {Promise<void>} - 削除後に一覧を再取得し通知する。
+   */
   const handleDelete = async () => {
     if (!isAdmin) return
     if (!selectedEmployee?.employeeId) return
+
+    // ======== 処理ステップ: API 呼び出し → 一覧再取得 → 通知とクリーンアップ ========
+    // 1. API 呼び出しで認証ヘッダーを添付し、204 No Content も成功として扱う。
+    // 2. 一覧再取得で UI を同期させ、削除済みカードが残る問題を防ぐ。
+    // 3. 通知とクリーンアップで結果を共有しメニューを閉じる。
 
     try {
       const headers = { ...getAuthHeaders() }
@@ -249,12 +324,17 @@ const EmployeeList = () => {
 
   // マスタ取得（ロール／ライン）
   useEffect(() => {
+    // ======== 処理ステップ: AbortController 準備 → ロール取得 → ライン取得 → クリーンアップ ========
+    // 1. AbortController 準備でアンマウント時に通信を中断し、不要な警告を避ける。
+    // 2. ロール取得でモーダルのセレクト初期値を整え、手入力の手間を省く。
+    // 3. ライン取得で部署セレクトとフィルタ候補を揃え、整合性を保つ。
+    // 4. クリーンアップで fetch を中断し、メモリリークを防ぐ。
     const ac = new AbortController()
 
     const headers = { ...getAuthHeaders() }
 
       // Roles
-      ; (async () => {
+      ;(async () => {
         try {
           setLoadingRoles(true)
           const res = await fetch(`${apiBase}/api/roles`, { signal: ac.signal, headers })
@@ -272,8 +352,7 @@ const EmployeeList = () => {
               if ((keep || keep === 0) && list.some(r => r?.role_id === keep)) return prev
               const general = list.find(r => r?.role_name === '一般')?.role_id
 
-              
-return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
+              return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
             })
           } else {
             setRoles([])
@@ -286,7 +365,7 @@ return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
       })()
 
       // Lines
-      ; (async () => {
+      ;(async () => {
         try {
           setLoadingLines(true)
           const res = await fetch(`${apiBase}/api/lines`, { signal: ac.signal, headers })
@@ -302,8 +381,8 @@ return { ...prev, roleId: general ?? list[0]?.role_id ?? '' }
               const keep = prev.lineId
 
               if ((keep || keep === 0) && list.some(l => l?.line_id === keep)) return prev
-              
-return { ...prev, lineId: '' }
+
+              return { ...prev, lineId: '' }
             })
           } else {
             setLines([])
@@ -318,18 +397,25 @@ return { ...prev, lineId: '' }
     return () => ac.abort()
   }, [apiBase])
 
-  // 部署（ライン）フィルタの選択肢
+  /**
+   * 部署（ライン）フィルタの選択肢を生成する。
+   * @returns {Array<{ value: string, label: string }>} - セレクトボックス用のオプション。
+   */
   const departmentOptions = useMemo(() => {
     const opts = [{ value: 'all', label: 'すべて' }]
 
     lines.forEach(l => {
       if (l?.line_name) opts.push({ value: l.line_name, label: l.line_name })
     })
-    
-return opts
+
+    return opts
   }, [lines])
 
-  // APIレスポンスをUI表示用に整形
+  /**
+   * API レスポンスを UI 表示用オブジェクトへ整形する。
+   * @param {object} apiItem - API から取得した従業員データ。
+   * @returns {object}       - カード描画用の整形済みデータ。
+   */
   const mapEmployee = apiItem => ({
     employeeId: apiItem?.employee_id,
     id: apiItem?.employee_user_id, // 表示用ID
@@ -342,7 +428,10 @@ return opts
     iconColor: ensureHash(apiItem?.color_code)
   })
 
-  // 従業員取得（検索・フィルタ対応）
+  /**
+   * 検索条件に合わせて従業員一覧を取得する。
+   * @returns {Promise<void>} - 取得結果をステートへ反映する。
+   */
   const fetchEmployees = async () => {
     const headers = { ...getAuthHeaders() }
     const sp = new URLSearchParams()
@@ -377,13 +466,16 @@ return opts
 
   // フィルタ変更時に再取得（検索はデバウンス）
   useEffect(() => {
+    // ======== 処理ステップ: タイマー初期化 → API 呼び出し予約 → タイマー掃除 ========
+    // 1. タイマー初期化で連続入力による過剰呼び出しを防ぐ。
+    // 2. API 呼び出し予約で 350ms 後に fetch を実行し、検索体験を滑らかにする。
+    // 3. タイマー掃除で依存変更・アンマウント時の不要実行を抑える。
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
     debounceTimer.current = setTimeout(() => {
       fetchEmployees()
     }, 350)
 
-    
-return () => {
+    return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
