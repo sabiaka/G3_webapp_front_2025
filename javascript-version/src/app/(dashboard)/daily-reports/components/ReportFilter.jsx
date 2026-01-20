@@ -1,3 +1,8 @@
+/*
+======== ファイル概要 ========
+日報一覧の検索条件入力エリアを提供し、検索値とソート順変更をハンドラーへ通知するコンポーネントを定義する。
+*/
+
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
@@ -8,6 +13,16 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 
+/**
+ * 日報一覧用の検索フォームと並び替えをまとめたフィルターコンポーネント。
+ * @param {string} searchUser         - 担当者名の検索キーワード。
+ * @param {string} searchDate         - 指定日での絞り込み値。
+ * @param {string} searchProduct      - 製品名の検索キーワード。
+ * @param {string} sortOrder          - 並び順識別子。
+ * @param {Function} onChange         - フィルタ入力変更時に呼ばれるハンドラー。
+ * @param {Function} onSortChange     - 並び順変更時に呼ばれるハンドラー。
+ * @returns {JSX.Element}             - 4カラム構成のフィルタフォーム。
+ */
 export default function ReportFilter({ 
   searchUser, 
   searchDate, 

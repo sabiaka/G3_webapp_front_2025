@@ -1,5 +1,13 @@
-// 共通のステータス・サマリー計算ユーティリティ
+/*
+======== ファイル概要 ========
+ショットサマリーや判定文字列の正規化など、画像検査で共通利用する計算ユーティリティ。
+*/
 
+/**
+ * 0〜100の範囲内に丸めた整数パーセンテージを返す。
+ * @param {number} value - 元の値。
+ * @returns {number}     整数パーセント。
+ */
 const clampPercent = value => {
   const num = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(num)) return 0
@@ -8,6 +16,11 @@ const clampPercent = value => {
   return Math.round(num)
 }
 
+/**
+ * 有限な数値であれば数値として返し、そうでなければ null。
+ * @param {*} value - 任意値。
+ * @returns {number|null} 有限数値。
+ */
 const toFiniteNumber = value => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   if (value == null) return null
@@ -15,6 +28,11 @@ const toFiniteNumber = value => {
   return Number.isFinite(num) ? num : null
 }
 
+/**
+ * 判定文字列を PASS/FAIL/MISSING に揃える下準備を行う。
+ * @param {string} status - 判定。
+ * @returns {string}      正規化結果。
+ */
 const canonicalizeStatus = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (!normalized) return ''
@@ -23,11 +41,21 @@ const canonicalizeStatus = status => {
   return normalized
 }
 
+/**
+ * APIの生ステータスをUI表示用へ変換する。
+ * @param {string} status - 判定。
+ * @returns {string}      表示用文字列。
+ */
 export const mapStatusApiToUi = status => {
   const canonical = canonicalizeStatus(status)
   return canonical || '-'
 }
 
+/**
+ * ショット配列から総数/良品/不良/率を計算する。
+ * @param {Array} shots - ショット配列。
+ * @returns {object|null} サマリー。
+ */
 export const computeShotSummary = shots => {
   const list = Array.isArray(shots) ? shots : []
   if (list.length === 0) return null
@@ -59,6 +87,12 @@ export const computeShotSummary = shots => {
   }
 }
 
+/**
+ * API/ローカルサマリーの表記ゆれを吸収し、UIが期待するフォーマットへ揃える。
+ * @param {object} rawSummary    - サマリー候補。
+ * @param {Array} fallbackShots  - ショット配列。
+ * @returns {object|null}         正規化済みサマリー。
+ */
 export const normalizeShotSummary = (rawSummary, fallbackShots) => {
   if (!rawSummary || typeof rawSummary !== 'object') {
     return computeShotSummary(fallbackShots)

@@ -1,5 +1,7 @@
-// APIの成功レスポンス形のサンプルサマリーデータ
-// キーは `${sectionCode}|${date}` （sectionCodeは API 内部コード: spring / alayer）
+/*
+======== ファイル概要 ========
+サマリーAPIのレスポンス形式を模したモックデータ。キーは `${sectionCode}|${date}` で管理する。
+*/
 
 export const SAMPLE_SUMMARIES = {
   // ユーザー指定のサンプル

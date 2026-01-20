@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+日報の詳細をポップアップで確認するモーダルコンポーネントを定義する。
+ヘッダーから本文まで統一したスタイルで日次報告の内容を表示する。
+*/
+
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -8,8 +14,15 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 
+/**
+ * 日報の詳細情報をモーダル表示するコンポーネント。
+ * @param {boolean} open          - モーダルの開閉状態。
+ * @param {Function} onClose      - 閉じる操作を通知するコールバック。
+ * @param {object|null} report    - 表示対象の日報データ。null時は描画しない。
+ * @returns {JSX.Element|null}    - 詳細情報を表示するダイアログ、対象が無ければnull。
+ */
 export default function ReportDetailModal({ open, onClose, report }) {
-  if (!report) return null;
+  if (!report) return null; // データ未設定時にモーダルを空描画させず安全にスキップする。
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">

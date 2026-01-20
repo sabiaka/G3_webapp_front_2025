@@ -1,4 +1,8 @@
-// 撮影画像を全画面オーバーレイで拡大表示しズーム・パン操作を提供するライトボックス
+/*
+======== ファイル概要 ========
+拡大画像をフルスクリーンで表示し、ズーム/パン/ホイール移動を提供するライトボックス実装。
+質検モーダルから共通で呼び出され、詳細確認の体験を統一する。
+*/
 
 import { useEffect, useRef, useState } from 'react'
 
@@ -14,6 +18,16 @@ import Box from '@mui/material/Box'
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
+/**
+ * ライトボックス本体。マウス操作によるズーム・パンを制御し、フォールバック画像も管理する。
+ * @param {object} props                - プロパティ集合。
+ * @param {boolean} props.open          - オーバーレイ表示フラグ。
+ * @param {string} props.src            - メイン画像URL。
+ * @param {string} [props.fallbackSrc]  - メイン失敗時に試す代替URL。
+ * @param {string} [props.alt='image']  - 代替テキスト。
+ * @param {Function} props.onClose      - 閉じるトリガー。
+ * @returns {JSX.Element|null}           表示状態に応じたライトボックス。
+ */
 const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
   const containerRef = useRef(null)
   const imgRef = useRef(null)
@@ -89,6 +103,13 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  /**
+   * オフセットがビューポート外に飛びすぎないよう両端を制限する。
+   * @param {number} val - 対象値。
+   * @param {number} min - 下限。
+   * @param {number} max - 上限。
+   * @returns {number}   範囲内へ収めた値。
+   */
   const clamp = (val, min, max) => Math.max(min, Math.min(max, val))
 
   useEffect(() => {
@@ -112,6 +133,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     })
   }, [open, baseSize, viewport, scale])
 
+  /**
+   * 拡大中のフレームでホイールスクロールを使ったパン操作を提供する。
+   * @param {WheelEvent} e - ホイールイベント。
+   */
   const handleWheel = e => {
     if (!open) return
     e.preventDefault()
@@ -135,6 +160,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     })
   }
 
+  /**
+   * 拡大時のみドラッグ開始を許可し、開始座標を保持する。
+   * @param {MouseEvent} e - マウスダウンイベント。
+   */
   const handleMouseDown = e => {
     // ブラウザのデフォルト画像ドラッグや選択を抑止
     e.preventDefault()
@@ -150,6 +179,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     setDragging(true)
   }
 
+  /**
+   * ドラッグ中の平行移動をRafでまとめて反映する。
+   * @param {MouseEvent} e - マウスムーブイベント。
+   */
   const handleMouseMove = e => {
     if (!dragState.current.dragging) return
     const dx = e.clientX - dragState.current.startX
@@ -175,6 +208,9 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     }
   }
 
+  /**
+   * ドラッグ終了時にフラグとRafをリセットする。
+   */
   const handleMouseUp = () => {
     dragState.current.dragging = false
     setDragging(false)
@@ -185,6 +221,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     }
   }
 
+  /**
+   * 画像クリックでフィット⇔拡大をトグル。背景クリックならクローズ。
+   * @param {MouseEvent} e - クリックイベント。
+   */
   const toggleZoom = e => {
     if (e.target === containerRef.current) {
       onClose?.()
@@ -212,6 +252,9 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
     if (moveRaf.current) cancelAnimationFrame(moveRaf.current)
   }, [])
 
+  /**
+   * メイン→フォールバック→固定画像の順に差し替える。
+   */
   const handleImgError = () => {
     if (fallbackSrc && !fallbackTried) {
       setFallbackTried(true)
@@ -266,6 +309,10 @@ const ImageLightbox = ({ open, src, fallbackSrc, alt = 'image', onClose }) => {
         }),
   }
 
+  // ======== 処理ステップ: オーバーレイ表示 → オフセット適用 → フレーム描画 ========
+  // 1. オーバーレイではEscapeやクリックで閉じられるようイベントをまとめて設定する。
+  // 2. オフセット適用ではパン位置をtranslateへ反映し、ズーム倍率との整合を保つ。
+  // 3. フレーム描画ではimgタグをcontainで収め、pointerEventsを無効にしてドラッグ操作を優先する。
   return (
     <Box
       ref={containerRef}

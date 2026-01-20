@@ -1,5 +1,10 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+点検進捗入力と点検周期変更のダイアログコンポーネント群。ローカルストレージとAPI連携のUI層を提供する。
+*/
+
 import { useEffect, useMemo, useState } from 'react'
 
 import Dialog from '@mui/material/Dialog'
@@ -16,6 +21,14 @@ import Box from '@mui/material/Box'
 
 import { formatYmdSlash } from '../utils/date'
 
+/**
+ * 点検チェックリストを表示し、完了操作を親へ通知する。
+ * @param   {object}    props            - コンポーネント引数。
+ * @param   {boolean}   props.open       - ダイアログ開閉フラグ。
+ * @param   {Function}  props.onClose    - 閉じる時のハンドラー。
+ * @param   {Function}  props.onComplete - 点検完了時のハンドラー。
+ * @returns {JSX.Element}                - 点検ダイアログのJSX要素。
+ */
 export function InspectionDialog({ open, onClose, onComplete }) {
     const STORAGE_KEY = 'machine-status:inspection-progress'
 
@@ -28,7 +41,7 @@ export function InspectionDialog({ open, onClose, onComplete }) {
     ], [])
 
     const [checkedMap, setCheckedMap] = useState({})
-
+    // ======== 初期化ステップ: ダイアログ開時に進捗を復元 ========
     useEffect(() => {
         if (open) {
             // 開いたときにローカルストレージから復元（なければ初期化）
@@ -55,7 +68,7 @@ export function InspectionDialog({ open, onClose, onComplete }) {
         try {
             if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
         } catch (e) {
-            // ignore write errors
+            // 書き込み失敗はUIに影響しないため黙殺（ignore write errors）
         }
     }
 
@@ -63,8 +76,8 @@ export function InspectionDialog({ open, onClose, onComplete }) {
         const next = { ...prev, [id]: !prev[id] }
 
         persist(next)
-        
-return next
+
+        return next
     })
 
     const checkAll = () => {
@@ -84,7 +97,7 @@ return next
         try {
             if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEY)
         } catch (e) {
-            // ignore
+            // 削除失敗も無害なのでそのまま（ignore）
         }
     }
 
@@ -93,6 +106,7 @@ return next
         onComplete()
     }
 
+    // ======== 描画ステップ: チェックリストと操作ボタンの提示 ========
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm'>
             <DialogTitle>点検</DialogTitle>
@@ -122,7 +136,20 @@ return next
     )
 }
 
+/**
+ * 点検周期を入力させるためのダイアログ。
+ * @param   {object}    props                     - コンポーネント引数。
+ * @param   {boolean}   props.open                - ダイアログ開閉フラグ。
+ * @param   {Function}  props.onClose             - 閉じる時のハンドラー。
+ * @param   {number}    props.value               - 現在の点検間隔（日）。
+ * @param   {Function}  props.onChange            - 値変更ハンドラー。
+ * @param   {Date}      props.nextInspectionDate  - 次回点検日。
+ * @param   {Function}  props.onSave              - 保存ハンドラー。
+ * @param   {boolean}   [props.saving=false]      - 保存処理中フラグ。
+ * @returns {JSX.Element}                         - 点検期間ダイアログのJSX要素。
+ */
 export function IntervalDialog({ open, onClose, value, onChange, nextInspectionDate, onSave, saving = false }) {
+    // ======== 描画ステップ: 入力 → 次回日表示 → 操作ボタン ========
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth='xs'>
             <DialogTitle>点検期間の変更</DialogTitle>

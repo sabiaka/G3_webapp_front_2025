@@ -1,5 +1,10 @@
 "use client";
 
+/*
+======== ファイル概要 ========
+工場ダッシュボード向けの簡易メニュー画面。お知らせのローカル保存と主要機能へのショートカットカードをまとめて提供する。
+*/
+
 // React Imports
 import { useEffect, useState } from "react";
 
@@ -29,6 +34,10 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import HardwareIcon from "@mui/icons-material/Hardware";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 
+/**
+ * EZ メニューのトップページコンポーネント。
+ * @returns {JSX.Element} - お知らせカードと主要機能へのリンクカード群をまとめたグリッド。
+ */
 const EzMenuPage = () => {
 	// 今日のお知らせ（ローカル保存共有）
 	const STORAGE_KEY = "dashboard_notice_v1";
@@ -39,6 +48,10 @@ const EzMenuPage = () => {
 	const [draft, setDraft] = useState("");
 
 	useEffect(() => {
+		// ======== 処理ステップ: 初回読込 → localStorage 取得 → ステート反映 ========
+		// 1. 初回読込ではブラウザ環境かを確認し SSR 実行時の参照エラーを防ぐ。
+		// 2. localStorage 取得で前回編集内容を読み出し、複数ユーザーの共有 PC でも内容を継続させる。
+		// 3. ステート反映で空文字を避け、表示テキストが消えないようにガードする。
 		try {
 			const saved = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
 			if (saved && saved.trim().length > 0) setNotice(saved);
@@ -47,16 +60,30 @@ const EzMenuPage = () => {
 		}
 	}, []);
 
+	/**
+	 * 編集モーダルを開くためのハンドラ。
+	 * @returns {void}
+	 */
 	const openEdit = () => {
 		setDraft(notice);
 		setIsEditOpen(true);
 	};
+
+	/**
+	 * 編集モーダルを閉じる。
+	 * @returns {void}
+	 */
 	const closeEdit = () => setIsEditOpen(false);
+
+	/**
+	 * 編集したお知らせを保存する。
+	 * @returns {void}
+	 */
 	const saveEdit = () => {
 		const v = draft?.trim() ?? "";
 		setNotice(v);
 		try {
-			if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, v);
+			if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, v); // ローカル保持でページ更新しても内容が残る。
 		} catch (e) {}
 		setIsEditOpen(false);
 	};
@@ -88,11 +115,11 @@ const EzMenuPage = () => {
 			{/* 大きなクイックボタン（スマホ操作を想定） */}
 			<Grid item xs={12}>
 				<Grid container spacing={4}>
-										{/* 製造出荷指示 */}
+							{/* 製造出荷指示 */}
 										<Grid item xs={12} sm={6} md={4}>
 						<Card sx={{ height: '100%' }}>
 							<CardActionArea component={Link} href="/shipping-instructions" sx={{ height: '100%' }}>
-														<CardContent sx={{ py: 5, minHeight: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+										<CardContent sx={{ py: 5, minHeight: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
 									<Box sx={{ bgcolor: 'warning.main', color: 'common.white', width: 88, height: 88, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 										<ListAltOutlinedIcon sx={{ fontSize: 44 }} />
 									</Box>

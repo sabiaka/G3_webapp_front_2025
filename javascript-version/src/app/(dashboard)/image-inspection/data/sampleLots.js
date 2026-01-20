@@ -1,6 +1,13 @@
-// サンプルのロット一覧データ（API想定のJSON形そのまま）
-// 画面はこれをUI用にアダプトして表示します
+/*
+======== ファイル概要 ========
+APIレスポンスを模したサンプルロットデータセット。開発時のモックソースとして利用する。
+*/
 
+/**
+ * representative_image が欠如している場合に最初のカメラ画像から生成する。
+ * @param {object} lot - ロットエントリ。
+ * @returns {object}   representative_imageを補完したロット。
+ */
 const withRepresentativeImage = lot => {
   if (lot.representative_image) return lot
   const firstImage = lot.cameras && lot.cameras.length > 0 ? lot.cameras[0].image_path : null

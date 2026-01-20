@@ -301,8 +301,8 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
     "message": "モーターの負荷が規定値を超えました。"
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (202 Accepted)</h3>
-                    <p class="text-sm">データを受け取ったら、サーバーはすぐに「OK！」と返事をして、バックグラウンドでデータを処理します。そのため、ステータスコードは
-                        <code>202 Accepted</code> が最適です。
+                    <p class="text-sm">サーバーはデータを受領すると即座に受付応答を返し、バックグラウンドで処理を継続します。そのため、ステータスコードは
+                        <code>202 Accepted</code> が適切です。
                     </p>
                     <pre><code class="language-json">{
     "message": "データを受け付けました。処理を開始します。"
@@ -359,7 +359,7 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                             class="font-mono text-lg font-semibold">/api/machines/{id}/increment-production?section={section}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">製品が1個完成するたびに、このAPIを叩いて <strong>機械の当日累計</strong> を +1
+                    <p class="mb-4">製品が1個完成するたびに、このAPIを呼び出して <strong>機械の当日累計</strong> を +1
                         します。<br>追加で、<strong>指定した検査セクション（section）</strong>で現在生産中の <code>lot_id</code> の
                         <strong>lot_id</strong> も +1 します。</p>
 
@@ -424,7 +424,7 @@ CREATE INDEX idx_shots_camera ON inspection_camera_shots (camera_id);           
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/inspection/{lot_id}</span>
-                        <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
+                        <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">特に重要</span>
                     </div>
                     <p class="mb-4">
                         Jetson から <strong>1枚の検査前画像</strong> をアップロードします。<br>
@@ -540,7 +540,7 @@ print("レスポンス:", resp.json())
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge put">PUT</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/inspection/result/{filename}</span>
-                        <span class="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">これも超重要！</span>
+                        <span class="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">これも特に重要</span>
                     </div>
                     <p class="mb-4">
                         検査が完了したら、その結果（OK/NGなど）と、任意で <strong>検査後画像</strong> を単発で送信します。<br>
@@ -561,7 +561,7 @@ print("レスポンス:", resp.json())
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
-                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を同時に送信します。</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
                         <li>パート1: <code>metadata</code> — 検査結果のJSON（<strong>必須: <code>status</code></strong>、任意:
                             <code>details</code>, <code>captured_at</code>）</li>
@@ -611,9 +611,9 @@ print("レスポンス:", resp.json())
                     </div>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <p class="text-sm">データ更新が成功したら、サーバーから「おつかれ！」って感じの返事がくるよ。</p>
+                    <p class="text-sm">データ更新が成功すると、サーバーから処理完了を示す応答が返ります。</p>
                     <pre><code class="language-json">{
-    "message": "検査結果、更新しといたよ！🎉",
+    "message": "検査結果を更新しました",
     "filename": "MAT-00123_B-spring01_A-4_D-5.png"
 }</code></pre>
 
@@ -739,14 +739,14 @@ http://10.100.54.170:3001/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</co
                     <div class="flex items-center space-x-4 mb-4">
                         <span class="method-badge post">POST</span>
                         <span class="font-mono text-lg font-semibold">/api/ingress/inspection/batch/{lot_id}</span>
-                        <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">超重要！</span>
+                        <span class="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-bold">特に重要</span>
                     </div>
                     <p class="mb-4">
                         6,7のAPIを一つにまとめたもの｡ lot_idを指定してそこに検査結果を書き込みます｡
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエスト形式</h3>
-                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を一緒に送ってね！</p>
+                    <p class="text-sm mb-2"><code>multipart/form-data</code> で、JSONデータと画像を同時に送信します。</p>
                     <ul class="list-disc list-inside text-sm space-y-1 mb-4">
                         <li>パート1: <code>metadata</code> というキーで、検査結果のJSONを送る。</li>
                         <li>パート2: <code>beforeImage</code> というキーで、検査前の画像ファイルを送る。</li>
@@ -754,7 +754,7 @@ http://10.100.54.170:3001/imageDB/afterTest/MAT-00123_B-spring01_A-4_D-5.png</co
                     </ul>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2"><code>metadata</code> パートのJSON例</h3>
-                    <p class="text-sm mb-2">1ロットに関する全カメラショットの情報を、shots配列にまとめて入れてね！</p>
+                    <p class="text-sm mb-2">1ロットに関する全カメラショットの情報を、shots 配列にまとめて格納します。</p>
                     <div class="code-block-wrapper">
                         <pre><code class="language-json">{
     "lot_id": "MAT-00123",
@@ -805,10 +805,10 @@ except Exception:
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
                     <p class="text-sm">
-                        データがちゃんと登録できたら、サーバーから新しい<code>lot_id</code>と、サーバー側でつけた<code>filename</code>が返ってくるよ！このファイル名は後で使うから、ちゃんと覚えといてね！
+                        データ登録が成功すると、サーバーから新しい <code>lot_id</code> とサーバー側で付与した <code>filename</code> が返却されます。このファイル名は後続処理で使用するため、確実に保持してください。
                     </p>
                     <pre><code class="language-json">{
-    "message": "検査結果登録完了👍️",
+    "message": "検査結果を登録しました",
     "lot_id": "MAT-00125",
     "filename": "MAT-00125_B-spring01_1.jpg"
 }</code></pre>

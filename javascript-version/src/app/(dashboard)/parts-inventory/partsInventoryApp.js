@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+レガシー部品在庫アプリのドキュメント内スクリプトをモジュール化し、Next.js動作に合わせて初期化・イベント制御を担当する。
+API取得・状態管理・DOM描画・モーダル操作を分離したサブモジュールを束ねている。
+*/
+
 // 既存の HTML 内 <script> のロジックを分割し、初期化関数をエクスポート
 import { s, getRackNumericId, createLastRackStorage, transformApiDataToAppData } from './lib/utils';
 import { createApi, mapApiSlotToAppPart } from './lib/api';
@@ -15,6 +21,10 @@ import {
 } from './lib/modals';
 import { renderRackTabs, renderCurrentRack, renderDetails } from './lib/render';
 
+/**
+ * レガシー部品在庫アプリ全体を初期化し、必要なイベントや状態を組み立てる。
+ * @returns {void}   戻り値なし。初期化完了後はDOMイベントへのバインドで継続的に動作する。
+ */
 export function initPartsInventoryApp() {
     // 既存インスタンスがあればクリーンアップしてから再初期化（戻ってきた時の再描画用）
     if (typeof window !== 'undefined' && window.__piAppTeardown) {
@@ -97,7 +107,10 @@ export function initPartsInventoryApp() {
     // 最後に表示していたラックIDを保存/復元
     const { setLastRackId, getLastRackId } = createLastRackStorage(apiBase);
 
-    // ラック一覧 + 各ラック詳細(スロット)を取得
+    /**
+     * ラック一覧と各ラックの詳細情報を取得し、UI描画しやすい形へまとめる。
+     * @returns {Promise<Array>}   ラックごとの詳細データ（行列・スロット情報を含む）配列。
+     */
     async function loadRacksFromApi() {
         const list = await api.listRacks();
 
@@ -145,7 +158,10 @@ return {
 return racksWithDetails;
     }
 
-    // 現在のラックをサーバーから再取得してローカル状態を同期
+    /**
+     * 現在選択中のラックをサーバーから再取得し、ローカル状態と描画を最新化する。
+     * @returns {Promise<object|null>}   同期後のラックオブジェクト。取得できなければ null。
+     */
     async function refreshCurrentRackFromApi() {
         const currentRack = racks.find(r => r.id === currentRackId);
 
@@ -183,7 +199,11 @@ return null;
         }
     }
 
-    // 指定スロットの部品を確認し、なければ再同期して再確認
+    /**
+     * 指定スロットの部品が最新状態で存在するか検証し、必要に応じて再同期を行う。
+     * @param {string} slotId           - チェック対象の棚ID (例: A-1)。
+     * @returns {Promise<object>}       - { currentRack, part } を返却。部品が無い場合 part は null。
+     */
     async function ensurePartInSlot(slotId) {
         let currentRack = racks.find(r => r.id === currentRackId);
         let part = currentRack && currentRack.slots ? currentRack.slots[slotId] : null;
@@ -209,7 +229,10 @@ return { currentRack, part };
     // モーダルを閉じた直後のゴーストクリック抑制用タイムスタンプ
     let clickGuardUntil = 0;
 
-    // モーダルモジュール向けのコンテキスト
+    /**
+     * モーダルモジュールに渡す現在のアプリ状態と操作群をまとめたコンテキストを生成する。
+     * @returns {object}   モーダル表示で必要となるAPIや状態操作関数の束。
+     */
     const getCtx = () => ({
         api,
         racks,
@@ -223,7 +246,10 @@ return { currentRack, part };
         mapApiSlotToAppPart
     });
 
-    // 移動モードを確実に解除
+    /**
+     * 移動モードのフラグと選択状態をリセットし、グリッドへ即時反映する。
+     * @returns {void}   描画のみ更新するため戻り値なし。
+     */
     function exitMoveMode() {
         if (isMoveMode || moveOriginSlotId) {
             isMoveMode = false;
@@ -240,20 +266,27 @@ return { currentRack, part };
     const detailsPanel = document.getElementById('details-panel');
     const searchInput = document.getElementById('search-parts');
 
-    // MUI Dialog bridge is provided by React component ModalBridge
+    // MUIダイアログブリッジはReactコンポーネントModalBridgeが提供する (MUI Dialog bridge is provided by React component ModalBridge)
     const bulkQrBtn = document.getElementById('bulk-qr-btn');
     const fabMain = document.getElementById('fab-main');
     const fabIcon = document.getElementById('fab-icon');
     const fabMenuItems = document.querySelectorAll('.fab-item');
 
-    // 初期描画
+    /**
+     * ラックタブ・グリッド・詳細パネルを一括で再描画する初期化兼リフレッシュ関数。
+     * @returns {void}
+     */
     function renderApp() {
     renderRackTabs(racks, currentRackId);
         renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMode, moveOriginSlotId);
         renderDetails(racks, currentRackId, null);
     }
 
-    // 詳細パネルの更新
+    /**
+     * 現在選択しているスロット情報を更新し、詳細パネルとメッシュの強調表示を同期する。
+     * @param {string|null} slotId   - 選択した棚ID。未選択時は null。
+     * @returns {void}
+     */
     function updateDetails(slotId) {
         selectedSlotId = slotId;
         renderDetails(racks, currentRackId, slotId);
@@ -262,23 +295,26 @@ return { currentRack, part };
 
         // モーダル群は lib/modals.js に分離
 
-    // showDeleteRackModal: moved to module
+    // showDeleteRackModal: moved to module (以前のインライン実装を切り出し)
 
-    // showUsePartModal: moved to module
+    // showUsePartModal: moved to module (以前のインライン実装を切り出し)
 
-    // showDeletePartModal: moved to module
+    // showDeletePartModal: moved to module (以前のインライン実装を切り出し)
 
-    // showEditPartModal: moved to module
+    // showEditPartModal: moved to module (以前のインライン実装を切り出し)
 
-    // showStorePartModal: moved to module
+    // showStorePartModal: moved to module (以前のインライン実装を切り出し)
 
-        // showQrScannerModal: moved to module
+        // showQrScannerModal: moved to module (以前のインライン実装を切り出し)
 
-    // showShelfQrModal: moved to module
+    // showShelfQrModal: moved to module (以前のインライン実装を切り出し)
 
-    // showBulkShelfQrModal: moved to module
+    // showBulkShelfQrModal: moved to module (以前のインライン実装を切り出し)
 
-    // FABメニューの開閉（再入場でも確実にバインド）
+    /**
+     * FABメニューのイベントを設定し、開閉アニメーションを制御する。
+     * @returns {boolean}   バインドに成功した場合は true、必要要素が無い場合は false。
+     */
     const bindFabHandlers = () => {
         const btn = document.getElementById('fab-main');
         const icon = document.getElementById('fab-icon');

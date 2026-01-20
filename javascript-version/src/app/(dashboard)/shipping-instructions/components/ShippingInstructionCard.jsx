@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+個別の出荷指示を表示するカードコンポーネント。完了トグル、編集/削除ボタン、仕様・配送情報の表示を担い
+ます。完了済みカードには視覚的なオーバーレイとライン別アクセントを適用しています。
+*/
+
 "use client"
 // カードのコンポーネント
 
@@ -23,10 +29,17 @@ import SurfaceBox from '@/components/surface/SurfaceBox'
 
 import SpringIcon from './icons/SpringIcon'
 
+// カードの縦幅を揃えてレイアウト崩れを防ぐ最低高さ
 const cardMinHeight = 260
 
+// ライン種別ごとにアクセントカラーを割り当て、カード境界色に反映する関数
 const lineAccentKey = line => (line === 'マット' ? 'info' : line === 'ボトム' ? 'warning' : 'default')
 
+/**
+ * ライン表示用チップ。
+ * @param {{ line: string }} props - ライン名を受け取るプロップス。
+ * @returns {JSX.Element}          - ライン別に色調整したチップ。
+ */
 const LineChip = ({ line }) => (
   <Chip
     size='small'
@@ -50,6 +63,12 @@ const LineChip = ({ line }) => (
   />
 )
 
+/**
+ * タイトル文字列をライン名とサブテキストに分割する補助。
+ * @param {string} title - カード表示用タイトル。
+ * @param {string} line  - ライン名。
+ * @returns {{main:string,sub:string}} - 見出しとサブタイトル。
+ */
 function splitTitle(title, line) {
   if (!title) return { main: line, sub: '' }
   if (title.startsWith(line)) {
@@ -58,9 +77,23 @@ function splitTitle(title, line) {
   return { main: line, sub: title }
 }
 
+/**
+ * 出荷指示カード。
+ * @param {object}        props                           - コンポーネント引数。
+ * @param {object}        props.instruction               - 表示対象の指示データ。
+ * @param {Function}      props.onToggleComplete          - 完了トグル時のハンドラ。
+ * @param {Function}      props.onEdit                    - 編集ボタン押下時のハンドラ。
+ * @param {Function}      [props.onDelete]                - 削除ボタン押下時のハンドラ。
+ * @returns {JSX.Element}                                 - 完了状態と詳細情報を含むカード。
+ */
 const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDelete }) => {
   const { isAdmin } = useAuthMe()
   const { main, sub } = splitTitle(instruction.title, instruction.line)
+
+  // ======== 処理ステップ: 完了トグル → 表示レイアウト → 管理操作 ========
+  // 1. カード全体をフォーカス可能にし、Enter/Spaceでも完了を切り替えられるようキーボード対応する。
+  // 2. ライン別アクセントと仕様/配送ブロックで情報を整理し、完了時は斜線と淡色背景で視認性を保つ。
+  // 3. 管理者のみ編集/削除を出し分け、クリック時はイベント伝播を止めて完了トグルと競合しないようにする。
 
   const handleCardClick = e => {
     if (!onToggleComplete) return
@@ -91,7 +124,7 @@ const ShippingInstructionCard = ({ instruction, onToggleComplete, onEdit, onDele
         flexDirection: 'column',
         transition: 'all 0.3s',
         position: 'relative',
-  cursor: onToggleComplete ? 'pointer' : 'default',
+          cursor: onToggleComplete ? 'pointer' : 'default',
         '&:before': {
           content: '""',
           position: 'absolute',

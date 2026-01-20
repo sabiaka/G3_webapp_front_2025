@@ -1,6 +1,18 @@
+/*
+======== ファイル概要 ========
+ラックタブ・メッシュ・詳細パネルといったDOM描画処理をまとめたレンダリング専用モジュール。
+主処理からDOM構築を切り離し、再描画とハイライト制御を担当する。
+*/
+
 import { s } from './utils';
 
-// Renders tab headers
+// ラックタブを描画する関数 (Renders tab headers)
+/**
+ * ラック一覧に基づきタブUIを生成・更新する。
+ * @param {Array}  racks          - 表示対象のラック配列。
+ * @param {string} currentRackId  - 現在アクティブなラックID。
+ * @returns {void}
+ */
 export function renderRackTabs(racks, currentRackId) {
   const rackTabsEl = document.getElementById('rack-tabs');
 
@@ -22,7 +34,16 @@ export function renderRackTabs(racks, currentRackId) {
   });
 }
 
-// Renders the grid of the currently selected rack
+// 現在選択中ラックのメッシュを描画する関数 (Renders the grid of the currently selected rack)
+/**
+ * 選択中ラックのレイアウトとハイライト状態に基づいて棚グリッドを生成する。
+ * @param {Array}   racks             - 全ラック配列。
+ * @param {string}  currentRackId     - 現在のラックID。
+ * @param {string}  selectedSlotId    - 選択中の棚ID。
+ * @param {boolean} isMoveMode        - 移動モード中かどうか。
+ * @param {string}  moveOriginSlotId  - 移動元の棚ID。
+ * @returns {void}
+ */
 export function renderCurrentRack(racks, currentRackId, selectedSlotId, isMoveMode, moveOriginSlotId) {
   const rackDisplayArea = document.getElementById('rack-display-area');
   const rackNameEl = document.getElementById('rack-name');
@@ -141,7 +162,14 @@ return;
   }
 }
 
-// Details panel
+// 詳細パネルを描画する関数 (Details panel)
+/**
+ * 詳細パネルに部品情報・操作ボタンを描画する。
+ * @param {Array}   racks         - 全ラック配列。
+ * @param {string}  currentRackId - 現在のラックID。
+ * @param {string}  slotId        - 詳細表示する棚ID。
+ * @returns {void}
+ */
 export function renderDetails(racks, currentRackId, slotId) {
   const detailsPanel = document.getElementById('details-panel');
 

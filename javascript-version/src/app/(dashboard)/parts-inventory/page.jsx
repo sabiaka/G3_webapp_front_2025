@@ -7,11 +7,25 @@ import Script from 'next/script';
 import { initPartsInventoryApp } from './partsInventoryApp';
 import ModalBridge from './ModalBridge';
 
+/*
+======== ファイル概要 ========
+部品在庫レガシーアプリをNext.jsページ内にブートストラップするエントリーポイント。
+Google Fontsの読み込み制御や、モーダルブリッジの準備完了イベントを待って初期化を行う。
+*/
+
+/**
+ * 部品在庫ページのトップレベルコンポーネント。
+ * @returns {JSX.Element}   レガシーアプリのDOMを含むダッシュボードページ。
+ */
 const Page = () => {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
     const enableGoogleFonts = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_FONTS === 'true';
 
     useEffect(() => {
+        // ======== 処理ステップ: window準備 → ブリッジ待機 → 後片付け ========
+        // 1. windowへAPIベースURLを渡してからレガシーアプリの初期化を呼び出す。
+        // 2. モーダルブリッジの準備イベントが未発火の場合はイベントリスナで待機し、準備完了後に初期化する。
+        // 3. ページアンマウント時はレガシー側のteardown関数が存在すれば確実に呼び出し、リスナも解除する。
         const start = () => {
             window.API_BASE = apiBase;
             initPartsInventoryApp();
@@ -44,6 +58,7 @@ return () => {
             }
         };
     }, [apiBase]);
+
 
     return (
         <div className="pi-root" style={{ minHeight: '100vh', marginTop: '-24px' }}>

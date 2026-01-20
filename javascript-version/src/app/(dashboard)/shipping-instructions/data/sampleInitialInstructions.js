@@ -1,4 +1,14 @@
+/*
+======== ファイル概要 ========
+出荷指示画面のローカル動作用サンプルデータと選択肢定義。新しい API 形式に合わせたフィールド名を保持して
+います。
+*/
+
 // サンプルデータ: 新しいAPI仕様に合わせた形
+/**
+ * サンプル出荷指示。
+ * @type {Array<object>}
+ */
 export const initialInstructions = [
     {
         id: 1,                                          // 指示ID
@@ -122,6 +132,10 @@ export const initialInstructions = [
     },
 ]
 
+/**
+ * ライン選択肢。
+ * @type {Array<{value:string,label:string}>}
+ */
 export const lineOptions = [
     { value: 'すべて', label: 'すべて' },
     { value: 'マット', label: 'マット' },
@@ -129,6 +143,10 @@ export const lineOptions = [
     { value: 'その他', label: 'その他' },
 ]
 
+/**
+ * 完了状態選択肢。
+ * @type {Array<{value:string,label:string}>}
+ */
 export const completedOptions = [
     { value: 'all', label: 'すべて' },
     { value: 'completed', label: '完了' },

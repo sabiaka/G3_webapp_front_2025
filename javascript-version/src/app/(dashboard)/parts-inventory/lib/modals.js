@@ -1,7 +1,23 @@
-// Modal helpers (bridged via ModalBridge React component)
+/*
+======== ファイル概要 ========
+モーダル表示ロジックをまとめ、レガシーDOMとReactモーダルブリッジの間を仲介するヘルパー群。
+部品在庫アプリで利用する各種モーダルをここから呼び出す。
+*/
+
+// モーダル制御ヘルパー群 (Modal helpers bridged via ModalBridge React component)
 import { s, getRackNumericId } from './utils';
 import { startQrScanner } from './qrScanner';
 
+/**
+ * モーダルブリッジが公開する関数を通じてHTML文字列モーダルを開く。
+ * @param {object} [options={}]                     - モーダルの構成情報。
+ * @param {string} [options.title='']              - タイトル文字列。
+ * @param {string} [options.html='']               - 内容として埋め込むHTML文字列。
+ * @param {Array}  [options.actions=[]]            - ボタン定義配列。
+ * @param {string} [options.maxWidth='sm']         - MUI DialogのmaxWidth指定。
+ * @param {Function|null} [options.onOpen=null]    - 表示完了後に呼ばれるフック。
+ * @returns {void}
+ */
 export function openModalWithBridge({ title = '', html = '', actions = [], maxWidth = 'sm', onOpen = null } = {}) {
   if (typeof window !== 'undefined' && typeof window.__pi_openModal === 'function') {
     window.__pi_openModal({ title, html, actions, maxWidth, onOpen });
@@ -11,10 +27,21 @@ export function openModalWithBridge({ title = '', html = '', actions = [], maxWi
   }
 }
 
+/**
+ * モーダルブリッジが提供するクローズ関数を呼び出す。
+ * @returns {void}
+ */
 export function closeModal() {
   if (typeof window !== 'undefined' && typeof window.__pi_closeModal === 'function') window.__pi_closeModal();
 }
 
+/**
+ * QRコードスキャナー付きモーダルを表示し、読み取り結果をコールバックへ渡す。
+ * @param {string}   title         - モーダルタイトル。
+ * @param {string}   instruction   - ユーザーへの案内文。
+ * @param {Function} onScan        - 読み取り成功時に呼ばれるコールバック。
+ * @returns {void}
+ */
 export function showQrScannerModal(title, instruction, onScan) {
   openModalWithBridge({
     title,
@@ -77,7 +104,12 @@ export function showQrScannerModal(title, instruction, onScan) {
   });
 }
 
-// Add Rack
+/**
+ * 新しいラックを作成するモーダルを開き、完了後にアプリ状態を更新する。
+ * @param {object} ctx   - ラック作成時に利用するアプリケーションコンテキスト。
+ * @returns {void}
+ */
+// ラック追加モーダル (Add Rack)
 export function showAddRackModal(ctx) {
   openModalWithBridge({
     title: '新しいラックを作成',
@@ -145,7 +177,14 @@ export function showAddRackModal(ctx) {
   });
 }
 
-// Delete Rack
+/**
+ * ラック削除確認モーダルを表示し、承認時にAPI削除およびUI更新を行う。
+ * @param {object} ctx       - アプリケーションコンテキスト。
+ * @param {string} rackId    - 削除対象のラックID。
+ * @param {string} rackName  - 確認メッセージに表示するラック名。
+ * @returns {void}
+ */
+// ラック削除モーダル (Delete Rack)
 export function showDeleteRackModal(ctx, rackId, rackName) {
   const rackToDelete = ctx.racks.find(r => r.id === rackId);
   const hasParts = Object.values(rackToDelete?.slots || {}).some(slot => slot !== null);
@@ -194,7 +233,15 @@ export function showDeleteRackModal(ctx, rackId, rackName) {
   });
 }
 
-// Use Part
+/**
+ * 部品使用モーダルを表示し、使用数量を入力させてAPIを呼び出す。
+ * @param {object} ctx             - アプリケーションコンテキスト。
+ * @param {string} slotId          - 操作対象の棚ID。
+ * @param {object} currentRack     - 現在表示中のラック情報。
+ * @param {object} part            - 現在棚に入っている部品情報。
+ * @returns {void}
+ */
+// 部品使用モーダル (Use Part)
 export function showUsePartModal(ctx, slotId, currentRack, part) {
   openModalWithBridge({
     title: `「${s(part.partName)}」を使用`,
@@ -271,7 +318,15 @@ return; }
   });
 }
 
-// Delete Part
+/**
+ * 棚から部品を削除する確認モーダルを表示する。
+ * @param {object} ctx         - アプリケーションコンテキスト。
+ * @param {string} slotId      - 棚ID。
+ * @param {object} currentRack - 現在のラック情報。
+ * @param {object} part        - 削除対象の部品情報。
+ * @returns {void}
+ */
+// 部品削除モーダル (Delete Part)
 export function showDeletePartModal(ctx, slotId, currentRack, part) {
   openModalWithBridge({
     title: '箱の削除',
@@ -308,7 +363,15 @@ return; }
   });
 }
 
-// Edit Part
+/**
+ * 部品情報の編集モーダルを表示し、数量ゼロ時の削除分岐も担当する。
+ * @param {object} ctx         - アプリケーションコンテキスト。
+ * @param {string} slotId      - 棚ID。
+ * @param {object} currentRack - ラック情報。
+ * @param {object} part        - 編集対象の部品情報。
+ * @returns {void}
+ */
+// 部品編集モーダル (Edit Part)
 export function showEditPartModal(ctx, slotId, currentRack, part) {
   const colorPalette = ['4A90E2', '50E3C2', 'F5A623', 'D0021B', '9013FE', '7ED321', 'F8E71C', 'BD10E0', '4A4A4A', 'E9E9E9'];
   const colorPaletteHtml = colorPalette.map(color => `<button type="button" data-color="${color}" class="color-swatch w-8 h-8 rounded-full border-2" style="background-color: #${color};"></button>`).join('');
@@ -410,7 +473,14 @@ return;
   });
 }
 
-// Store new part (form only, caller supplies callback)
+/**
+ * 新規部品情報の入力フォームだけを提供するモーダルを表示する。
+ * @param {Function} callback                     - 入力確定後の処理コールバック。
+ * @param {object}   [options={}]                 - 表示オプション。
+ * @param {string}   [options.confirmLabel='棚をスキャンして格納'] - 確認ボタンのラベル。
+ * @returns {void}
+ */
+// 新規部品入力モーダル (Store new part form only, caller supplies callback)
 export function showStorePartModal(callback, { confirmLabel = '棚をスキャンして格納' } = {}) {
   openModalWithBridge({
     title: '新しい部品の情報を入力',
@@ -446,7 +516,13 @@ export function showStorePartModal(callback, { confirmLabel = '棚をスキャ�
   });
 }
 
-// Shelf QR
+/**
+ * 単一棚分のQRコードを表示するモーダルを開く。
+ * @param {object} rack   - 対象ラック情報。
+ * @param {string} slotId - 棚ID。
+ * @returns {void}
+ */
+// 棚QR表示モーダル (Shelf QR)
 export function showShelfQrModal(rack, slotId) {
   const rackNumericId = parseInt(String(rack.id).replace(/[^0-9]/g, ''), 10);
   const payload = { type: 'rack_slot', rack_id: Number.isFinite(rackNumericId) ? rackNumericId : rack.id, slot_identifier: slotId };
@@ -472,7 +548,12 @@ export function showShelfQrModal(rack, slotId) {
   });
 }
 
-// Bulk shelf QR
+/**
+ * ラック全体の棚QRコードを一覧生成し、印刷対応モーダルを表示する。
+ * @param {object} rack   - 対象ラック情報。
+ * @returns {void}
+ */
+// 棚QR一括モーダル (Bulk shelf QR)
 export function showBulkShelfQrModal(rack) {
   let qrGridHtml = '';
 

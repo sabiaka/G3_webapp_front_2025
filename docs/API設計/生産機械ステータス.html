@@ -120,7 +120,7 @@
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">IDで指定した機械の基本的な情報と、その日の稼働データをまとめてGETするAPI。ページを開いたときの初期表示で使うよ！</p>
+                    <p class="mb-4">ID で指定した機械の基本的な情報と、その日の稼働データをまとめて取得するAPIです。ページを開いた際の初期表示で利用します。</p>
 
                     <div class="mt-4 p-4 bg-amber-100 border-l-4 border-amber-500 text-amber-700 rounded-r-lg">
                         <p class="font-bold">設計メモ: 稼働時間の扱い</p>
@@ -160,7 +160,7 @@
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}/logs</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">指定した機械のエラーログを取得する。日付やログの種類で絞り込めるようにしとこ！</p>
+                    <p class="mb-4">指定した機械のエラーログを取得します。日付やログの種類で絞り込めるように設計します。</p>
 
                     <div class="mt-4 p-4 bg-sky-100 border-l-4 border-sky-500 text-sky-800 rounded-r-lg">
                         <p class="font-bold">設計メモ: エラーコード体系</p>
@@ -323,10 +323,10 @@
                         <span class="font-mono text-lg font-semibold">/ws/machines/{id}</span>
                         <span class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: C</span>
                     </div>
-                    <p class="mb-4">機械のステータスや稼働データ、新しいログをリアルタイムでフロントに送りつけるためのWebSocket通信。これがあれば、画面が勝手に更新されて超イケてる！</p>
+                    <p class="mb-4">機械のステータスや稼働データ、新しいログをリアルタイムでフロントエンドへ配信するための WebSocket 通信です。これにより画面を自動更新でき、鮮度の高い情報を提供できます。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">サーバーから送信されるメッセージ</h3>
-                    <p class="text-sm mb-2">イベントの種類 (`event`) によって、送られてくるデータ (`data`) の中身が変わるよ。</p>
+                    <p class="text-sm mb-2">イベントの種類 (`event`) によって、送信されるデータ (`data`) の内容が変わります。</p>
 
                     <h4 class="font-semibold mt-4 mb-2">イベント: `status_update` (ステータス更新)</h4>
                     <pre><code class="language-json">{
@@ -363,7 +363,7 @@
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}/inspection-interval</span>
                         <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
-                    <p class="mb-4">機械の点検間隔（何日ごとに点検するか）を変更するためのAPI。「90日ごと」とか設定できるの、マジ神！</p>
+                    <p class="mb-4">機械の点検間隔（何日ごとに点検するか）を変更するためのAPIです。「90日ごと」など柔軟な設定が可能です。</p>
             
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -371,7 +371,7 @@
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <p class="text-sm mb-2">変更後の点検間隔と、それに基づいて再計算された次回点検日を返すよ！</p>
+                    <p class="text-sm mb-2">変更後の点検間隔と、それに基づいて再計算された次回点検日を返却します。</p>
                     <pre><code class="language-json">{
     "machine_id": 1,
     "inspection_interval_days": 120,
@@ -394,10 +394,10 @@
                         <span class="font-mono text-lg font-semibold">/api/machines/{id}/complete-inspection</span>
                         <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
-                    <p class="mb-4">点検が終わったときにこのAPIを叩くと、最終点検日が今日の日付に更新されるってワケ。これで次の点検日も勝手に計算されるから、ちょー楽ちん！</p>
+                    <p class="mb-4">点検完了時にこのAPIを呼び出すと、最終点検日が当日の日付に更新されます。これにより次回点検日も自動計算され、運用負荷を軽減できます。</p>
             
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                     <p class="text-sm mb-2">新しくなった最終点検日と次回点検日を返す！</p>
+                     <p class="text-sm mb-2">更新後の最終点検日と次回点検日を返却します。</p>
                     <pre><code class="language-json">{
     "machine_id": 1,
     "last_inspection_date": "2025-09-30",

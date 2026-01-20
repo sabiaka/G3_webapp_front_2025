@@ -1,5 +1,11 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+画像検査ダッシュボード全体のページエントリ。タブによるセクション切替や
+最新ロットの概要表示、ロット詳細モーダルの状態管理を担っている。
+*/
+
 // React Imports
 import { useEffect, useMemo, useState } from 'react'
 
@@ -55,6 +61,11 @@ const SECTION_TAB_INDEX = {
 }
 
 // メインコンポーネント
+/**
+ * 画像検査モジュールの全体ページ。URLクエリとセクションタブの状態を同期し、
+ * ロットカードやサマリーの表示を統括する。
+ * @returns {JSX.Element} 画像検査ダッシュボード全体のレイアウト。
+ */
 const ImageInspection = () => {
   // 現在選択中のタブインデックス
   const [activeTab, setActiveTab] = useState(0)
@@ -82,6 +93,9 @@ const ImageInspection = () => {
   const searchParams = useSearchParams()
   const selectedLotId = searchParams.get('lot')
 
+  // ======== 処理ステップ: 初期フェッチとタブ同期 ========
+  // 1. URLにlotクエリがあれば該当ロットを確実にロードする。
+  // 2. ロード済みロットのセクションに合わせてタブを強制同期する。意図としてUXの混乱を避ける。
   useEffect(() => {
     if (!selectedLotId) return
     ensureLotLoaded(selectedLotId)
@@ -111,6 +125,10 @@ const ImageInspection = () => {
     setActiveTab(targetIndex)
   }
 
+  /**
+   * クエリパラメータの lot 指定と内部状態を同期する。
+   * @param {string|null} lotId - 選択したロットID。null の場合はクエリを削除する。
+   */
   const updateUrlWithLot = lotId => {
     const currentLot = searchParams.get('lot')
     const params = new URLSearchParams(searchParams.toString())
@@ -146,6 +164,10 @@ const ImageInspection = () => {
   }
 
   // 「全体表示」タブの内容
+  /**
+   * 全体表示タブでは最新ロットから推測した各セクションのリアルタイムカードを描画する。
+   * @returns {JSX.Element} グリッド状に並んだセクション概要カード群。
+   */
   const renderOverviewTab = () => {
     const renderRealtimeCard = sectionKey => {
       const latest = getLatestLot(sectionKey)
@@ -233,6 +255,10 @@ const ImageInspection = () => {
                   <CameraGrid
                     cameraNames={cameraNames}
                     statusByName={statusByName}
+    /**
+     * クエリパラメータにlotを付け替えてURLと状態を同期する。
+     * @param {string|null} lotId - 選択中ロットID。nullならクエリを削除する。
+     */
                     imageByName={imageByName}
                   />
                 )}
@@ -257,6 +283,11 @@ const ImageInspection = () => {
   }
 
   // 各セクションタブの内容（propsで必要な関数や状態を渡す）
+  /**
+   * セクションごとの詳細タブを描画し、必要なデータフェッチ関数とライトボックス状態を橋渡しする。
+   * @param {string} section - 表示対象の検査セクション名。
+   * @returns {JSX.Element} SectionTab コンポーネント。
+   */
   const renderSectionTab = (section) => (
     <SectionTab
       section={section}

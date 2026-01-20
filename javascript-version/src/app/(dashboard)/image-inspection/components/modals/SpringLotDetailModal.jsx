@@ -1,4 +1,7 @@
-// バネどめ検査 ロット詳細モーダル
+/*
+======== ファイル概要 ========
+バネ留め検査向けロット詳細モーダル。代表画像、検査サマリー、カメラ別履歴/テーブル表示を制御する。
+*/
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -24,6 +27,11 @@ const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
+/**
+ * 画像パスの表記ゆれを取り除き、URL生成に使える形へ整える。
+ * @param {string} path - 元のパス。
+ * @returns {string|null} 正規化結果。
+ */
 const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -39,6 +47,11 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
+/**
+ * ステータスに応じたMUI Chipカラーを返す。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色指定。
+ */
 const getChipColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (normalized === 'OK' || normalized === 'PASS') return 'success'
@@ -47,6 +60,11 @@ const getChipColor = status => {
   return 'default'
 }
 
+/**
+ * ロットヘッダー用Chipカラーを計算する。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色。
+ */
 const getLotStatusColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (normalized === 'PASS') return 'success'
@@ -55,6 +73,11 @@ const getLotStatusColor = status => {
   return 'default'
 }
 
+/**
+ * 撮影履歴テーブル内のChipカラーを選ぶ。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色。
+ */
 const getShotStatusColor = status => {
   const normalized = (status || '').toString().toUpperCase()
   if (normalized === 'PASS') return 'success'
@@ -160,9 +183,27 @@ const dummyImageSvg = encodeURIComponent(`
 
 const DUMMY_SCREENSHOT_SRC = `data:image/svg+xml,${dummyImageSvg}`
 
+/**
+ * バネ留めロット詳細モーダル。画像エリアとショット一覧/表を切り替えて表示する。
+ * @param {object} props                   - プロパティ集合。
+ * @param {boolean} props.open             - モーダル開閉。
+ * @param {object} props.lot               - ロット情報。
+ * @param {string} props.lotStatus         - ロット判定。
+ * @param {object} props.shotsByCamera     - カメラ別ショット辞書。
+ * @param {string} props.shotsStatus       - データ取得状態。
+ * @param {object} props.lotSummary        - サマリー数値。
+ * @param {Function} props.onClose         - 閉じる関数。
+ * @param {Function} props.setLightbox     - ライトボックス制御。
+ * @returns {JSX.Element|null}              モーダル要素。
+ */
 const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus, lotSummary, onClose, setLightbox }) => {
   const normalizedLotStatus = (lotStatus || '').toString().trim().toUpperCase()
   const [showTable, setShowTable] = useState(false)
+  /**
+   * 代表画像のURL組を作り、フォールバックを保持する。
+   * @param {string} path - 画像パス。
+   * @returns {{primary: string, fallback: string}} 表示URL。
+   */
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -174,6 +215,11 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     }
   }, [])
 
+  /**
+   * ショットの状態に応じてbefore/afterのどちらを参照するかを決定する。
+   * @param {object} shot - ショット情報。
+   * @returns {{primary: string, fallback: string}} 表示URL。
+   */
   const buildShotSources = useCallback((shot) => {
     if (!shot) return { primary: FALLBACK_IMG, fallback: '' }
     const normalized = normalizeRelativePath(shot.image_path)
@@ -207,6 +253,11 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     return { primary, fallback }
   }, [])
 
+  /**
+   * 画像の読み込み失敗時、フォールバック→固定画像の順に差し替える。
+   * @param {React.SyntheticEvent<HTMLImageElement>} event - onErrorイベント。
+   * @param {string} fallbackSrc                          - フォールバックURL。
+   */
   const handleImageError = (event, fallbackSrc) => {
     const target = event.currentTarget
     if (fallbackSrc && !target.dataset.fallbackTried) {

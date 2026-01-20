@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+出荷指示の新規作成・編集モーダル。入力フォームと即時プレビュー用のカードを左右に配置し、MUI ダイアログ
+で保存操作を提供します。
+*/
+
 // 入力フォームのコンポーネント
 
 import Dialog from '@mui/material/Dialog'
@@ -36,6 +42,19 @@ function toDateLocalValue(value) {
   return `${yyyy}-${mm}-${dd}`
 }
 
+/**
+ * 出荷指示を作成・編集するモーダル。
+ * @param {object}        props                               - コンポーネント引数。
+ * @param {boolean}       props.open                          - モーダル開閉フラグ。
+ * @param {Function}      props.onClose                       - クローズ時ハンドラ。
+ * @param {Function}      props.onSave                        - 保存確定ハンドラ。
+ * @param {boolean}       props.editMode                      - 編集モードかどうか。
+ * @param {object}        props.form                          - 入力フォームの値。
+ * @param {Function}      props.onFormChange                  - フォーム入力変更ハンドラ。
+ * @param {Array}         props.lineOptions                   - 担当ラインの選択肢。
+ * @param {boolean}       [props.saving=false]                - 保存中フラグ。
+ * @returns {JSX.Element}                                     - フォームとプレビューを内包したモーダル。
+ */
 const InstructionModal = ({ open, onClose, onSave, editMode, form, onFormChange, lineOptions, saving = false }) => {
   // プレビュー用のダミー指示データ（現在の入力値から組み立て）
   const previewInstruction = {
@@ -55,6 +74,11 @@ const InstructionModal = ({ open, onClose, onSave, editMode, form, onFormChange,
     completed: form.completed || false,
     createdAt: form.createdAt || null
   }
+
+  // ======== 処理ステップ: プレビュー構築 → 入力配置 → アクション制御 ========
+  // 1. 入力値からカード表示に必要なフィールドを合成し、完成形を事前に確認できるようにする。
+  // 2. 左にプレビュー、右に入力という二列構成で視線移動を最小限に抑える。
+  // 3. 保存/キャンセルのボタンは DialogActions に集約し、保存中はボタンを無効化して二重送信を防ぐ。
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth='md' fullWidth>

@@ -1,8 +1,18 @@
+/*
+======== ファイル概要 ========
+スプリング（ばね）をモチーフにしたカスタム SVG アイコン。仕様表示で使用します。
+*/
+
 // オリジナルアイコン(スプリング)のコンポーネント
 
 import SvgIcon from '@mui/material/SvgIcon'
 
 // 縦向きのギザギザ線アイコン（コイル/バネ風）
+/**
+ * スプリングを表現するアイコン。
+ * @param {object} props - SvgIcon へそのまま渡すプロップス。
+ * @returns {JSX.Element} - 交互の折れ線でコイル感を出した SVG。
+ */
 const SpringIcon = props => (
   <SvgIcon {...props} viewBox='0 0 24 24'>
     <path

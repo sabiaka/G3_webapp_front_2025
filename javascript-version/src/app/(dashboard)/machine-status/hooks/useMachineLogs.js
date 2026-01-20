@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+/*
+======== ファイル概要 ========
+エラーログAPIを取得し、UI向けの整形やユニット毎の状態推定を行うカスタムフック群。
+*/
+
+import { useEffect, useMemo, useState } from 'react'
 
 // サンプルフォールバック
 const errorLogSample = [
@@ -15,12 +20,18 @@ const errorLogSample = [
 const mapColor = (t) => (t === 'error' ? 'error' : t === 'warning' ? 'warning' : 'default')
 const mapTypeJp = (t) => (t === 'error' ? 'エラー' : t === 'warning' ? '警告' : '情報')
 
+/**
+ * ログAPIを取得し、画面表示用に整形する。
+ * @param   {string} machineId   - 取得対象の機械ID。
+ * @returns {object}             - 整形済みログ・状態推定値・通信状態。
+ */
 export function useMachineLogs(machineId) {
     const [apiLogs, setApiLogs] = useState([])
     const [loading, setLoading] = useState(false)
     const [fetchError, setFetchError] = useState('')
     const [isFallbackData, setIsFallbackData] = useState(false)
 
+    // ======== 副作用: ログ一覧の取得 ========
     useEffect(() => {
         const controller = new AbortController()
 
@@ -48,6 +59,7 @@ export function useMachineLogs(machineId) {
                     signal: controller.signal,
                 })
 
+                // エラー応答は上位でフォールバック表示に切り替えたいので例外化する
                 if (!res.ok) throw new Error(`Failed to fetch logs: ${res.status}`)
                 const data = await res.json()
                 const logs = Array.isArray(data?.logs) ? data.logs : []
@@ -74,10 +86,11 @@ export function useMachineLogs(machineId) {
         }
 
         fetchLogs()
-        
-return () => controller.abort()
+
+        return () => controller.abort()
     }, [machineId])
 
+    // ======== 加工処理: APIレスポンスをUI向けに整形 ========
     const processedLogs = useMemo(() => {
         const toDateOnly = (iso) => {
             try {
@@ -86,8 +99,7 @@ return () => controller.abort()
                 const m = String(d.getMonth() + 1).padStart(2, '0')
                 const da = String(d.getDate()).padStart(2, '0')
 
-                
-return `${y}-${m}-${da}`
+                return `${y}-${m}-${da}`
             } catch {
                 return ''
             }
@@ -100,8 +112,7 @@ return `${y}-${m}-${da}`
                 const mm = String(d.getMinutes()).padStart(2, '0')
                 const ss = String(d.getSeconds()).padStart(2, '0')
 
-                
-return `${hh}:${mm}:${ss}`
+                return `${hh}:${mm}:${ss}`
             } catch {
                 return ''
             }
@@ -113,8 +124,7 @@ return `${hh}:${mm}:${ss}`
             .map((l) => {
                 const code = (l.title || '').split(':')[0] || ''
 
-                
-return {
+                return {
                     type: mapTypeJp(l.log_type),
                     code,
                     title: (l.title || '').split(':').slice(1).join(':').trim() || l.title || '',
@@ -133,23 +143,30 @@ return {
     return { apiLogs, processedLogs, loading, fetchError, isFallbackData, unitStatuses, globalStatusLabel }
 }
 
+/**
+ * ログ内容からユニット毎と全体の状態を推定する。
+ * @param   {object[]} apiLogs     - APIから取得した生ログ配列。
+ * @param   {string}   fetchError  - 取得失敗時のエラーメッセージ。
+ * @returns {object}              - ユニットステータスと全体ステータスラベル。
+ */
 export function useUnitAndGlobalStatus(apiLogs, fetchError) {
     const [unitStatuses, setUnitStatuses] = useState({ Unit1: '正常稼働', Unit2: '正常稼働', Unit3: '正常稼働', Unit4: '正常稼働' })
     const [globalStatusLabel, setGlobalStatusLabel] = useState('正常稼働')
 
+    // ======== 副作用: ログから最新状態を推定 ========
     useEffect(() => {
+        // 取得に失敗してログが空の場合は、状態が不明であることをUIに伝える
         if (fetchError && (!apiLogs || apiLogs.length === 0)) {
             setUnitStatuses({ Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' })
             setGlobalStatusLabel('不明')
             
-return
+            return
         }
 
         const extractCode = (title) => {
             const m = (title || '').match(/([A-Z]-\d{3})/)
 
-            
-return m?.[1] || ''
+            return m?.[1] || ''
         }
 
         const codeToStatus = {
@@ -172,8 +189,8 @@ return m?.[1] || ''
             if (code && codeToStatus[code]) return codeToStatus[code]
             if (l.log_type === 'error') return 'エラー'
             if (l.log_type === 'warning') return '残弾わずか'
-            
-return '正常稼働'
+
+            return '正常稼働'
         }
 
         const latestByUnit = { 1: null, 2: null, 3: null, 4: null }
@@ -214,14 +231,14 @@ return '正常稼働'
             const latest = latestByUnit[unitIdx]
             let status = determineStatusFromLog(latest)
 
+            // 最新の「補充完了(I-002)」ログが後続にある場合は残弾アラートを解除する
             if (latest && latestI002Ts && (status === '残弾なし' || status === '残弾わずか')) {
                 const unitTs = new Date(latest.timestamp)
 
                 if (latestI002Ts > unitTs) status = '正常稼働'
             }
 
-            
-return status
+            return status
         }
 
         let next = {
@@ -231,6 +248,7 @@ return status
             Unit4: calcWithResetRule(4),
         }
 
+        // 最新記録が全体停止(I-003)の場合は停止扱いを上書きする
         if (latestGlobalShutdownTs && (!latestI002Ts || latestI002Ts <= latestGlobalShutdownTs)) {
             const overrideIfBeforeShutdown = (unitIdx, key) => {
                 const latest = latestByUnit[unitIdx]
@@ -250,6 +268,7 @@ return status
         const vals = Object.values(next)
         const allEmpty = vals.every((v) => !v)
 
+        // 何の情報も得られなかった場合は「不明」とし、UIで異常を知らせる
         if (allEmpty) {
             next = { Unit1: '不明', Unit2: '不明', Unit3: '不明', Unit4: '不明' }
         }
@@ -269,6 +288,7 @@ return status
         let globalLabel = '正常稼働'
 
         if (latestGlobal) {
+            // 全体ログの最新値からダッシュボード表示用のラベルに変換する
             let gs = determineStatusFromLog(latestGlobal)
 
             if (latestI002Ts && (gs === '残弾なし' || gs === '残弾わずか')) {
@@ -277,6 +297,7 @@ return status
                 if (latestI002Ts > gts) gs = '正常稼働'
             }
 
+            // UIラベルは「エラー」「警告」などに丸めて一貫性を持たせる
             if (gs === 'エラー' || gs === '残弾なし') globalLabel = 'エラー'
             else if (gs === '残弾わずか') globalLabel = '警告'
             else if (gs === '不明') globalLabel = '不明'
