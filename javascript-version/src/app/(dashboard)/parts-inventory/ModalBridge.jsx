@@ -10,10 +10,21 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 
-// Bridge for legacy DOM-string modals to Materio (MUI) Dialog
-// Usage from window (legacy):
+/*
+======== ファイル概要 ========
+レガシーHTML側から提供されるモーダルAPIをMUIダイアログへ委譲する受け皿。
+Reactコンポーネントとして常駐させ、windowに公開した関数経由で表示・非表示を制御する。
+*/
+
+// レガシーDOM文字列モーダルをMUIダイアログへ橋渡しするコンポーネント (Bridge for legacy DOM-string modals to Materio (MUI) Dialog)
+// window からの利用方法 (Usage from window):
 //   window.__pi_openModal({ title, html, actions: [{id,label,color}], onOpen, maxWidth })
 //   window.__pi_closeModal()
+
+/**
+ * レガシーUIからの命令を受け、MUIダイアログを表示する。
+ * @returns {JSX.Element}   レガシーアプリとReact側を接続するモーダルブリッジコンポーネント。
+ */
 export default function ModalBridge() {
     const [open, setOpen] = useState(false)
     const [title, setTitle] = useState('')
@@ -22,10 +33,15 @@ export default function ModalBridge() {
     const [maxWidth, setMaxWidth] = useState('sm')
     const [onOpen, setOnOpen] = useState(null)
 
+    // ======== 処理ステップ: グローバルAPI公開準備 → onOpenコールバック実行制御 ========
+    // 1. handleCloseでモーダル状態と内容をリセットし、レガシーの再呼び出しでも前回内容を引きずらないようにする。
+    // 2. useEffectでwindowに公開するAPIをセットし、React環境下でもレガシースクリプトをそのまま動かせるようにする。
+    // 3. 別のuseEffectでモーダル表示後のDOM確定タイミングに合わせてonOpenコールバックを呼び出す。
+
     const handleClose = useCallback(() => {
         setOpen(false)
 
-        // also clear content for safety
+        // 念のため内容も空にして再利用時の表示崩れを防ぐ (also clear content for safety)
         setTitle('')
         setHtml('')
         setActions([])
@@ -33,7 +49,7 @@ export default function ModalBridge() {
     }, [])
 
     useEffect(() => {
-        // expose globals
+        // グローバル関数をwindowへエクスポートし、レガシースクリプトから同一APIで呼び出せるようにする
         window.__pi_openModal = ({ title = '', html = '', actions = [], maxWidth = 'sm', onOpen = null } = {}) => {
             setTitle(title)
             setHtml(html)
@@ -45,7 +61,7 @@ export default function ModalBridge() {
 
         window.__pi_closeModal = handleClose
 
-        // signal readiness
+        // ブリッジ準備が整ったことをレガシー側へ通知
         window.__pi_modal_ready = true
         try { window.dispatchEvent(new CustomEvent('pi:modal-ready')) } catch { }
 
@@ -58,10 +74,10 @@ return () => {
         }
     }, [handleClose])
 
-    // call onOpen after content injected and dialog open
+    // コンテンツが挿入されダイアログが開いた後にonOpenを呼ぶ (call onOpen after content injected and dialog open)
     useEffect(() => {
         if (open && typeof onOpen === 'function') {
-            // next tick to ensure content in DOM
+            // DOM反映を待つために次フレームで実行する (next tick to ensure content in DOM)
             const id = requestAnimationFrame(() => onOpen())
 
             
