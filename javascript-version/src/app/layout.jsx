@@ -9,7 +9,7 @@ import './(dashboard)/parts-inventory/parts-inventory.css'
 import '@assets/iconify-icons/generated-icons.css'
 
 export const metadata = {
-  title: 'G3-Webapp2025',
+  title: 'MAT.io - 生産管理アプリケーション',
   description:
     '関東能力開発大学校 ボンネルコイルマットレス開発課題の生産管理Webアプリケーション'
 }
