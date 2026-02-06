@@ -1,5 +1,11 @@
 "use client";
 
+/*
+======== ファイル概要 ========
+日報一覧ページのトップレベルコンポーネントを定義するファイル。
+API連携で日報データを取得・更新しつつ、フィルタやモーダルを含むUI全体の状態を集中管理する。
+*/
+
 import { useCallback, useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -14,10 +20,18 @@ import DeleteConfirmModal from './components/DeleteConfirmModal';
 // ★権限管理フック
 import useAuthMe from '@core/hooks/useAuthMe';
 
+/**
+ * 日報一覧ページを描画し、一覧と各種モーダルを制御するコンポーネント。
+ * @returns {JSX.Element} 日報のフィルタ・一覧・各種モーダルをまとめたダッシュボード画面。
+ */
 export default function DailyReportsPage() {
   // ★ 権限情報を取得
   const { user, isAdmin } = useAuthMe();
 
+  // ======== 処理ステップ: 一覧状態の初期化 → モーダル状態の初期化 → フィルタ条件の保持 ========
+  // 1. 一覧状態の初期化ではUIに描画する日報データとロード状態を確保し、非同期処理の結果を反映できるようにする。
+  // 2. モーダル状態の初期化では各モーダルの開閉を個別に扱い、同時表示を防ぐための管理を行う。
+  // 3. フィルタ条件の保持では検索フォームと同期させるための条件値をまとめ、APIパラメータ生成を容易にする。
   const [uiReports, setUiReports] = useState([]); 
   const [loading, setLoading] = useState(true);
   
@@ -38,6 +52,11 @@ export default function DailyReportsPage() {
   });
   const [sortOrder, setSortOrder] = useState('date_desc');
 
+  /**
+   * 文字列から安定したカラーコードを算出するユーティリティ。
+   * @param {string} string         - 元になる文字列。社員名など識別子を渡す。
+   * @returns {string}              - #RRGGBB形式のカラーコード。表示上の個別色を維持するために利用。
+   */
   const stringToColor = useCallback((string) => {
     let hash = 0;
     for (let i = 0; i < string.length; i++) {
@@ -48,6 +67,10 @@ export default function DailyReportsPage() {
   }, []);
 
   // --- 1. データ取得 (GET) ---
+  /**
+   * APIから日報データを取得してUIで扱いやすい形式へ整形する。
+   * フィルタ・並び替え条件に応じてクエリを組み立てる。
+   */
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,7 +82,7 @@ export default function DailyReportsPage() {
       params.set('sort', sortOrder);
 
       const res = await fetch(`/api/reports?${params.toString()}`);
-      if (!res.ok) throw new Error('Fetch failed');
+      if (!res.ok) throw new Error('Fetch failed'); // APIが失敗した場合は例外にしてリトライ契機を作る。
 
       const rawData = await res.json();
       const dataArray = rawData.reports || (Array.isArray(rawData) ? rawData : []);
@@ -96,11 +119,15 @@ export default function DailyReportsPage() {
     setDeleteOpen(true);
   };
 
+  /**
+   * 削除確認モーダルからの確定操作でAPIに削除リクエストを送る。
+   * 成功後は一覧を最新化してモーダルを閉じる。
+   */
   const executeDelete = async () => {
     if (!deleteTargetId) return;
     try {
       const res = await fetch(`/api/reports/${deleteTargetId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) throw new Error('Delete failed'); // サーバーエラー時は利用者に再試行を促す必要があるため例外にする。
       await fetchReports();
       setDeleteOpen(false);
       setDeleteTargetId(null);
@@ -110,6 +137,11 @@ export default function DailyReportsPage() {
   };
 
   // --- 3. 新規登録 (POST) ---
+  /**
+   * 日報の新規登録フォーム送信時にAPIへPOSTする。
+   * バリデーションエラーをレスポンスから受け取り、利用者へ伝える。
+   * @param {object} formData       - 入力フォームで収集した日報情報。
+   */
   const handleAdd = async (formData) => {
     try {
       const res = await fetch('/api/reports', {
@@ -132,6 +164,11 @@ export default function DailyReportsPage() {
   };
 
   // --- 4. 更新処理 (PUT) ---
+  /**
+   * 既存日報の更新フォーム送信時にAPIへPUTする。
+   * 編集対象が未選択の場合は処理を避ける。
+   * @param {object} formData       - フォームで編集した日報情報。
+   */
   const handleUpdate = async (formData) => {
     if (!editingReport) return;
     try {
@@ -141,7 +178,7 @@ export default function DailyReportsPage() {
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) throw new Error('Update failed'); // 失敗時はモーダルを閉じずに再入力を促すため例外にする。
       
       await fetchReports();
       setOpen(false);
@@ -151,26 +188,43 @@ export default function DailyReportsPage() {
     }
   };
 
+  /**
+   * 一覧カードから編集ボタンを押されたときに対象データをモーダルへセットする。
+   * @param {object} report         - 編集対象の日報データ。
+   */
   const handleEditClick = (report) => {
     setEditingReport(report);
     setOpen(true);
   };
 
+  /**
+   * 一覧カードから詳細ボタンを押されたときに詳細モーダルを開く。
+   * @param {object} report         - 詳細表示したい日報データ。
+   */
   const handleViewDetail = (report) => {
     setSelectedReport(report);
     setDetailOpen(true);
   };
 
+  /**
+   * 検索フォームからの変更を内部フィルタ状態に反映する。
+   * keyによって対象フィールドを切り替え、APIクエリ生成時の条件になる。
+   * @param {string} key            - フィルタ項目の識別子。
+   * @param {string} value          - 入力された値。
+   */
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
       if (key === 'searchUser') newFilters.employee_name = value;
       if (key === 'searchDate') newFilters.date = value;
-      if (key === 'searchProduct') newFilters.product = value;
+      if (key === 'searchProduct') newFilters.product = value; // ライン名でフィルタするため別キーに変換。
       return newFilters;
     });
   };
 
+  // ======== 処理ステップ: 初期レンダリング → データ取得トリガー設定 ========
+  // 1. 初期レンダリングではuseEffect内で500msのディレイを置くことで入力途中の無駄なAPI呼び出しを抑制する。
+  // 2. データ取得トリガー設定ではフィルタが更新されるたびにfetchReportsを呼び出して一覧を最新状態に保つ。
   useEffect(() => {
     const timer = setTimeout(() => fetchReports(), 500);
     return () => clearTimeout(timer);

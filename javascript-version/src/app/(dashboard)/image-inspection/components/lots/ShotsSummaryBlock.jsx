@@ -1,3 +1,8 @@
+/*
+======== ファイル概要 ========
+ショットサマリーをカード状に表示し、総数/良品/不良/進捗バーをひとまとめにする表示ブロック。
+*/
+
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import LinearProgress from '@mui/material/LinearProgress'
@@ -7,6 +12,11 @@ import { alpha } from '@mui/material/styles'
 
 import SurfaceBox from '@/components/surface/SurfaceBox'
 
+/**
+ * 0〜100の範囲に収めた整数パーセンテージを返す。
+ * @param {number} value - 元の値。
+ * @returns {number}     端数切り捨て済みパーセント。
+ */
 const clampPercent = value => {
   const num = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(num)) return 0
@@ -15,6 +25,13 @@ const clampPercent = value => {
   return Math.round(num)
 }
 
+/**
+ * 撮影サマリーをタイルで表示する。
+ * @param {object} props           - プロパティ集合。
+ * @param {string} [props.title]   - セクションタイトル。
+ * @param {object} props.summary   - total/pass/fail/率を含むオブジェクト。
+ * @returns {JSX.Element|null}      表示内容。
+ */
 const ShotsSummaryBlock = ({ title, summary }) => {
   if (!summary) return null
 
@@ -24,6 +41,10 @@ const ShotsSummaryBlock = ({ title, summary }) => {
   const okRate = clampPercent(summary.okRate)
   const ngRate = clampPercent(summary.ngRate ?? 100 - okRate)
 
+  // ======== 処理ステップ: KPIカード → 進捗バー → 比率テキスト ========
+  // 1. KPIカードで総数/良品/不良を個別ボックスに分け、数値の比較をしやすくする。
+  // 2. 進捗バーは良率をバーの長さで示し、不良率には背景色を使ってコントラストを取る。
+  // 3. 比率テキストで最終的なパーセンテージを示し、バー見ただけでは分からない正確値を補う。
   return (
     <Box sx={{ '& + &': { mt: 3 } }}>
       {title ? (

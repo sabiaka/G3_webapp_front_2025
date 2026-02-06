@@ -1,4 +1,8 @@
-// 単一カメラの名称と稼働ステータスを表示するタイル
+/*
+======== ファイル概要 ========
+単一カメラのプレビュー画像とステータスラベルをカード表示するプレゼンテーション層。
+フォールバック画像や事後/事前撮影URLの補完もここで吸収する。
+*/
 
 import { useCallback, useMemo } from 'react'
 
@@ -12,6 +16,12 @@ const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
+/**
+ * 画像パスに混在するバックスラッシュや余計なスラッシュを吸収して
+ * APIから届く相対/絶対パスを正規化する。
+ * @param {string} path - 元の画像パス。
+ * @returns {string|null} 正規化済みのパス。空なら null。
+ */
 const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -27,6 +37,13 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
+/**
+ * OK/NGなどの表記ゆれをPASS/FAILへ丸め込む。
+ * @param {string} status - 生ステータス文字列。
+ * @returns {string}      正規化済みステータス。
+ * 
+ * 【Note】最初から仕様決めとかないからこういうよくわかんない関数必要になるねんて
+ */
 const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (!normalized) return ''
@@ -35,6 +52,15 @@ const normalizeStatusLabel = status => {
   return normalized
 }
 
+/**
+ * カメラ1台分のカード。画像読み込み失敗時はフォールバックを順に試す。
+ * @param {object} props          - コンポーネント引数。
+ * @param {string} props.name     - カメラ表示名。
+ * @param {string} props.status   - 判定ステータス。
+ * @param {boolean} props.isSingle - 単独表示かどうか。
+ * @param {string} props.imagePath - 元画像パス。
+ * @returns {JSX.Element}          プレビュー付きのカメラカード。
+ */
 const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
   const canonicalStatus = normalizeStatusLabel(status)
   const normalizedStatus = canonicalStatus || (status || '').toString().trim().toUpperCase() || 'UNKNOWN'
@@ -49,6 +75,11 @@ const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
 
   const label = normalizedStatus
 
+  /**
+   * ステータスとパスから最適なURL組み合わせを決め、フォールバックも用意する。
+   * 画像DBの before/after を切り替えることで撮影タイミングに即した参照先を選ぶ。
+   * @returns {{primary: string, fallback: string}} 読み込み順のURLセット。
+   */
   const buildImageSources = useCallback(() => {
     const normalizedPath = normalizeRelativePath(imagePath)
     if (!normalizedPath) {
@@ -95,6 +126,10 @@ const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
 
   const imageSources = useMemo(() => buildImageSources(), [buildImageSources])
 
+  /**
+   * 画像読み込み失敗時にフォールバックを段階的に試す。最終手段は固定のノーフォト画像。
+   * @param {React.SyntheticEvent<HTMLImageElement>} event - onErrorイベント。
+   */
   const handleImageError = useCallback((event) => {
     const target = event.currentTarget
     if (imageSources.fallback && !target.dataset.fallbackTried) {
@@ -105,6 +140,11 @@ const CameraTile = ({ name, status = 'PASS', isSingle = false, imagePath }) => {
     }
   }, [imageSources.fallback])
 
+  // 描画
+  // ======== 処理ステップ: ソース算出 → フォールバック制御 → オーバーレイ描画 ========
+  // 1. buildImageSourcesで最適なURLを決めておき、描画時に確実に同じ順序で利用する。
+  // 2. handleImageErrorでロード失敗時にフォールバックへ切り替え、最後の砦としてFALLBACK_IMGを使う。
+  // 3. オーバーレイ描画では名前とステータスを同じ位置に出し、どの画像か即座に理解できるようにする。
   return (
     <Box
       sx={{

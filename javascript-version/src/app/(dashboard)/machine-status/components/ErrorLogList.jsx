@@ -1,10 +1,24 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+エラーログをリスト表示するコンポーネント。件数ゼロ時の空表示とスクロール制御を担う。
+*/
+
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 
+/**
+ * ログ配列をカードスタイルで表示する。
+ * @param   {object}   props                 - コンポーネント引数。
+ * @param   {object[]} props.logs            - ログ要素の配列。
+ * @param   {string}   [props.maxHeight]     - リスト最大高さ。指定時はスクロール可能にする。
+ * @param   {string}   [props.emptyMessage]  - ログが空のときに表示する文言。
+ * @returns {JSX.Element}                    - ログ一覧のJSX要素。
+ */
 export function ErrorLogList({ logs, maxHeight, emptyMessage = '該当するログが見つかりませんでした。' }) {
+    // ======== 表示ステップ: 空表示 → ログカード描画の順で分岐 ========
     return (
         <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0, ...(maxHeight ? { maxHeight } : {}) }}>
             {logs.length === 0 ? (
@@ -20,6 +34,7 @@ export function ErrorLogList({ logs, maxHeight, emptyMessage = '該当するロ�
                         alignItems={{ xs: 'flex-start', sm: 'center' }}
                         justifyContent='space-between'
                         sx={{
+                                                    // 種類ごとに背景色を変えて視認性を確保する
                           bgcolor: (theme) => (
                             log.color === 'error'
                               ? 'var(--mui-palette-error-lightOpacity)'

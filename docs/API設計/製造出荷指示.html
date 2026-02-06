@@ -112,7 +112,7 @@
                         <span class="font-mono text-lg font-semibold">/api/instructions</span>
                         <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
-                    <p class="mb-4">製造指示のリストをまとめてGETするAPI。絞り込み検索にも対応してるよ！</p>
+                    <p class="mb-4">製造指示のリストをまとめて取得するAPIです。絞り込み検索にも対応しています。</p>
                     
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ (絞り込み検索)</h3>
                     <table class="w-full text-left border-collapse">
@@ -192,7 +192,7 @@
                         <span class="font-mono text-lg font-semibold">/api/instructions</span>
                         <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
-                    <p class="mb-4">新しい製造指示を登録するためのAPI。モーダルで入力したデータをJSONで送ってね！</p>
+                    <p class="mb-4">新しい製造指示を登録するためのAPIです。モーダルで入力したデータを JSON 形式で送信します。</p>
                     
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -204,7 +204,7 @@
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
-                    <p class="text-sm mb-2">登録が成功したら、IDが振られた指示データが返ってくるよ。</p>
+                    <p class="text-sm mb-2">登録が成功すると、ID が付与された指示データが返却されます。</p>
                     <pre><code class="language-json">{
     "id": 3,
     "line": "マット",
@@ -232,7 +232,7 @@
                         <span class="font-mono text-lg font-semibold">/api/instructions/{id}</span>
                         <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: B</span>
                     </div>
-                    <p class="mb-4">IDで指定した指示の情報を更新する。編集モーダルでの保存や、完了トグルの操作で使うよ！</p>
+                    <p class="mb-4">ID で指定した指示の情報を更新します。編集モーダルでの保存や完了トグルの操作で利用します。</p>
                     
                     <h4 class="text-lg font-semibold mt-6 mb-2">リクエストボディ (完了状態の更新)</h4>
                     <pre><code class="language-json">{

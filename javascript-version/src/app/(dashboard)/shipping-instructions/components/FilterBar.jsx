@@ -1,3 +1,10 @@
+/*
+======== ファイル概要 ========
+製造出荷指示ページ上部のフィルターバー。日付ページングと検索条件のトグルを提供し、折りたたみセクション
+で詳細フィルタを制御します。UIコンポーネントは MUI を利用し、縦幅を抑えるレイアウトを意識していま
+す。
+*/
+
 "use client"
 
 import { useMemo, useState } from 'react'
@@ -27,6 +34,27 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
+/**
+ * 出荷指示一覧を絞り込むフィルターバー。
+ * @param {object}      props                          - コンポーネント引数。
+ * @param {string}      props.search                   - フリーテキスト検索語。
+ * @param {Function}    props.onSearchChange           - 検索語変更時に呼び出すハンドラ。
+ * @param {string}      props.line                     - 選択中のライン値。
+ * @param {Function}    props.onLineChange             - ライン変更時に呼び出すハンドラ。
+ * @param {string}      props.completed                - 完了状態フィルタ。
+ * @param {Function}    props.onCompletedChange        - 完了状態変更時のハンドラ。
+ * @param {string}      props.date                     - 選択中日付 (YYYY-MM-DD)。
+ * @param {Function}    props.onDateChange             - 日付変更時のハンドラ。
+ * @param {Function}    props.onPrevDate               - 前日ボタン押下時のハンドラ。
+ * @param {Function}    props.onNextDate               - 翌日ボタン押下時のハンドラ。
+ * @param {boolean}     [props.canPrev=true]           - 前日へ移動可能かどうか。
+ * @param {boolean}     [props.canNext=true]           - 翌日へ移動可能かどうか。
+ * @param {Array}       props.lineOptions              - ライン選択肢の配列。
+ * @param {Array}       props.completedOptions         - 完了状態選択肢の配列。
+ * @param {boolean}     [props.loadingLines=false]     - ライン候補読み込み中フラグ。
+ * @param {Function}    props.onOpenCalendar           - カレンダーを開くハンドラ。
+ * @returns {JSX.Element}                              - フィルタ UI コンポーネント。
+ */
 const FilterBar = ({
   search,
   onSearchChange,
@@ -56,6 +84,11 @@ const FilterBar = ({
     if (completed && completed !== 'all') c += 1
     return c
   }, [search, line, completed])
+
+  // ======== 処理ステップ: 日付操作 → 詳細フィルタ → 折りたたみ描画 ========
+  // 1. 日付ナビゲーションは左右ボタンと今日ボタンをまとめて配置し、操作距離を最小化している。
+  // 2. 検索語とライン/完了状態は Collapse 内に閉じ込め、高さを節約しつつ必要時のみ展開できる。
+  // 3. バッジでアクティブなフィルタ数を示し、ユーザーが条件の掛かり具合を即時認識できるようにした。
 
   return (
     <Card sx={{ mb: 2, borderRadius: 3, boxShadow: 1 }}>

@@ -204,7 +204,7 @@
                         <span class="font-mono text-lg font-semibold">/api/reports</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">新しい日報を登録するためのAPI。データはJSONで送る。</p>
+                    <p class="mb-4">新しい日報を登録するためのAPIです。データは JSON 形式で送信します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -215,7 +215,7 @@
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
-                    <p class="text-sm mb-2">登録が成功したら、IDが振られた日報データ（JOIN済み）が返ってくる。</p>
+                    <p class="text-sm mb-2">登録が成功すると、ID が付与された日報データ（JOIN 済み）が返却されます。</p>
                     <pre><code class="language-json">{
     "report_id": 3,
     "employee_id": 12,
@@ -237,7 +237,7 @@
                         <span class="font-mono text-lg font-semibold">/api/reports/{id}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">IDで指定した日報の情報をまるっと更新する。</p>
+                    <p class="mb-4">ID で指定した日報の情報を全件更新します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{

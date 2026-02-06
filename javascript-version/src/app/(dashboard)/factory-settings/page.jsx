@@ -1,5 +1,10 @@
 "use client"
 
+/*
+======== ファイル概要 ========
+工場設定ページ。権限ロールと生産ラインを管理し、API 経由で CRUD 操作とローカル UI を同期させる。
+*/
+
 import { useEffect, useMemo, useState, useCallback } from 'react'
 
 
@@ -36,6 +41,10 @@ const ADMIN = '管理者'
 const MEMBER = '一般従業員'
 
 // API ヘルパー
+/**
+ * ブラウザストレージからアクセストークンを取得する。
+ * @returns {string | null} - 発見したトークン。未ログイン時は null。
+ */
 function getToken() {
 	if (typeof window === 'undefined') return null
 
@@ -50,6 +59,16 @@ function getToken() {
 	}
 }
 
+/**
+ * 認証ヘッダー付きでバックエンド API を叩く共通関数。
+ * @param {string} path                              - /api から始まるリクエストパス。
+ * @param {object} [options={}]                      - fetch オプション。
+ * @param {string} [options.method='GET']            - HTTP メソッド。
+ * @param {object} [options.body]                    - JSON 化するリクエストボディ。
+ * @param {object} [options.headers]                 - 追加ヘッダー。認証ヘッダーより後にマージされる。
+ * @returns {Promise<any>}                           - JSON レスポンス。204 の場合は null。
+ * @throws {Error & { status?: number, payload?: any }} - ステータスやレスポンスを含む例外。
+ */
 async function api(path, { method = 'GET', body, headers } = {}) {
 	const token = getToken()
 	const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -85,16 +104,26 @@ async function api(path, { method = 'GET', body, headers } = {}) {
 	}
 
 	if (res.status === 204) return null
-	
-return res.json()
+
+	return res.json()
 }
 
+/**
+ * 権限ロール 1 件分の表示と編集インタラクションを司るアイテム。
+ * @param {object}   props           - コンポーネント引数。
+ * @param {object}   props.role      - 表示対象のロール情報。
+ * @param {Function} props.onUpdate  - ロール更新時に親へ通知するコールバック。
+ * @param {Function} props.onDelete  - ロール削除要求を親へ伝えるコールバック。
+ * @param {boolean}  props.canEdit   - 編集操作の可否。
+ * @returns {JSX.Element}            - ロール設定用のカード要素。
+ */
 function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 	const [editing, setEditing] = useState(false)
 	const [nameDraft, setNameDraft] = useState(role.name)
 
 	const isAdminType = role.type === ADMIN
 
+	// 管理者種別ボタンでタイプを切り替える。実際の更新は親に委譲する。
 	const handleToggleType = () => {
 		if (!canEdit) return
 		const nextType = isAdminType ? MEMBER : ADMIN
@@ -102,17 +131,23 @@ function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 		onUpdate({ ...role, type: nextType })
 	}
 
+	// 編集開始時は元の名前を一度ドラフトに取り込み直す。
 	const startEdit = () => {
 		if (!canEdit) return
 		setNameDraft(role.name)
 		setEditing(true)
 	}
 
+	// 取り消し時は UI を元に戻し、誤編集を防ぐ。
 	const cancelEdit = () => {
 		setEditing(false)
 		setNameDraft(role.name)
 	}
 
+	// ======== 処理ステップ: 入力トリム → 変更有無判定 → 更新通知 ========
+	// 1. 入力トリムで余分な空白を除去し、同一名重複による API エラーを抑える。
+	// 2. 変更有無判定で noop 更新を省き、不要なリクエストを避ける。
+	// 3. 更新通知で親に委譲し、API 呼び出しとステート同期を一箇所にまとめる。
 	const saveEdit = () => {
 		const trimmed = nameDraft.trim()
 
@@ -188,21 +223,36 @@ function RoleItem({ role, onUpdate, onDelete, canEdit }) {
 	)
 }
 
+/**
+ * ライン情報 1 件分の表示と改名/削除を制御するアイテム。
+ * @param {object}   props          - コンポーネント引数。
+ * @param {object}   props.line     - 表示対象ライン。
+ * @param {Function} props.onRename - 名前変更時に親へ渡すハンドラ。
+ * @param {Function} props.onDelete - 削除要求を親へ伝えるハンドラ。
+ * @param {boolean}  props.canEdit  - 編集可否。
+ * @returns {JSX.Element}           - ライン設定 UI。
+ */
 function LineItem({ line, onRename, onDelete, canEdit }) {
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState(line.name)
 
+	// 編集開始時は現在値を改めてコピーし、別ライン名の上書きを防ぐ。
 	const startEdit = () => {
 		if (!canEdit) return
 		setDraft(line.name)
 		setEditing(true)
 	}
 
+	// キャンセルではドラフトを元へ戻し、フォーム残留を避ける。
 	const cancelEdit = () => {
 		setEditing(false)
 		setDraft(line.name)
 	}
 
+	// ======== 処理ステップ: 入力トリム → 変更判定 → 親コールバック ========
+	// 1. 入力トリムで余白を除去し、重複判定の正確さを担保する。
+	// 2. 変更判定で同一名なら即キャンセルし、不必要な API 呼び出しを抑制する。
+	// 3. 親コールバックへ渡して API 側で最終確定する。
 	const saveEdit = () => {
 		const trimmed = draft.trim()
 
@@ -262,6 +312,10 @@ function LineItem({ line, onRename, onDelete, canEdit }) {
 	)
 }
 
+/**
+ * 工場設定ページのメインコンポーネント。
+ * @returns {JSX.Element} - 権限種別と工場ラインの管理 UI。
+ */
 export default function FactorySettingsPage() {
 	// --- ステート ---
 	const { isAdmin } = useAuthMe()
@@ -275,7 +329,19 @@ export default function FactorySettingsPage() {
 	const [linesLoading, setLinesLoading] = useState(false)
 
 	const [snack, setSnack] = useState({ open: false, severity: 'info', message: '' })
+
+	/**
+	 * トースト通知を開くヘルパー。
+	 * @param {string} message                                             - 表示する本文。
+	 * @param {import('@mui/material').AlertColor} [severity='info']        - 表示色。
+	 * @returns {void}
+	 */
 	const openSnack = useCallback((message, severity = 'info') => setSnack({ open: true, message, severity }), [])
+
+	/**
+	 * トースト通知を閉じるヘルパー。
+	 * @returns {void}
+	 */
 	const closeSnack = useCallback(() => setSnack(s => ({ ...s, open: false })), [])
 
 	const roleNames = useMemo(() => new Set(roles.map(r => r.name)), [roles])
@@ -283,9 +349,13 @@ export default function FactorySettingsPage() {
 
 	// --- 初期ロード ---
 	useEffect(() => {
+		// ======== 処理ステップ: 役割取得 → ライン取得 → クリーンアップ ========
+		// 1. 役割取得では管理者区別を明確にして UI の制御を整える。
+		// 2. ライン取得でフィルタ候補と表示一覧を揃え、フォーム初期値の整合性を保つ。
+		// 3. どちらも個別の非同期関数にして、失敗時に片方だけでも結果を出せるようにする。
 		;
 
-(async () => {
+		(async () => {
 			setRolesLoading(true)
 
 			try {
@@ -318,22 +388,27 @@ export default function FactorySettingsPage() {
 
 	// --- 役割 CRUD ---
 	const addRole = async () => {
+		// 管理者以外には書き込みを許さないため即ガードする。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
 		const name = newRoleName.trim()
 
+		// 空文字は API でも拒否されるため早期終了で UX を保つ。
 		if (!name) return
 
+		// 名前重複はサーバーで 409 になるため、事前に弾いてメッセージを明示する。
 		if (roleNames.has(name)) {
 			openSnack('同じロール名が既に存在します', 'warning')
-			
-return
+			return
 		}
 
+		// ======== 処理ステップ: API 送信 → ステート更新 → フォーム初期化 ========
+		// 1. API 送信で確定させ、作成 ID を受け取る。
+		// 2. ステート更新でローカル一覧へ即反映し、ページリロードを不要にする。
+		// 3. フォーム初期化で連続入力しやすくする。
 		try {
 			const created = await api('/api/roles', {
 				method: 'POST',
@@ -351,10 +426,10 @@ return
 	}
 
 	const updateRole = async updated => {
+		// 管理者のみ更新できるため、UI からも保護する。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
 		const original = roles.find(r => r.id === updated.id)
@@ -362,10 +437,15 @@ return
 		if (!original) return
 		const body = {}
 
+		// フィールド差分だけ送信し、不要な更新を避ける。
 		if (updated.name !== original.name) body.role_name = updated.name
 		if (updated.type !== original.type) body.is_admin = updated.type === ADMIN
 		if (Object.keys(body).length === 0) return
 
+		// ======== 処理ステップ: API 更新 → ステート差し替え → 通知 ========
+		// 1. API 更新で確定させ、最新値を受け取る。
+		// 2. ステート差し替えで対象のみ更新し、再描画コストを抑える。
+		// 3. 通知で完了を知らせ、ユーザーの安心感を高める。
 		try {
 			const res = await api(`/api/roles/${updated.id}`, { method: 'PUT', body })
 			const mapped = { id: res.role_id, name: res.role_name, type: res.is_admin ? ADMIN : MEMBER }
@@ -380,12 +460,16 @@ return
 	}
 
 	const deleteRole = async id => {
+		// 削除も管理者専用のため即ガード。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
+		// ======== 処理ステップ: API 削除 → ローカル除去 → 通知 ========
+		// 1. API 削除でサーバー状態を先に確定させる。
+		// 2. ローカル除去で UI を同期し、残骸表示を防ぐ。
+		// 3. 通知で結果を共有し、関連制約時の警告をわかりやすくする。
 		try {
 			await api(`/api/roles/${id}`, { method: 'DELETE' })
 			setRoles(prev => prev.filter(r => r.id !== id))
@@ -398,22 +482,24 @@ return
 
 	// --- ライン CRUD ---
 	const addLine = async () => {
+		// 管理者のみライン構成を変更できる。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
 		const name = newLineName.trim()
 
+		// 空文字を送ると API エラーになるため早期離脱。
 		if (!name) return
 
+		// 事前重複チェックで 409 を未然に防ぎ、即フィードバックを返す。
 		if (lineNames.has(name)) {
 			openSnack('同じライン名が既に存在します', 'warning')
-			
-return
+			return
 		}
 
+		// ======== 処理ステップ: API 追加 → ステート更新 → 入力リセット ========
 		try {
 			const created = await api('/api/lines', { method: 'POST', body: { line_name: name } })
 
@@ -427,20 +513,21 @@ return
 	}
 
 	const renameLine = async (id, newName) => {
+		// 閲覧権限では改名できないためガード。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
 		if (!newName) return
 
+		// 既存ラインと同名にしないことで情報齟齬を避ける。
 		if (lineNames.has(newName)) {
 			openSnack('同じライン名が既に存在します', 'warning')
-			
-return
+			return
 		}
 
+		// ======== 処理ステップ: API 更新 → ステート置換 → 通知 ========
 		try {
 			const res = await api(`/api/lines/${id}`, { method: 'PUT', body: { line_name: newName } })
 
@@ -454,12 +541,13 @@ return
 	}
 
 	const deleteLine = async id => {
+		// 管理権限がない場合は API を呼ばない。
 		if (!isAdmin) {
 			openSnack('権限がありません（管理者のみ操作可能）', 'warning')
-			
-return
+			return
 		}
 
+		// ======== 処理ステップ: API 削除 → 一覧同期 → 通知 ========
 		try {
 			await api(`/api/lines/${id}`, { method: 'DELETE' })
 			setLines(prev => prev.filter(l => l.id !== id))

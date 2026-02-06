@@ -127,7 +127,7 @@
                         <span class="font-mono text-lg font-semibold">/api/employees</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">従業員のリストをまとめてGETするAPI。検索フィルターも使えるようにしとこ！</p>
+                    <p class="mb-4">従業員のリストをまとめて取得するAPIです。検索フィルターにも対応します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">クエリパラメータ (絞り込み検索)</h3>
                     <table class="w-full text-left border-collapse">
@@ -192,7 +192,7 @@
                         <span class="font-mono text-lg font-semibold">/api/employees/{id}</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">IDを指定して、特定の従業員1人の詳細情報をGETするよ。</p>
+                    <p class="mb-4">ID を指定して、特定の従業員1人の詳細情報を取得します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
                     <pre><code class="language-json">{
@@ -221,7 +221,7 @@
                         <span class="font-mono text-lg font-semibold">/api/employees</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">新しい従業員を登録するためのAPI。データはJSONで送ってね！</p>
+                    <p class="mb-4">新しい従業員を登録するためのAPIです。データは JSON 形式で送信します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -235,7 +235,7 @@
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
-                    <p class="text-sm mb-2">登録が成功したら、IDが振られた従業員データが返ってくるよ。</p>
+                    <p class="text-sm mb-2">登録が成功すると、ID が付与された従業員データが返却されます。</p>
                     <pre><code class="language-json">{
     "employee_id": 3,
     "employee_name": "鈴木 次郎",
@@ -258,7 +258,7 @@
                         <span class="font-mono text-lg font-semibold">/api/employees/{id}</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">IDで指定した従業員の情報をまるっと更新する。部分更新はPATCHだけど、今回はPUTでシンプルにこ！</p>
+                    <p class="mb-4">IDで指定した従業員の情報を全件更新します。部分更新は PATCH が適切ですが、本設計では単純化のため PUT を利用します。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -296,11 +296,11 @@
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
                     <p class="mb-4">
-                        IDで指定した従業員を削除する。マジで消しちゃうから気をつけて！<br>実際は`is_active`をfalseにする「論理削除」の方が安全かも。今回はとりあえず物理削除で設計しとくね。
+                        IDで指定した従業員を削除します。実際には `is_active` を false にする論理削除の方が安全ですが、本設計では暫定的に物理削除を前提としています。
                     </p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (204 No Content)</h3>
-                    <p>削除が成功したら、ボディには何も返ってこないのがお約束。</p>
+                    <p>削除が成功した場合、レスポンスボディは空となります。</p>
                 </div>
             </section>
         </div>

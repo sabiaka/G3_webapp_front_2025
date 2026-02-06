@@ -1,5 +1,11 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+SSEで配信される検査イベントをリアルタイムで監視するためのページコンポーネント。
+接続状態の可視化・自動再接続・イベントログ表示までを一括で面倒見るよ。
+*/
+
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
@@ -22,6 +28,17 @@ const CONFIG_BACKEND_HOST = process.env.NEXT_PUBLIC_BACKEND_HOST || null
 const CONFIG_BACKEND_PROTOCOL = process.env.NEXT_PUBLIC_BACKEND_PROTOCOL || null
 const CONFIG_API_BASE = process.env.NEXT_PUBLIC_API_BASE || null
 
+/**
+ * サーバー送信イベント(SSE)の購読を司るカスタムフックだよ。
+ * @param {object}   params              - フックに渡すパラメータ袋。
+ * @param {string}   params.streamUrl    - 監視対象のSSEエンドポイントURL。
+ * @param {Function} params.onEvent      - イベント受信時に呼ぶコールバック。
+ * @param {Function} params.onConnecting - 接続開始直前に呼ぶコールバック。
+ * @param {Function} params.onOpen       - 接続確立後に呼ぶコールバック。
+ * @param {Function} params.onError      - エラー発生時に呼ぶコールバック。
+ * @param {Function} params.onConnectionInfo - 接続関連の追加情報を渡すコールバック。
+ * @param {number}   params.retryToken   - 再接続トリガーとして使う外部カウンタ。
+ */
 const useInspectionEvents = ({
   streamUrl,
   onEvent,
@@ -32,15 +49,19 @@ const useInspectionEvents = ({
   retryToken
 }) => {
   useEffect(() => {
+    // ======== 処理ステップ: コールバック検査 → SSE生成 → イベント結線 → クリーンアップ ========
+    // 1. コールバックとURLが揃っていないと正常監視できないので即リターンで無用な接続を避ける。
     if (!onEvent || !streamUrl) {
       return undefined
     }
 
+    // 2. 接続開始を親へ通知しローディング表示などを準備させる。
     onConnecting?.()
 
     let source
 
     try {
+      // 3. withCredentialsを有効化してCookie認証が必要な環境にも対応してる。
       source = new EventSource(streamUrl, { withCredentials: true })
     } catch (error) {
       console.error('SSE 初期化エラー', error)
@@ -54,6 +75,7 @@ const useInspectionEvents = ({
     }
 
     try {
+      // 4. EventSource内部のURLは文字列扱いなので、新たにURLオブジェクトで分解して接続先を可視化している。
       const resolvedUrl = new URL(source.url)
       const protocol = resolvedUrl.protocol.replace(':', '')
       const defaultPort = protocol === 'https' ? '443' : protocol === 'http' ? '80' : null
@@ -80,6 +102,7 @@ const useInspectionEvents = ({
     }
 
     source.onopen = () => {
+      // 接続復活がログに反映されるようタイムスタンプも共有するよ。
       onOpen?.()
       onConnectionInfo?.({
         openedAt: new Date().toISOString(),
@@ -88,6 +111,7 @@ const useInspectionEvents = ({
     }
 
     source.onmessage = event => {
+      // SSE本文はJSON前提だからparseしてから上位へ渡す。
       try {
         const data = JSON.parse(event.data)
         onEvent(data)
@@ -97,6 +121,7 @@ const useInspectionEvents = ({
     }
 
     source.onerror = error => {
+      // 一度エラーが起きると接続は基本閉じる想定。ここで即closeして再接続制御に委ねる。
       console.error('SSE 接続エラー', error)
       onError?.(error)
       onConnectionInfo?.({
@@ -106,6 +131,7 @@ const useInspectionEvents = ({
     }
 
     return () => {
+      // クリーンアップでEventSourceを閉じてリークを防ぐ。
       source?.close()
     }
   }, [streamUrl, onConnecting, onOpen, onEvent, onError, onConnectionInfo, retryToken])
@@ -132,12 +158,15 @@ const SSEMonitoringPage = () => {
   const retryAttemptRef = useRef(0)
 
   const streamUrl = useMemo(() => {
+    // ======== 処理ステップ: APIベース確認 → プロトコル・ホスト推定 → URL組み立て ========
+    // 1. NEXT_PUBLIC_API_BASE があればそちらを優先し、リバースプロキシ経由でも確実にアクセスできるようにする。
     const trimmedApiBase = CONFIG_API_BASE ? CONFIG_API_BASE.replace(/\/$/, '') : null
 
     if (trimmedApiBase) {
       return `${trimmedApiBase}${EVENT_STREAM_PATH}`
     }
 
+    // 2. プロトコルは環境変数 > window.location > http の順で決める。BFFやサブドメイン構成でも破綻しにくい。
     const protocolSource = CONFIG_BACKEND_PROTOCOL
       ? CONFIG_BACKEND_PROTOCOL.replace(/:/g, '')
       : isClient
@@ -146,6 +175,7 @@ const SSEMonitoringPage = () => {
 
     const protocol = (protocolSource || 'http').toLowerCase()
 
+    // 3. ホストは設定値が無いときブラウザホストを使って、ローカル/本番のどちらでも同じコードで動かす。
     const host = CONFIG_BACKEND_HOST || (isClient ? window.location.hostname : 'localhost')
 
     const portSegment = DEFAULT_BACKEND_PORT ? `:${DEFAULT_BACKEND_PORT}` : ''
@@ -154,6 +184,7 @@ const SSEMonitoringPage = () => {
   }, [isClient])
 
   const clearScheduledReconnect = useCallback(() => {
+    // 既存のタイマーを確実に消して多重再接続を防ぐ。
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
@@ -176,17 +207,20 @@ const SSEMonitoringPage = () => {
     setNextRetryInMs(computedDelay)
 
     reconnectTimeoutRef.current = setTimeout(() => {
+      // setTimeout経由でretryTokenを更新するとuseEffectが再評価されて再接続が走る。
       setRetryToken(token => token + 1)
     }, computedDelay)
   }, [clearScheduledReconnect])
 
   const handleConnecting = useCallback(() => {
+    // 明示的にエラーメッセージを消してユーザーの混乱を防ぐ。
     clearScheduledReconnect()
     setStatus('connecting')
     setErrorMessage(null)
   }, [clearScheduledReconnect])
 
   const handleOpen = useCallback(() => {
+    // 接続成功したら試行回数をリセットし、UIも正常状態へ戻す。
     clearScheduledReconnect()
     retryAttemptRef.current = 0
     setRetryAttempt(0)
@@ -195,6 +229,7 @@ const SSEMonitoringPage = () => {
   }, [clearScheduledReconnect])
 
   const handleEvent = useCallback(payload => {
+    // 最新イベントを先頭に積んで最大100件まで保持し、古いログが溢れすぎないようにする。
     setEvents(prev => {
       const eventEntry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -209,12 +244,14 @@ const SSEMonitoringPage = () => {
   }, [])
 
   const handleError = useCallback(() => {
+    // エラー時は再試行を誘発しつつ告知文を表示。
     setStatus('error')
     setErrorMessage('SSE接続でエラーが発生しました。ブラウザのコンソールログを確認してください。')
     scheduleReconnect()
   }, [scheduleReconnect])
 
   const handleConnectionInfo = useCallback(update => {
+    // connectionInfoはオブジェクトをマージして履歴的な項目も残す。
     setConnectionInfo(prev => ({ ...(prev || {}), ...update }))
   }, [])
 
@@ -241,6 +278,8 @@ const SSEMonitoringPage = () => {
   }, [latestEventTime])
 
   const connectionDisplay = useMemo(() => {
+    // ======== 処理ステップ: フォールバック確保 → ラベル整形 → 表示用オブジェクト生成 ========
+    // ビルド時はwindowが無いからフォールバックを用意してSSRでも落ちないようにしているよ。
     const hasWindow = typeof window !== 'undefined'
     const fallbackHost = CONFIG_BACKEND_HOST || (hasWindow ? window.location.hostname : 'localhost')
     const fallbackProtocol = CONFIG_BACKEND_PROTOCOL
@@ -284,6 +323,7 @@ const SSEMonitoringPage = () => {
   }, [])
 
   const reconnect = useCallback(() => {
+    // 手動再接続では状態を初期化してからretryTokenを進める。
     clearScheduledReconnect()
     retryAttemptRef.current = 0
     setRetryAttempt(0)
@@ -296,6 +336,7 @@ const SSEMonitoringPage = () => {
   useEffect(() => {
     return () => {
       if (reconnectTimeoutRef.current) {
+        // ページ離脱時にもタイマーが残らないようにクリーンアップ。
         clearTimeout(reconnectTimeoutRef.current)
       }
     }

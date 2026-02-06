@@ -1,4 +1,8 @@
-// ロットカード表示コンポーネント
+/*
+======== ファイル概要 ========
+ロットの代表画像とカメラ判定をカード形式で表示し、詳細モーダル起動の入り口となるコンポーネント。
+カメラ数が多い場合のサマリ表示や不良詳細の強調も担う。
+*/
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -17,6 +21,11 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 const SUMMARY_THRESHOLD = 8
 
+/**
+ * APIから返る相対/絶対パスの表記ゆれを正規化して画像URLに利用しやすくする。
+ * @param {string} path - 元の画像パス。
+ * @returns {string|null} 正規化済みパス。
+ */
 const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -32,6 +41,11 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
+/**
+ * OK/NG といった別表記を PASS/FAIL/MISSING へ揃える。
+ * @param {string} status - 判定文字列。
+ * @returns {string}      正規化結果。
+ */
 const normalizeStatusLabel = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (!normalized) return ''
@@ -40,6 +54,11 @@ const normalizeStatusLabel = status => {
   return normalized
 }
 
+/**
+ * ステータスに応じて MUI Chip のカラートークンを決定する。
+ * @param {string} status - 判定文字列。
+ * @returns {'success'|'error'|'warning'|'default'} 色指定。
+ */
 const getChipColor = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'PASS') return 'success'
@@ -48,6 +67,11 @@ const getChipColor = status => {
   return 'default'
 }
 
+/**
+ * 並び替え用の優先度を返す。不良系を先に並べたいときに使用。
+ * @param {string} status - 判定文字列。
+ * @returns {number}      小さいほど優先。
+ */
 const getStatusPriority = status => {
   const normalized = normalizeStatusLabel(status)
   if (normalized === 'FAIL') return 0
@@ -57,6 +81,12 @@ const getStatusPriority = status => {
   return 4
 }
 
+/**
+ * カメラ/シーケンスに紐づく最適な表示名を推定する。
+ * @param {object} item - カメラ情報。
+ * @param {number} index - 配列インデックス（フォールバック用）。
+ * @returns {string} 表示名。
+ */
 const resolveDisplayName = (item, index) => {
   const candidates = [item?.name, item?.label, item?.camera_id, item?.cameraId, item?.rawSequence]
   for (const candidate of candidates) {
@@ -68,6 +98,15 @@ const resolveDisplayName = (item, index) => {
   return `#${index + 1}`
 }
 
+/**
+ * ロット概要カード。代表画像、ロット情報、カメラ判定をまとめて表示する。
+ * @param {object} props             - コンポーネント引数。
+ * @param {object} props.lot         - ロットデータ。
+ * @param {string} [props.lotStatus] - 全体判定。
+ * @param {Function} props.onOpen    - クリック時のモーダルオープンハンドラ。
+ * @param {boolean} [props.isActive] - 選択中スタイルを出すかどうか。
+ * @returns {JSX.Element|null}        レイアウト済みカード。
+ */
 const LotCard = ({
   lot,
   lotStatus,
@@ -86,6 +125,11 @@ const LotCard = ({
     setShowAllCameras(false)
   }, [lot?.lotId])
 
+  /**
+   * 代表画像のURLセットを生成し、フォールバックを確保する。
+   * @param {string} path - APIから受け取った画像パス。
+   * @returns {{primary: string, fallback: string}} 表示用URL。
+   */
   const buildImageSources = useCallback((path) => {
     const normalized = normalizeRelativePath(path)
     if (!normalized) return { primary: FALLBACK_IMG, fallback: '' }
@@ -97,6 +141,11 @@ const LotCard = ({
     }
   }, [])
 
+  /**
+   * 画像失敗時にフォールバック→固定画像の順で差し替える。
+   * @param {React.SyntheticEvent<HTMLImageElement>} event - onErrorイベント。
+   * @param {string} fallbackSrc                          - 第二候補URL。
+   */
   const handleImageError = (event, fallbackSrc) => {
     const target = event.currentTarget
     if (fallbackSrc && !target.dataset.fallbackTried) {
@@ -163,6 +212,10 @@ const LotCard = ({
         : 'default'
   const lotStatusLabel = normalizedLotStatus || '-'
 
+  // ======== 処理ステップ: 代表画像 → 判定概要 → 詳細チップ ========
+  // 1. 代表画像ではhandleImageErrorを紐付けて通信エラー時の視覚欠損を防ぐ。
+  // 2. 判定概要ブロックでロットID・総合結果・要約チップを表示し、問題箇所を一目で把握させる。
+  // 3. 詳細チップ/不良詳細を展開し、showAllCamerasを切り替えて情報量を制御する。
   return (
     <Card
       variant="outlined"

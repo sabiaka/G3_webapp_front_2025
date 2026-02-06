@@ -165,7 +165,7 @@
                         <span class="font-mono text-lg font-semibold">/api/auth/login</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">ユーザーIDとパスワードを送って、ユーザーを認証するAPI。成功すると、今後の通信で使うためのアクセストークンが返ってくるよ！</p>
+                    <p class="mb-4">ユーザーIDとパスワードを送信し、ユーザーを認証するAPIです。成功すると、後続の通信で使用するアクセストークンが返却されます。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
@@ -175,7 +175,7 @@
                     <p class="text-xs text-slate-500 mt-2">※ アカウント作成（register）サンプルと同じ値に統一。コピペしてそのまま試せるようにしています。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (200 OK)</h3>
-                    <p class="text-sm mb-2">アクセストークンと、ログインしたユーザーの情報を返す。このトークンはフロントで保存しといて、認証が必要なAPIを叩くときにヘッダーに付けて送ってね！
+                    <p class="text-sm mb-2">アクセストークンとログインしたユーザーの情報を返します。このトークンはフロントエンドで保存し、認証が必要なAPIを呼び出す際にヘッダーへ付与してください。
                     </p>
                     <pre><code class="language-json">{
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbXBsb3llZV9pZCI6NCwiZW1wbG95ZWVfdXNlcl9pZCI6InIub3NoaXlhbWEiLCJyb2xlX2lkIjoxLCJyb2xlX25hbWUiOiLnrqHnkIbogIUiLCJpc19hZG1pbiI6dHJ1ZSwiaWF0IjoxNzU5Mjk2NDEzLCJleHAiOjE3NTk5MDEyMTN9.-_8-eCEvD4O9sS_val5rlZRzxh7BXIUYATdQrgEnPRg",
@@ -203,7 +203,7 @@
                         <span class="font-mono text-lg font-semibold">/api/auth/register</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">新しい従業員アカウントを作成するAPI。ユーザーIDやパスワード、名前などの情報を送ってね！成功すると、新しく作られたユーザーの情報が返ってくるよ。</p>
+                    <p class="mb-4">新しい従業員アカウントを作成するAPIです。ユーザーIDやパスワード、氏名などの情報を送信します。成功すると、新規に作成されたユーザー情報が返却されます。</p>
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストボディ</h3>
                     <pre><code class="language-json">{
     "employee_user_id": "hana.kato",
@@ -215,9 +215,9 @@
     "employee_color_code": "FF8800"
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">成功レスポンス (201 Created)</h3>
-                    <p class="text-sm mb-2">ユーザー登録が成功したメッセージと、作成されたユーザー情報を返す。（パスワードは返さないから安心してね！）</p>
+                    <p class="text-sm mb-2">ユーザー登録が成功したメッセージと、作成されたユーザー情報を返します。（パスワードは返却しません。）</p>
                     <pre><code class="language-json">{
-    "message": "ユーザー登録大成功！",
+    "message": "ユーザー登録が完了しました",
     "user": {
         "employee_id": 6,
         "employee_user_id": "tanaka.misaki",
@@ -225,14 +225,14 @@
     }
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (400 Bad Request)</h3>
-                    <p class="text-sm mb-2">ユーザーID、パスワード、名前のどれかが足りない場合にこのエラーが返ってくるよ。</p>
+                    <p class="text-sm mb-2">ユーザーID、パスワード、氏名のいずれかが不足している場合にこのエラーを返します。</p>
                     <pre><code class="language-json">{
-    "error": "必要な情報が足りてないよ！"
+    "error": "必要な情報が不足しています"
 }</code></pre>
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (409 Conflict)</h3>
-                    <p class="text-sm mb-2">送られてきた`employee_user_id`がすでに使われている場合に返ってくるエラー。</p>
+                    <p class="text-sm mb-2">送信された `employee_user_id` が既に使用されている場合に返すエラーです。</p>
                     <pre><code class="language-json">{
-    "error": "そのユーザーIDはもう使われてるよん"
+    "error": "そのユーザーIDは既に使用されています"
 }</code></pre>
                 </div>
             </section>
@@ -246,7 +246,7 @@
                         <span class="font-mono text-lg font-semibold">/api/auth/logout</span>
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: S</span>
                     </div>
-                    <p class="mb-4">サーバー側でセッションを無効にするためのAPI。これを叩くときは、ログイン時にもらったアクセストークンをヘッダーに付けて送る必要があるよ。</p>
+                    <p class="mb-4">サーバー側でセッションを無効にするためのAPIです。このエンドポイントを呼び出す際は、ログイン時に受け取ったアクセストークンをヘッダーに付与して送信する必要があります。</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストヘッダー</h3>
                     <pre><code class="language-http" data-type="header">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
@@ -267,7 +267,7 @@
                         <span class="font-mono text-lg font-semibold">/api/auth/me</span>
                         <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">優先度: A</span>
                     </div>
-                    <p class="mb-4">ユーザーが今ログインしてるか確認するためのAPI。ページをリロードしたときとかに、セッションが有効かチェックするのに使うと便利！</p>
+                    <p class="mb-4">ユーザーが今ログインしてるか確認するためのAPI。ページをリロードしたときとかに、セッションが有効かチェックするのに使うと便利</p>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">リクエストヘッダー</h3>
                     <pre><code class="language-http">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
@@ -284,7 +284,7 @@
 }</code></pre>
 
                     <h3 class="text-lg font-semibold mt-6 mb-2">エラーレスポンス (401 Unauthorized)</h3>
-                    <p class="text-sm mb-2">トークンが無効、または期限切れの場合はこのエラーが返ってくるから、ログイン画面に飛ばす処理とかをよろしく！</p>
+                    <p class="text-sm mb-2">トークンが無効、または期限切れの場合はこのエラーを返します。その際はログイン画面へ遷移させる処理を実装してください。</p>
                     <pre><code class="language-json">{
     "error": "Unauthorized"
 }</code></pre>

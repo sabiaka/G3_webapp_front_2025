@@ -1,3 +1,9 @@
+/*
+======== ファイル概要 ========
+日報削除の最終確認モーダルを描画するコンポーネントを定義する。
+ダイアログの見た目とボタン操作を統一して、呼び出し元に結果を返す役割を担う。
+*/
+
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -9,6 +15,13 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
+/**
+ * 日報削除時にユーザーへ確認を促すモーダル。
+ * @param {boolean} open          - モーダルの開閉状態。
+ * @param {Function} onClose      - キャンセル押下時や外側クリック時のクローズ処理。
+ * @param {Function} onConfirm    - 削除実行ボタン押下時のコールバック。
+ * @returns {JSX.Element}         - 警告メッセージ付きの確認ダイアログ。
+ */
 export default function DeleteConfirmModal({ open, onClose, onConfirm }) {
   return (
     <Dialog 

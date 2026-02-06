@@ -1,6 +1,18 @@
-// API client for Parts Inventory
+/*
+======== ファイル概要 ========
+部品在庫APIとの通信を行う軽量クライアント。
+GET時のキャッシュ無効化や共通エラーハンドリングを備え、アプリ側からはモック/本番を意識せず呼び出せるようにする。
+*/
 
-// Generic JSON fetch with cache-bypass for GET
+// パーツ在庫向けAPIクライアント (API client for Parts Inventory)
+
+// GET 時にキャッシュをバイパスする JSON フェッチユーティリティ (Generic JSON fetch with cache-bypass for GET)
+/**
+ * JSONエンドポイントへアクセスし、GET時はタイムスタンプでキャッシュを回避する。
+ * @param {string} url            - リクエスト先URL。
+ * @param {object} [options={}]   - fetchに渡す追加オプション。
+ * @returns {Promise<any>}        - パース済みJSON、またはJSONでない場合はテキスト/ null。
+ */
 export async function fetchJson(url, options = {}) {
   const opts = { ...options };
   const method = (opts.method || 'GET').toUpperCase();
@@ -35,6 +47,11 @@ export async function fetchJson(url, options = {}) {
 return res.json().catch(() => null);
 }
 
+/**
+ * APIベースURLを受け取り、在庫操作に必要なエンドポイント関数群を返す。
+ * @param {string} apiBase   - APIサーバーのルートURL。空文字なら同一オリジン。
+ * @returns {object}         - 各種REST操作を行うメソッドセット。
+ */
 export function createApi(apiBase) {
   const base = apiBase || '';
 
@@ -78,6 +95,11 @@ return {
   };
 }
 
+/**
+ * APIから返却されたスロット情報をアプリ内部の部品モデルへ変換する。
+ * @param {object|null} slot   - APIレスポンスのslotオブジェクト。
+ * @returns {object|null}      - アプリ内で扱いやすい部品情報。部品なしなら null。
+ */
 export function mapApiSlotToAppPart(slot) {
   if (!slot) return null;
   

@@ -25,6 +25,11 @@ const fallbackImageBase = getFallbackImageBase()
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const FALLBACK_IMG = `${basePath}/images/pages/CameraNotFound.png`
 
+/**
+ * 画像パスの表記ゆれを取り除き、URL生成に使える形へ整える。
+ * @param {string} path - 元のパス。
+ * @returns {string|null} 正規化結果。
+ */
 const normalizeRelativePath = path => {
   if (!path) return null
   const trimmed = String(path).trim()
@@ -40,6 +45,11 @@ const normalizeRelativePath = path => {
   return withLeading.replace(/\/{3,}/g, '//')
 }
 
+/**
+ * ステータスに応じたMUI Chipカラーを返す。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色指定。
+ */
 const getChipColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (normalized === 'OK' || normalized === 'PASS') return 'success'
@@ -48,6 +58,11 @@ const getChipColor = status => {
   return 'default'
 }
 
+/**
+ * ロットヘッダー用Chipカラーを計算する。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色。
+ */
 const getLotStatusColor = status => {
   const normalized = (status || '').toString().trim().toUpperCase()
   if (normalized === 'PASS') return 'success'
@@ -56,6 +71,11 @@ const getLotStatusColor = status => {
   return 'default'
 }
 
+/**
+ * 撮影履歴テーブル内のChipカラーを選ぶ。
+ * @param {string} status - 判定。
+ * @returns {'success'|'error'|'warning'|'default'} 色。
+ */
 const getShotStatusColor = status => {
   const normalized = (status || '').toString().toUpperCase()
   if (normalized === 'PASS') return 'success'
@@ -92,6 +112,11 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     }
   }, [])
 
+  /**
+   * ショットの状態に応じてbefore/afterのどちらを参照するかを決定する。
+   * @param {object} shot - ショット情報。
+   * @returns {{primary: string, fallback: string}} 表示URL。
+   */
   const buildShotSources = useCallback((shot) => {
     if (!shot) return { primary: FALLBACK_IMG, fallback: '' }
     const normalized = normalizeRelativePath(shot.image_path)
@@ -125,6 +150,11 @@ const SpringLotDetailModal = ({ open, lot, lotStatus, shotsByCamera, shotsStatus
     return { primary, fallback }
   }, [])
 
+  /**
+   * 画像の読み込み失敗時、フォールバック→固定画像の順に差し替える。
+   * @param {React.SyntheticEvent<HTMLImageElement>} event - onErrorイベント。
+   * @param {string} fallbackSrc                          - フォールバックURL。
+   */
   const handleImageError = (event, fallbackSrc) => {
     const target = event.currentTarget
     if (fallbackSrc && !target.dataset.fallbackTried) {

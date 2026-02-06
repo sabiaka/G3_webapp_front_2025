@@ -1,5 +1,10 @@
 'use client'
 
+/*
+======== ファイル概要 ========
+機械の基礎情報を取得し、点検日や稼働時間の派生状態を管理するカスタムフック。
+*/
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { addDays, daysDiff, parseYmd, parseYmdSlash } from '../utils/date'
@@ -12,7 +17,13 @@ const defaultInfo = {
     nextInspection: 'YY-MM-DD',
 }
 
+/**
+ * 機械APIから情報を取得し、点検日などの派生値を計算する。
+ * @param   {string} machineId   - 取得対象の機械ID（APIのURLに使用）。
+ * @returns {object}             - 画面表示に必要な機械情報と更新関数の集合。
+ */
 export function useMachineInfo(machineId) {
+    // ======== 状態定義: APIレスポンスと派生値を管理 ========
     const [machineName, setMachineName] = useState(defaultInfo.name)
     const [todayUptimeHms, setTodayUptimeHms] = useState(null)
     const [todayProductionCount, setTodayProductionCount] = useState(null)
@@ -31,20 +42,21 @@ export function useMachineInfo(machineId) {
         if (last && next) {
             const diff = daysDiff(new Date(last), new Date(next))
 
-            if (Number.isFinite(diff) && diff > 0) return diff
+            if (Number.isFinite(diff) && diff > 0) return diff // API仕様上90日が既定だが、差分が取れればその値を優先
         }
 
-        
-return 90
+        return 90
     }, [])
 
     const [lastInspectionDate, setLastInspectionDate] = useState(initialLastInspection)
     const [inspectionIntervalDays, setInspectionIntervalDays] = useState(initialIntervalDays)
     const nextInspectionDate = useMemo(() => addDays(lastInspectionDate, inspectionIntervalDays), [lastInspectionDate, inspectionIntervalDays])
 
+    // ======== 副作用: 機械情報をAPIから取得 ========
     useEffect(() => {
         const controller = new AbortController()
 
+        // started_atが複数フォーマットで返る想定に備えて柔軟に解釈する
         const tryParseStartedAt = (s) => {
             if (!s || typeof s !== 'string') return null
             let d = new Date(s)
@@ -55,8 +67,8 @@ return 90
             fixed = fixed.replace(/\+\d{2}:\d{2}$/, '')
             d = new Date(fixed)
             if (!isNaN(d.getTime())) return d
-            
-return null
+
+            return null
         }
 
         const fetchMachine = async () => {
@@ -76,6 +88,7 @@ return null
                     signal: controller.signal,
                 })
 
+                // 異常応答は画面側でダミーデータに切り替えるため例外として扱う
                 if (!res.ok) throw new Error(`Failed to fetch machine: ${res.status}`)
                 const data = await res.json()
 
@@ -98,7 +111,7 @@ return null
                 const now = Date.now()
                 const startMs = parsedStart?.getTime?.()
 
-
+                // started_at が未来時刻の場合はAPI値の方が信頼できるため、ズレ許容（5秒）内のみ開始時刻基準を採用
                 // Use 'start' mode only when started_at is not in the future (allow tiny skew up to 5s)
                 if (parsedStart && startMs <= now + 5000) {
                     const secFromStart = Math.max(0, Math.floor((now - startMs) / 1000))
@@ -124,7 +137,7 @@ return null
                 const msg = String(e?.message || '')
 
                 if (e?.name === 'AbortError' || msg.toLowerCase().includes('abort')) {
-                    // ignore abort in dev/strict mode
+                    // 開発モードの二重fetchなどで発生する中断は問題ないため握りつぶす（ignore abort in dev/strict mode）
                 } else {
                     setMachineDataError('機械情報の取得に失敗しました。ダミー情報を表示しています。')
                 }
@@ -135,12 +148,12 @@ return null
 
         fetchMachine()
 
-        
-return () => {
+        return () => {
             controller.abort()
         }
     }, [machineId])
 
+    // ======== 副作用: 稼働秒数のカウントアップ ========
     useEffect(() => {
         // API 応答前でも見た目が止まらないよう、最低限のブートストラップ
         // baseTs が未設定なら「今」を基準に 0 秒からスタート
@@ -166,8 +179,7 @@ return () => {
 
         const id = setInterval(tick, 1000)
 
-        
-return () => {
+        return () => {
             clearInterval(id)
         }
     }, [])
