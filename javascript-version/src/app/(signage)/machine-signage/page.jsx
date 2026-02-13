@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import Stack from '@mui/material/Stack'
@@ -10,7 +9,7 @@ import Typography from '@mui/material/Typography'
 import useSignageData from '../components/useSignageData'
 import MachineStatusPanel from '../components/MachineStatusPanel'
 import InspectionPanel from '../components/InspectionPanel'
-import SpringMapPanel from '../components/SpringMapPanel'
+import SpringMapPanel from '../components/SpringMapPanel' // 作成したコンポーネントをインポート
 import DebugControls from '../components/DebugControls'
 import AlertOverlay from '../components/AlertOverlay'
 
@@ -18,12 +17,16 @@ import AlertOverlay from '../components/AlertOverlay'
 const SSE_URL = '/api/sse' 
 
 const Page = () => {
-  const router = useRouter()
   const data = useSignageData()
   
-  // 表示切り替え用ステート (false: 検査画像, true: マップ)
+  // 表示切り替え用のステート (false: 検査画像, true: マップ)
   const [showMap, setShowMap] = useState(false)
   
+  // マップ用の最新データステート（初期値はダミー）
+  const [mapData, setMapData] = useState({
+    spring1: 'ok', spring2: 'ng', spring3: 'ng', spring4: 'ng'
+  })
+
   // 10秒ごとに表示を切り替えるタイマー
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,31 +35,28 @@ const Page = () => {
     return () => clearInterval(timer)
   }, [])
 
-  // ★★★ SSE (リアルタイム自動更新) の設定 ★★★
+  // SSE (Server-Sent Events) の接続設定
   useEffect(() => {
     if (typeof window === 'undefined' || !window.EventSource) return
 
     const eventSource = new EventSource(SSE_URL)
 
+    // 接続確認
+    eventSource.addEventListener('sse:connected', (e) => {
+      console.log('SSE Connected')
+    })
+
     // 新しいデータが来た時の処理
     const handleUpdate = (event) => {
-      console.log('Update signal received:', event.type)
+      console.log('New data received:', event.type)
       
-      // ★修正ポイント: 即座にリロードせず、1秒 (1000ms) 待つ！
-      // これにより、DBへの書き込みが完了した「確実な最新データ」を取得できます。
-      // 「画像検査ステータス画面」で見ているのと同じ、書き込み完了後のデータを表示するために必須です。
-      setTimeout(() => {
-        console.log('Executing refresh...')
-        router.refresh() 
-        
-        // もしrouter.refresh()だけで画面が変わらない場合（キャッシュが強い場合）の保険
-        // window.location.reload() 
-      }, 1000) 
+      // ここで useSignageData のデータを再取得（SWRのmutate等があればそれを呼ぶ）
+      // data.mutate?.() 
+
+      // もしSSEのイベントデータ自体に判定結果が含まれているならここで setMapData を更新できます
+      // 例: JSON.parse(event.data) して mapData にセットするなど
     }
 
-    eventSource.addEventListener('sse:connected', () => console.log('SSE Connected'))
-    
-    // イベント受信設定
     eventSource.addEventListener('inspection:imageUploaded', handleUpdate)
     eventSource.addEventListener('inspection:resultUpdated', handleUpdate)
     eventSource.addEventListener('machine:started', handleUpdate)
@@ -64,29 +64,7 @@ const Page = () => {
     return () => {
       eventSource.close()
     }
-  }, [router])
-
-  // --- データ変換ロジック ---
-  // data.tiles (最新ログ) の内容をマップ用のステータスに変換
-  const getSpringStatus = (suffix) => {
-    if (!data.tiles || !Array.isArray(data.tiles)) return 'idle'
-    
-    // カメラID (B-spring01等) の末尾でマッチング
-    const tile = data.tiles.find(t => t.cameraId && t.cameraId.endsWith(suffix))
-    
-    if (!tile) return 'idle'
-    if (tile.status === 'PASS') return 'ok'
-    if (tile.status === 'FAIL') return 'ng'
-    return 'idle'
-  }
-
-  // マップに渡すデータを作成
-  const mapData = {
-    spring1: getSpringStatus('01'),
-    spring2: getSpringStatus('02'),
-    spring3: getSpringStatus('03'),
-    spring4: getSpringStatus('04'),
-  }
+  }, [])
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', fontSize: '125%', overflow: 'hidden' }}>
@@ -108,7 +86,7 @@ const Page = () => {
       <Box sx={{ px: 4, pb: 4, flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
         <Grid container spacing={4} sx={{ height: '100%' }}>
           
-          {/* 左カラム: 機械状況 */}
+          {/* Machine status (Left Column) */}
           <Grid item xs={12} xl={4} sx={{ height: '100%' }}>
             <MachineStatusPanel
               machineName={data.machineName}
@@ -120,37 +98,38 @@ const Page = () => {
             />
           </Grid>
 
-          {/* 右カラム: 画像検査 & マップ */}
+          {/* Right Column (Inspection + Map + Stats) */}
           <Grid item xs={12} xl={8} sx={{ height: '100%' }}>
             <Stack spacing={4} sx={{ height: '100%' }}>
               
-              {/* 表示切り替えエリア (10秒ごとに画像とマップが入れ替わる) */}
+              {/* 表示切り替えエリア (flexGrow: 1 で残りの高さを占有) */}
               <Box sx={{ flexGrow: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                 
-                {/* 1. 画像検査パネル */}
+                {/* 1. 検査画像パネル */}
                 <Box sx={{ 
                   position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                  opacity: showMap ? 0 : 1, 
+                  opacity: showMap ? 0 : 1, // 透明度で切り替えるとフェード効果もつけやすい
                   transition: 'opacity 0.5s ease-in-out',
-                  pointerEvents: showMap ? 'none' : 'auto',
+                  pointerEvents: showMap ? 'none' : 'auto', // 裏にある時はクリック無効化
                   zIndex: showMap ? 0 : 1
                 }}>
                   <InspectionPanel overallStatus={data.overallStatus} tiles={data.tiles} />
                 </Box>
 
-                {/* 2. マップ */}
+                {/* 2. ばねどめ検査マップ */}
                 <Box sx={{ 
                   position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                   opacity: showMap ? 1 : 0,
                   transition: 'opacity 0.5s ease-in-out',
                   zIndex: showMap ? 1 : 0
                 }}>
+                  {/* dataプロパティには実際の最新判定結果を渡してください */}
                   <SpringMapPanel data={mapData} />
                 </Box>
 
               </Box>
 
-              {/* 下部ステータス (rot_id, 検査時間) */}
+              {/* Stats (Bottom Fixed Height) */}
               <Grid container spacing={3} sx={{ flexShrink: 0 }}>
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 2, textAlign: 'center' }}>

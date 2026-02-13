@@ -48,7 +48,7 @@ const SpringMapPanel = ({ data }) => {
   // 0%  = 全開（上まで埋まる）
   // 15% = 少しだけ小さく（推奨）
   // 40% = 中央の下段と同じ高さ（前回の状態）
-  const TOP_SPACER_HEIGHT = '30%' 
+  const TOP_SPACER_HEIGHT = '25%' 
 
   return (
     <Box sx={{ 
