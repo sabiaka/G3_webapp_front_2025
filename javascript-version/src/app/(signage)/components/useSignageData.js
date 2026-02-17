@@ -82,7 +82,10 @@ export default function useSignageData() {
     const limit = opts.limit ?? 10
     return fetchJson(`/api/machines/${id}/logs?page=${encodeURIComponent(String(page))}&limit=${encodeURIComponent(String(limit))}`, opts.timeoutMs ?? 5000)
   }, [fetchJson])
-  const getCurrentLot = useCallback((opts = {}) => fetchJson(`/api/ingress/inspection/current-lot`, opts.timeoutMs ?? 5000), [fetchJson])
+
+  // ★修正箇所: URLに ?section=spring を追加しました
+  const getCurrentLot = useCallback((opts = {}) => fetchJson(`/api/ingress/inspection/current-lot?section=spring`, opts.timeoutMs ?? 5000), [fetchJson])
+  
   const getLotShots = useCallback((lotId, opts = {}) => fetchJson(`/api/inspections/lots/${encodeURIComponent(String(lotId))}/shots`, opts.timeoutMs ?? 5000), [fetchJson])
   const buildInspectionImageUrl = useCallback(imagePath => (imagePath ? `/api/inspections/images/${encodeURIComponent(String(imagePath))}` : ''), [])
 
