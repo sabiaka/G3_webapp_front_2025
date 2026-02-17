@@ -10,10 +10,27 @@ import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 
 export default function InspectionPanel({ overallStatus, tiles }) {
+  // 全体文字の色
+  const getStatusColor = (status) => {
+    if (status === 'PASS') return 'success.main'
+    if (status === 'FAIL') return 'error.main'
+    return 'text.disabled' // グレー
+  }
+
+  // 表示する文字（PASS/FAIL以外は WAIT と表示する）
+  const getStatusText = (status) => {
+    if (status === 'PASS' || status === 'FAIL') return status
+    return 'WAIT' // 別の文字（待機中など）に変更可能
+  }
+
+  const getChipColor = (status) => {
+    if (status === 'PASS') return 'success'
+    if (status === 'FAIL') return 'error'
+    return 'default'
+  }
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* ヘッダー */}
       <CardHeader 
         sx={{ py: 2, px: 3 }}
         title={
@@ -21,69 +38,36 @@ export default function InspectionPanel({ overallStatus, tiles }) {
             <Typography variant='h4' fontWeight={700} sx={{ fontSize: { xs: '2.2rem', md: '2.4rem' } }}>
               画像検査
             </Typography>
-            
-            {/* 判定結果(PASS/FAIL)の表示 */}
             <Typography 
               variant='h3' 
               fontWeight={900} 
-              color={overallStatus === 'PASS' ? 'success.main' : 'error.main'} 
-              // ▼▼▼ ここに mr: 4 (右余白) を追加して左にずらしています ▼▼▼
-              // 数字を大きくするともっと左に、小さくすると右寄りに戻ります
+              color={getStatusColor(overallStatus)} 
               sx={{ fontSize: { xs: '2.5rem', md: '3rem' }, lineHeight: 1, mr: 4 }}
             >
-              {overallStatus}
+              {getStatusText(overallStatus)}
             </Typography>
           </Stack>
         } 
       />
-      
-      <CardContent sx={{ 
-        pt: 0, 
-        pb: 2, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        height: '100%', 
-        overflow: 'hidden' 
-      }}>
-        
+      <CardContent sx={{ pt: 0, pb: 2, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <Grid container spacing={1} sx={{ flexGrow: 1, minHeight: 0 }}>
           {tiles.map((t, i) => (
             <Grid item xs={6} key={i} sx={{ height: '50%' }}>
               <Box sx={{ 
-                position: 'relative', 
-                borderRadius: 2, 
-                overflow: 'hidden', 
-                bgcolor: 'black',
-                width: '100%',
-                height: '100%', 
-                
-                backgroundImage: t.imageUrl ? `url(${t.imageUrl})` : 'none', 
-                backgroundSize: 'contain', 
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-                border: '1px solid #333'
+                position: 'relative', borderRadius: 2, overflow: 'hidden', bgcolor: 'black',
+                width: '100%', height: '100%', border: '1px solid #333',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                {/* カメラID */}
-                <Typography sx={{ 
-                  position: 'absolute', top: 6, left: 8, 
-                  bgcolor: 'rgba(0,0,0,0.6)', px: 0.8, py: 0.2, borderRadius: 1,
-                  fontSize: '0.9rem'
-                }} variant='subtitle1' color='grey.300' fontWeight={600}>
+                {t.imageUrl && (
+                  <img src={t.imageUrl} alt={t.cameraId} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none' }} />
+                )}
+                <Typography sx={{ position: 'absolute', top: 6, left: 8, bgcolor: 'rgba(0,0,0,0.6)', px: 0.8, py: 0.2, borderRadius: 1, fontSize: '0.9rem', zIndex: 2 }} variant='subtitle1' color='grey.300' fontWeight={600}>
                   {t.cameraId}
                 </Typography>
-                
-                {/* 個別ステータス */}
-                <Chip 
-                  size='small' 
-                  color={t.status === 'PASS' ? 'success' : 'error'} 
-                  label={t.status} 
-                  sx={{ position: 'absolute', top: 6, right: 8, fontWeight: 700 }} 
-                />
-                
-                {/* 失敗理由 */}
-                {t.status === 'FAIL' && t.failReason ? (
-                  <Chip size='small' color='error' variant='filled' label={t.failReason} sx={{ position: 'absolute', bottom: 6, right: 8, maxWidth: '80%' }} />
-                ) : null}
+                <Chip size='small' color={getChipColor(t.status)} label={t.status} sx={{ position: 'absolute', top: 6, right: 8, fontWeight: 700, zIndex: 2 }} />
+                {t.failReason && (
+                  <Chip size='small' color={getChipColor(t.status)} variant='filled' label={t.failReason} sx={{ position: 'absolute', bottom: 6, right: 8, zIndex: 2, fontWeight: 700 }} />
+                )}
               </Box>
             </Grid>
           ))}
