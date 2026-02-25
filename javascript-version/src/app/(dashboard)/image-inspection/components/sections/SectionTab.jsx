@@ -328,8 +328,9 @@ const SectionTab = ({
               <Box>
                 {/* 右側のサマリータイトルは残します */}
                 <Typography variant="h6" gutterBottom>
-                  サマリー（最新日{statsLatest.date ? `: ${statsLatest.date}` : ''}）
-                </Typography>
+  {/* availableDates[0] (APIが返す最新日) を表示するように修正 */}
+  サマリー（最新日{availableDates[0] ? `: ${availableDates[0]}` : ''}）
+</Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                   <DonutChart percentage={statsLatest.passRate} />
                 </Box>
