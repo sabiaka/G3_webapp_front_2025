@@ -114,6 +114,55 @@
                 transform: scale(1);
             }
         }
+
+        /* ======== 印刷時の可読性を維持する調整 ======== */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #111827 !important;
+            }
+
+            a {
+                color: #1f2937 !important;
+                text-decoration: none !important;
+            }
+
+            .shadow, .shadow-md, .shadow-lg, .shadow-xl {
+                box-shadow: none !important;
+            }
+
+            pre,
+            pre code,
+            pre code.hljs,
+            .hljs {
+                color: #f8fafc !important;
+                background: #1f2937 !important;
+                border: 1px solid #374151 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            code:not([class]) {
+                color: #111827 !important;
+                background: #f3f4f6 !important;
+                border: 1px solid #d1d5db !important;
+                border-radius: 0.25rem !important;
+                padding: 0.1em 0.35em !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            pre {
+                padding: 0.75rem !important;
+                border-radius: 0.375rem !important;
+                white-space: pre-wrap !important;
+                overflow-wrap: anywhere !important;
+            }
+
+            .copy-btn {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
